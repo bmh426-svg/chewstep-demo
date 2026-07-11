@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v6</title>
-  <meta name="app-version" content="demo-v6" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v7</title>
+  <meta name="app-version" content="demo-v7" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -173,7 +173,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v6</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v7</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -300,12 +300,12 @@
 
       <!-- [4] 영상 업로드 (선택) -->
       <section>
-        <div class="section-head reveal"><span class="tag">🎬 [4] 식사 영상 <b style="color:var(--danger)">(필수)</b></span><h2>씹는 모습을 30초 이상 담아주세요</h2>
-          <p>아이 <b>얼굴이 정면으로 보이게</b>, <b>30초 이상</b> 씹는 모습이면 좋아요. 정확한 분석을 위해 영상이 꼭 필요해요.</p></div>
+        <div class="section-head reveal"><span class="tag">🎬 [4] 식사 영상 <b style="color:var(--danger)">(필수)</b></span><h2>씹는 모습을 20초 이상 담아주세요</h2>
+          <p>아이 <b>얼굴이 정면으로 보이게</b> 씹는 모습을 담아주세요. <b>최소 20초</b>(권장 <b>40초 이상</b>) — 길수록 분석이 정확해져요.</p></div>
         <label class="upload reveal" id="uploadBox">
           <div class="big">📹</div>
-          <div class="lead">식사 영상 올리기 (30초 이상)</div>
-          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴이 보이는 30초 이상</div>
+          <div class="lead">식사 영상 올리기 (최소 20초 · 권장 40초+)</div>
+          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴이 보이는 20초 이상(길수록 좋아요)</div>
           <input type="file" id="videoInput" accept="video/*" />
           <div class="fname" id="videoName"></div>
         </label>
@@ -408,7 +408,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v6)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v7)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -726,12 +726,14 @@
       var wetVoice = document.querySelector('input[name="q_wetvoice"]').checked;
       answers.q_wetvoice = wetVoice ? 1 : 0;
 
-      // 영상 필수 + 30초 이상
+      // 영상 필수 + 20초 이상 (에러는 업로드칸 바로 아래에도 표시)
       var upBox = document.getElementById('uploadBox');
-      if (!videoMeta.has) { scrollToEl(upBox); return fail('식사 영상을 올려주세요. (필수)'); }
+      var vnEl = document.getElementById('videoName');
+      function videoFail(t) { vnEl.innerHTML = '<span style="color:var(--danger);font-weight:800">⚠️ ' + t + '</span>'; scrollToEl(upBox); return fail(t); }
+      if (!videoMeta.has) return videoFail('식사 영상을 올려주세요. (필수)');
       var vdur = videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || 0;
-      if (!vdur) { scrollToEl(upBox); return fail('영상 정보를 읽는 중이에요. 잠시 후 다시 눌러주세요.'); }
-      if (vdur < 30) { scrollToEl(upBox); return fail('영상은 30초 이상으로 올려주세요. (현재 약 ' + Math.round(vdur) + '초)'); }
+      if (!vdur) return videoFail('영상 정보를 읽는 중이에요. 잠시 후 다시 눌러주세요.');
+      if (vdur < 20) return videoFail('영상은 20초 이상으로 올려주세요. (현재 약 ' + Math.round(vdur) + '초)');
 
       if (!document.getElementById('consent').checked) { scrollToEl(document.getElementById('consent')); return fail('결과를 받으려면 익명 데이터 수집에 동의해 주세요.'); }
       msgEl.textContent = '';
@@ -754,7 +756,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v6',
+          nickname: nickname || null, consent: true, source: 'demo-v7',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
