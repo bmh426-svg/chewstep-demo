@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v8</title>
-  <meta name="app-version" content="demo-v8" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v9</title>
+  <meta name="app-version" content="demo-v9" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -173,7 +173,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v8</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v9</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -408,7 +408,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v8)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v9)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -460,7 +460,7 @@
       var duration = video.duration || 0;
 
       var T = [], JO = [], JL = [], JR = [];
-      var state = 'closed', chew = 0, faces = 0, cnt = 0, lastMs = -1, lastSampleT = -1;
+      var state = 'closed', chew = 0, faces = 0, cnt = 0, openCnt = 0, lastMs = -1, lastSampleT = -1;
       var SAMPLE_DT = 1 / 8;  // media-time 기준 초당 ~8샘플(씹기 검출엔 충분, 속도 확보)
 
       function sampleAt(t) {
@@ -476,6 +476,7 @@
             else if (nm === 'jawLeft') jl = cats[c].score;
             else if (nm === 'jawRight') jr = cats[c].score;
           }
+          if (jo >= 0.15) openCnt++;
           if (state === 'closed' && jo >= 0.15) state = 'open';
           else if (state === 'open' && jo <= 0.06) { chew++; state = 'closed'; }
         }
@@ -521,12 +522,19 @@
       var obsSpan = T.length ? (T[T.length - 1] - T[0]) : 0;   // 실제 관찰된 구간(초)
       var cpm = obsSpan > 1 ? Math.round(chew / obsSpan * 60 * 10) / 10 : (duration > 0 ? Math.round(chew / duration * 60 * 10) / 10 : 0);
       var detect = cnt ? Math.round(faces / cnt * 1000) / 10 : 0;
+      var maxJaw = r4(JO.length ? Math.max.apply(null, JO) : 0);
+      var openRatio = cnt ? Math.round(openCnt / cnt * 1000) / 10 : 0;  // 입 벌림(움직임) 비율 %
+      // 품질 등급: 얼굴 검출·입 움직임으로 '씹기 영상으로 쓸 만한지' 판정
+      var quality = 'medium';
+      if (faces === 0 || detect < 55) quality = 'low_face';        // 얼굴이 충분히 안 잡힘
+      else if (maxJaw < 0.12 || openRatio < 3) quality = 'low_motion'; // 입 움직임(씹기)이 거의 없음
+      else if (detect >= 80 && obsSpan >= 20) quality = 'high';
       var metrics = {
         chew_count: chew, chews_per_min: cpm,
-        avg_jaw_open: r4(avg(JO)), max_jaw_open: r4(JO.length ? Math.max.apply(null, JO) : 0),
+        avg_jaw_open: r4(avg(JO)), max_jaw_open: maxJaw, mouth_open_ratio: openRatio,
         left_pct: leftPct, right_pct: Math.round((100 - leftPct) * 10) / 10,
         detect_rate: detect, duration_sec: Math.round(duration * 100) / 100,
-        samples: cnt, observed_sec: Math.round(obsSpan * 10) / 10,
+        samples: cnt, observed_sec: Math.round(obsSpan * 10) / 10, quality: quality,
         algo: ALGO_VERSION, thresholds: { open: 0.15, close: 0.06 }
       };
       var series = downsample({ t: T, jaw_open: JO, jaw_left: JL, jaw_right: JR }, 300);
@@ -787,7 +795,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v8',
+          nickname: nickname || null, consent: true, source: 'demo-v9',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -838,20 +846,36 @@
       document.getElementById('rTip').innerHTML = '💡 <b>부모 팁</b> — ' + L.tip;
       document.getElementById('rSafe').innerHTML = '🛟 <b>안전</b> — ' + L.safety;
 
-      // 🎬 영상에서 관찰된 씹기(있을 때만) — 관찰형 코멘트, 단정 X
+      // 🎬 영상에서 관찰된 씹기 — 품질 게이트 + 신뢰도 배지 (부적합 영상은 솔직히 재촬영 안내)
       var vc = document.getElementById('rVideoCard');
-      if (videoMeta.metrics && videoMeta.faceFound) {
-        var m = videoMeta.metrics;
-        var cpmObs = m.chews_per_min < 25 ? '조금 적은 편' : (m.chews_per_min > 45 ? '활발한 편' : '보통 정도');
-        var balObs = Math.abs(m.left_pct - 50) >= 12 ? '한쪽으로 조금 치우친 편' : '비교적 균형적인 편';
-        document.getElementById('rVideoBody').innerHTML =
-          '<div class="foodchips">' +
-            '<span class="fc">🔁 분당 ' + m.chews_per_min + '회 <b style="color:var(--ink-soft)">(' + cpmObs + ')</b></span>' +
-            '<span class="fc">↔ 좌우 ' + m.left_pct + '/' + m.right_pct + ' <b style="color:var(--ink-soft)">(' + balObs + ')</b></span>' +
-            '<span class="fc">👁 얼굴 검출 ' + m.detect_rate + '%</span>' +
-          '</div>' +
-          '<div style="font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5">겉으로 보이는 턱 움직임 기반 <b>추정치</b>예요(입안·혀는 관찰 못 함, 웃음·말하기를 씹기로 볼 수 있음). 관찰형 참고치이며 의료 아님.</div>';
-        vc.style.display = 'block';
+      var vb = document.getElementById('rVideoBody');
+      var m = videoMeta.metrics;
+      if (videoMeta.has && m) {
+        var q = m.quality;
+        if (q === 'low_face' || q === 'low_motion' || !videoMeta.faceFound) {
+          var why = (q === 'low_motion')
+            ? '영상에서 <b>씹는(입을 움직이는) 모습이 거의 관찰되지 않았어요.</b> 아이가 실제로 <b>음식을 씹는 장면</b>이 맞는지 확인해 주세요.'
+            : '영상에서 <b>얼굴이 충분히 잡히지 않았어요.</b> 아이 얼굴이 <b>정면으로 밝게</b> 보이게 다시 찍어주세요.';
+          vb.innerHTML =
+            '<div style="background:#fdecea;color:#c0392b;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.55;font-weight:700">⚠️ 이 영상은 씹기 분석에 적합하지 않아요</div>' +
+            '<div style="font-size:13px;color:var(--ink-soft);margin-top:9px;line-height:1.55">' + why + '<br>아래 결과는 <b>체크리스트 기준</b>이며, 영상 지표는 신뢰도가 낮아 반영하지 않았어요.</div>';
+          vc.style.display = 'block';
+        } else {
+          var cpmObs = m.chews_per_min < 25 ? '조금 적은 편' : (m.chews_per_min > 45 ? '활발한 편' : '보통 정도');
+          var balObs = Math.abs(m.left_pct - 50) >= 12 ? '한쪽으로 조금 치우친 편' : '비교적 균형적인 편';
+          var badge = q === 'high'
+            ? '<span style="background:#e7f5e7;color:var(--green-dark);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800">🟢 분석 신뢰도 높음</span>'
+            : '<span style="background:#fff3e3;color:var(--orange-dark);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800">🟡 분석 신뢰도 보통</span>';
+          vb.innerHTML =
+            '<div style="margin-bottom:9px">' + badge + '</div>' +
+            '<div class="foodchips">' +
+              '<span class="fc">🔁 분당 ' + m.chews_per_min + '회 <b style="color:var(--ink-soft)">(' + cpmObs + ')</b></span>' +
+              '<span class="fc">↔ 좌우 ' + m.left_pct + '/' + m.right_pct + ' <b style="color:var(--ink-soft)">(' + balObs + ')</b></span>' +
+              '<span class="fc">👁 얼굴 검출 ' + m.detect_rate + '%</span>' +
+            '</div>' +
+            '<div style="font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5">겉으로 보이는 턱 움직임 기반 <b>추정치</b>예요(입안·혀는 관찰 못 함, 웃음·말하기를 씹기로 볼 수 있음). 관찰형 참고치이며 의료 아님.</div>';
+          vc.style.display = 'block';
+        }
       } else { vc.style.display = 'none'; }
 
       var rf = document.getElementById('rRedflag');
