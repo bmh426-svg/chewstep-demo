@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v4</title>
-  <meta name="app-version" content="demo-v4" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v5</title>
+  <meta name="app-version" content="demo-v5" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -172,7 +172,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v4</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v5</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -396,7 +396,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v4)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v5)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -543,7 +543,7 @@
            ],
            next: "잇몸으로 부숴 하나의 덩어리로 뭉쳐 삼키기 → 앞니로 베어물기(5~8mm) 도전",
            tip: "'가짜 저작'(뱉었다 다시 시도)은 지금 정상이에요. 방법을 연구하는 중이에요.",
-           safety: "포도·방울토마토 4등분, 단단한 두부 덩어리 금지. 밥 안 먹어도 분유·모유는 하루 500~600ml 이내." },
+           safety: "포도·방울토마토 4등분, 단단한 두부 덩어리 금지. 밥 안 먹어도 우유로 배를 채우지 마세요 — 하루 400~500ml 이내(돌 전이면 분유·모유)." },
       4: { badge: "🦷", stage: "어금니 씹기 단계",
            desc: "앞니로 베어 물고 어금니로 씹어 부수는 유아식 안착기예요. 씹는 힘은 자리잡았고, 이제 다양한 식감과 편식(선택적 거부)을 다뤄요.",
            now: ["앞니 절단 시작", "측방(좌우 원) 저작", "스스로 숟가락·포크 사용"],
@@ -730,7 +730,7 @@
           has_video: videoMeta.has, video_name: videoMeta.name || null, video_size: videoMeta.size || null,
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
-          nickname: nickname || null, consent: true, source: 'demo-v4',
+          nickname: nickname || null, consent: true, source: 'demo-v5',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
