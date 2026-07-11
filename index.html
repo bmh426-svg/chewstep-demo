@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v7</title>
-  <meta name="app-version" content="demo-v7" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v8</title>
+  <meta name="app-version" content="demo-v8" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -173,7 +173,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v7</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v8</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -408,7 +408,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v7)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v8)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -437,36 +437,35 @@
       return _fl;
     }
     function r4(x) { return Math.round(x * 10000) / 10000; }
-    function seek(v, t) {
-      return new Promise(function (res) {
-        var h = function () { v.removeEventListener('seeked', h); res(); };
-        v.addEventListener('seeked', h);
-        try { v.currentTime = Math.min(t, Math.max(0, (v.duration || t) - 0.001)); } catch (e) { res(); }
-      });
-    }
     function downsample(o, maxN) {
       var n = o.t.length; if (n <= maxN) return o;
       var st = n / maxN, out = { t: [], jaw_open: [], jaw_left: [], jaw_right: [] };
       for (var i = 0; i < maxN; i++) { var k = Math.floor(i * st); out.t.push(o.t[k]); out.jaw_open.push(o.jaw_open[k]); out.jaw_left.push(o.jaw_left[k]); out.jaw_right.push(o.jaw_right[k]); }
       return out;
     }
+    // 영상을 '재생하며' 프레임을 읽어 지표 추출 (모바일에서 seek가 특정 프레임에 멈추는 문제 회피).
+    // 워치독 타이머로 어떤 경우에도 무한 대기하지 않음.
     window.extractChewing = async function (file, onProgress) {
       var fl = await ensure();
       var video = document.createElement('video');
-      video.muted = true; video.playsInline = true; video.preload = 'auto';
+      video.muted = true; video.playsInline = true;
+      video.setAttribute('playsinline', ''); video.setAttribute('muted', ''); video.preload = 'auto';
+      video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      document.body.appendChild(video);
       video.src = URL.createObjectURL(file);
-      await new Promise(function (res, rej) { video.onloadeddata = function () { res(); }; video.onerror = function () { rej(new Error('video load')); }; });
+      await new Promise(function (res) {   // 로드 대기(지연 대비 8초 타임아웃)
+        var done = false; function ok() { if (!done) { done = true; res(); } }
+        video.onloadeddata = ok; video.onerror = ok; setTimeout(ok, 8000);
+      });
       var duration = video.duration || 0;
-      var FPS = 15, MAX = 450;
-      var nSteps = Math.max(1, Math.floor(duration * FPS)); if (nSteps > MAX) nSteps = MAX;
-      var step = duration > 0 ? duration / nSteps : 0;
+
       var T = [], JO = [], JL = [], JR = [];
-      var state = 'closed', chew = 0, faces = 0, cnt = 0, lastTs = -1;
-      for (var i = 0; i < nSteps; i++) {
-        var t = i * step;
-        await seek(video, t);
-        var ts = Math.round(t * 1000); if (ts <= lastTs) ts = lastTs + 1; lastTs = ts;
-        var res = null; try { res = fl.detectForVideo(video, ts); } catch (e) { res = null; }
+      var state = 'closed', chew = 0, faces = 0, cnt = 0, lastMs = -1, lastSampleT = -1;
+      var SAMPLE_DT = 1 / 8;  // media-time 기준 초당 ~8샘플(씹기 검출엔 충분, 속도 확보)
+
+      function sampleAt(t) {
+        var ms = Math.round(t * 1000); if (ms <= lastMs) ms = lastMs + 1; lastMs = ms;
+        var res = null; try { res = fl.detectForVideo(video, ms); } catch (e) { res = null; }
         var jo = 0, jl = 0, jr = 0;
         if (res && res.faceBlendshapes && res.faceBlendshapes.length) {
           faces++;
@@ -480,22 +479,54 @@
           if (state === 'closed' && jo >= 0.15) state = 'open';
           else if (state === 'open' && jo <= 0.06) { chew++; state = 'closed'; }
         }
-        cnt++;
-        T.push(Math.round(t * 100) / 100); JO.push(r4(jo)); JL.push(r4(jl)); JR.push(r4(jr));
-        if (onProgress) onProgress((i + 1) / nSteps);
+        cnt++; T.push(Math.round(t * 100) / 100); JO.push(r4(jo)); JL.push(r4(jl)); JR.push(r4(jr));
       }
+
+      await new Promise(function (resolve) {
+        var finished = false;
+        function finish() { if (finished) return; finished = true; try { video.pause(); } catch (e) {} resolve(); }
+        var watchdog = setTimeout(finish, Math.max(25000, (duration + 10) * 1000));  // 절대 무한 대기 방지
+        var useRVFC = typeof video.requestVideoFrameCallback === 'function';
+        function tick(t) {
+          if (t - lastSampleT >= SAMPLE_DT) { lastSampleT = t; sampleAt(t); if (onProgress && duration) onProgress(Math.min(0.99, t / duration)); }
+        }
+        function onFrame(now, meta) {
+          if (finished) return;
+          tick(meta ? meta.mediaTime : video.currentTime);
+          if (video.ended) { clearTimeout(watchdog); if (onProgress) onProgress(1); finish(); return; }
+          video.requestVideoFrameCallback(onFrame);
+        }
+        video.onended = function () { clearTimeout(watchdog); if (onProgress) onProgress(1); finish(); };
+        function started() {
+          try { video.playbackRate = 4; } catch (e) {}  // 4배속 재생 → 분석 시간 대폭 단축
+          if (useRVFC) video.requestVideoFrameCallback(onFrame);
+          else {
+            var iv = setInterval(function () {
+              if (finished || video.ended) { clearInterval(iv); if (video.ended) { clearTimeout(watchdog); finish(); } return; }
+              tick(video.currentTime);
+            }, 60);
+          }
+        }
+        var pr = video.play();
+        if (pr && typeof pr.then === 'function') pr.then(started).catch(function () { clearTimeout(watchdog); finish(); });
+        else started();
+      });
+
       try { URL.revokeObjectURL(video.src); } catch (e) {}
+      try { video.remove(); } catch (e) {}
+
       var avg = function (a) { if (!a.length) return 0; var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
       var aL = avg(JL), aR = avg(JR), lr = aL + aR;
       var leftPct = lr > 1e-6 ? Math.round(aL / lr * 1000) / 10 : 50;
-      var cpm = duration > 0 ? Math.round(chew / duration * 60 * 10) / 10 : 0;
+      var obsSpan = T.length ? (T[T.length - 1] - T[0]) : 0;   // 실제 관찰된 구간(초)
+      var cpm = obsSpan > 1 ? Math.round(chew / obsSpan * 60 * 10) / 10 : (duration > 0 ? Math.round(chew / duration * 60 * 10) / 10 : 0);
       var detect = cnt ? Math.round(faces / cnt * 1000) / 10 : 0;
       var metrics = {
         chew_count: chew, chews_per_min: cpm,
         avg_jaw_open: r4(avg(JO)), max_jaw_open: r4(JO.length ? Math.max.apply(null, JO) : 0),
         left_pct: leftPct, right_pct: Math.round((100 - leftPct) * 10) / 10,
         detect_rate: detect, duration_sec: Math.round(duration * 100) / 100,
-        samples: cnt, sample_fps: duration > 0 ? Math.round(nSteps / duration * 10) / 10 : 0,
+        samples: cnt, observed_sec: Math.round(obsSpan * 10) / 10,
         algo: ALGO_VERSION, thresholds: { open: 0.15, close: 0.06 }
       };
       var series = downsample({ t: T, jaw_open: JO, jaw_left: JL, jaw_right: JR }, 300);
@@ -756,7 +787,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v7',
+          nickname: nickname || null, consent: true, source: 'demo-v8',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
