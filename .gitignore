@@ -1,0 +1,11 @@
+# OS / 편집기 부산물
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# 의존성(이 데모는 사용 안 함)
+node_modules/
+
+# Vercel
+.vercel
