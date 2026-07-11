@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v2</title>
-  <meta name="app-version" content="demo-v2" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v3</title>
+  <meta name="app-version" content="demo-v3" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -85,7 +85,7 @@
     input[type="text"]:focus { outline: none; border-color: var(--orange); }
 
     /* 영상 업로드 */
-    .upload { border: 2px dashed #e6c9a3; border-radius: 16px; background: #fffaf3; padding: 24px 18px; text-align: center; cursor: pointer; transition: border-color .12s, background .12s; }
+    .upload { display: block; border: 2px dashed #e6c9a3; border-radius: 16px; background: #fffaf3; padding: 24px 18px; text-align: center; cursor: pointer; transition: border-color .12s, background .12s; }
     .upload:hover { border-color: var(--orange); background: #FFF4EA; }
     .upload .big { font-size: 32px; }
     .upload .lead { font-weight: 700; margin-top: 6px; font-size: 15px; }
@@ -147,7 +147,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v2</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v3</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -164,10 +164,10 @@
   <main class="wrap">
     <form id="checkForm" novalidate>
 
-      <!-- [1] 월령 -->
+      <!-- [1] 월령 & 치아(구조) -->
       <section>
-        <div class="section-head reveal"><span class="tag">[1] 월령</span><h2>우리 아이는 지금</h2>
-          <p>월령은 <b>점수가 아니라</b> 또래 기대와 비교하는 데만 써요.</p></div>
+        <div class="section-head reveal"><span class="tag">[1] 월령 &amp; 치아</span><h2>우리 아이는 지금</h2>
+          <p>월령은 <b>점수가 아니라</b> 또래 기대와 비교하는 데만 써요. 영상만으론 알 수 없는 부분이에요.</p></div>
         <div class="q reveal">
           <div class="qtext">아이 개월 수 <span class="req">*</span></div>
           <div class="opts">
@@ -179,90 +179,106 @@
         </div>
         <div class="q reveal" data-scored>
           <div class="qtext">치아(어금니) 발달 상태 <span class="req">*</span></div>
+          <div class="qhint">씹는 힘의 '준비 상태'예요. (영상으론 안 보임)</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="teeth" data-score="1"><span>아직 앞니만 났거나 치아가 거의 없다.</span></label>
-            <label class="opt"><input type="radio" name="teeth" data-score="3"><span>송곳니·작은 어금니가 올라오기 시작했다.</span></label>
-            <label class="opt"><input type="radio" name="teeth" data-score="5"><span>맨 안쪽 큰 어금니까지 다 올라왔다.</span></label>
+            <label class="opt"><input type="radio" name="q_teeth" data-score="1"><span>아직 앞니만 났거나 치아가 거의 없다.</span></label>
+            <label class="opt"><input type="radio" name="q_teeth" data-score="3"><span>송곳니·작은 어금니가 올라오기 시작했다.</span></label>
+            <label class="opt"><input type="radio" name="q_teeth" data-score="5"><span>맨 안쪽 큰 어금니까지 다 올라왔다.</span></label>
+          </div>
+        </div>
+        <div class="q reveal" data-scored>
+          <div class="qtext">지금 <b>주로 먹는 음식의 형태</b> <span class="req">*</span></div>
+          <div class="qhint">'무엇을' 먹는지는 영상으론 알 수 없어요 — 레벨 판단의 핵심이에요.</div>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="q_food" data-score="1"><span>입자 없는 완전 묽은 미음·죽</span></label>
+            <label class="opt"><input type="radio" name="q_food" data-score="2"><span>알갱이가 살짝 씹히는 중기 죽 (2~3mm)</span></label>
+            <label class="opt"><input type="radio" name="q_food" data-score="3"><span>진밥·무른 죽, 부드러운 큐브 채소 (3~5mm)</span></label>
+            <label class="opt"><input type="radio" name="q_food" data-score="4"><span>형태가 온전한 유아식 반찬</span></label>
+            <label class="opt"><input type="radio" name="q_food" data-score="5"><span>어른과 동일한 일반 가정식</span></label>
           </div>
         </div>
       </section>
 
-      <!-- [2] 씹기 기능 -->
+      <!-- [2] 입안에서 일어나는 일 (영상으로 안 보이는 부분) -->
       <section>
-        <div class="section-head reveal"><span class="tag">🧠 [2] 씹기 기능</span><h2>씹을 때 이렇게 움직여요</h2></div>
+        <div class="section-head reveal"><span class="tag">🫦 [2] 입안에서 일어나는 일</span><h2>입안은 영상으로 못 봐요</h2>
+          <p>혀·삼킴처럼 <b>입안에서 일어나는 일</b>은 카메라로 안 보여서, 부모님이 관찰해 주셔야 해요.</p></div>
         <div class="q reveal" data-scored>
-          <div class="qtext">주로 먹는 음식의 형태 <span class="req">*</span></div>
+          <div class="qtext">씹을 때 <b>혀로 음식 옮기기</b> <span class="req">*</span></div>
+          <div class="qhint">혀가 음식을 양쪽 어금니로 나르는지 (입안이라 영상엔 안 보임)</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="foodType" data-score="1"><span>입자 없는 완전 묽은 미음·죽</span></label>
-            <label class="opt"><input type="radio" name="foodType" data-score="2"><span>알갱이가 살짝 씹히는 중기 죽 (2~3mm)</span></label>
-            <label class="opt"><input type="radio" name="foodType" data-score="3"><span>진밥·무른 죽, 부드러운 큐브 채소 (3~5mm)</span></label>
-            <label class="opt"><input type="radio" name="foodType" data-score="4"><span>형태가 온전한 유아식 반찬</span></label>
-            <label class="opt"><input type="radio" name="foodType" data-score="5"><span>어른과 동일한 일반 가정식</span></label>
+            <label class="opt"><input type="radio" name="q_tongue" data-score="1"><span>혀로 못 옮기고, 앞에서 뒤로 밀어 넘기기 급급하다.</span></label>
+            <label class="opt"><input type="radio" name="q_tongue" data-score="3"><span>한쪽으로 조금씩 옮기기 시작한다.</span></label>
+            <label class="opt"><input type="radio" name="q_tongue" data-score="5"><span>양쪽 어금니로 자유롭게 옮긴다.</span></label>
           </div>
         </div>
         <div class="q reveal" data-scored>
-          <div class="qtext">씹을 때 혀의 움직임 <span class="req">*</span></div>
+          <div class="qtext">씹은 뒤 <b>삼키는 모습</b> (덩어리 모으기) <span class="req">*</span></div>
+          <div class="qhint">씹은 음식을 하나로 모아 삼키는지, 흘리거나 입안에 남는지</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="tongueMove" data-score="1"><span>앞뒤로만 오가며 뒤로 밀어 넘기기 급급하다.</span></label>
-            <label class="opt"><input type="radio" name="tongueMove" data-score="3"><span>좌우로 조금씩 이동시키기 시작한다.</span></label>
-            <label class="opt"><input type="radio" name="tongueMove" data-score="5"><span>양쪽 어금니로 자유자재로 이동시킨다.</span></label>
+            <label class="opt"><input type="radio" name="q_bolus" data-score="1"><span>못 모으고 흘리거나, 입안에 흩어진 채로 삼킨다.</span></label>
+            <label class="opt"><input type="radio" name="q_bolus" data-score="3"><span>어느 정도 모아 삼키지만 자주 흘린다.</span></label>
+            <label class="opt"><input type="radio" name="q_bolus" data-score="5"><span>하나의 덩어리로 잘 모아 깔끔히 삼킨다.</span></label>
           </div>
         </div>
         <div class="q reveal" data-scored>
-          <div class="qtext">씹을 때 턱의 움직임 <span class="req">*</span></div>
+          <div class="qtext">음식을 <b>입에 오래 물고 있거나 안 씹고 삼키나요?</b> <span class="req">*</span></div>
+          <div class="qhint">삼킴을 미루거나 통째로 넘기는 행동 (겉으론 잘 안 드러남)</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="jawMove" data-score="1"><span>단순 위아래로만 뗐다 붙였다 한다.</span></label>
-            <label class="opt"><input type="radio" name="jawMove" data-score="3"><span>확연한 좌우 턱 움직임이 보인다.</span></label>
-            <label class="opt"><input type="radio" name="jawMove" data-score="5"><span>원을 그리듯 회전하며 성인처럼 씹는다.</span></label>
+            <label class="opt"><input type="radio" name="q_hold" data-score="1"><span>매 식사마다 오래 물거나, 안 씹고 통째로 삼킨다.</span></label>
+            <label class="opt"><input type="radio" name="q_hold" data-score="3"><span>가끔(하루 1회 이하) 그런다.</span></label>
+            <label class="opt"><input type="radio" name="q_hold" data-score="5"><span>그런 행동 없이 제때 잘 씹어 삼킨다.</span></label>
           </div>
         </div>
       </section>
 
-      <!-- [3] 문제 행동 -->
+      <!-- [3] 삼킴 안전 & 질감 (영상으로 안 보이는 부분) -->
       <section>
-        <div class="section-head reveal"><span class="tag">⚠️ [3] 이런 모습</span><h2>이런 모습이 있나요</h2></div>
+        <div class="section-head reveal"><span class="tag">⚠️ [3] 삼킴 안전 &amp; 질감</span><h2>안전하게 잘 넘기나요</h2></div>
         <div class="q reveal" data-scored>
-          <div class="qtext">고기·질긴 음식을 줬을 때 <span class="req">*</span></div>
+          <div class="qtext"><b>고기·질긴 음식</b>을 줬을 때 <span class="req">*</span></div>
+          <div class="qhint">가장 어려운 식감에 대한 반응</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="meat" data-score="1"><span>계속 물고 있다가 결국 뱉는다.</span></label>
-            <label class="opt"><input type="radio" name="meat" data-score="3"><span>몇 번 씹다가 이내 뱉어낸다.</span></label>
-            <label class="opt"><input type="radio" name="meat" data-score="5"><span>거부감 없이 끝까지 씹어 삼킨다.</span></label>
+            <label class="opt"><input type="radio" name="q_meat" data-score="1"><span>계속 물고 있다가 결국 뱉는다.</span></label>
+            <label class="opt"><input type="radio" name="q_meat" data-score="3"><span>몇 번 씹다가 이내 뱉어낸다.</span></label>
+            <label class="opt"><input type="radio" name="q_meat" data-score="5"><span>거부감 없이 끝까지 씹어 삼킨다.</span></label>
           </div>
         </div>
         <div class="q reveal" data-scored>
-          <div class="qtext">음식을 입에 오래 물고 있는 행동 <span class="req">*</span></div>
+          <div class="qtext"><b>새로운 질감·음식</b>을 받아들이나요? <span class="req">*</span></div>
+          <div class="qhint">질감 예민함·편식 경향</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="hold" data-score="1"><span>매 식사마다, 한 입 먹고 한참 있는다.</span></label>
-            <label class="opt"><input type="radio" name="hold" data-score="3"><span>하루 1회 이하, 가끔 그런다.</span></label>
-            <label class="opt"><input type="radio" name="hold" data-score="5"><span>물고 있는 행동이 전혀 없다.</span></label>
+            <label class="opt"><input type="radio" name="q_texture" data-score="1"><span>첫 입에 바로 울거나 완강히 거부한다.</span></label>
+            <label class="opt"><input type="radio" name="q_texture" data-score="3"><span>낯설어하지만 두세 입 유도하면 적응한다.</span></label>
+            <label class="opt"><input type="radio" name="q_texture" data-score="5"><span>민감하지 않고 주는 대로 잘 먹는다.</span></label>
           </div>
         </div>
         <div class="q reveal" data-scored>
-          <div class="qtext">식사 중 사레·캑캑거림 빈도 <span class="req">*</span></div>
+          <div class="qtext">식사 중 <b>사레·캑캑거림</b> 빈도 <span class="req">*</span></div>
+          <div class="qhint">삼킴 안전 신호 (영상으론 판단 어려움)</div>
           <div class="opts">
-            <label class="opt"><input type="radio" name="choke" data-score="1"><span>매 식사마다 1회 이상 사레가 걸린다.</span></label>
-            <label class="opt"><input type="radio" name="choke" data-score="3"><span>2~3일에 한 번꼴로 단단한 음식에 걸린다.</span></label>
-            <label class="opt"><input type="radio" name="choke" data-score="5"><span>거의 없거나 정상 수준이다.</span></label>
+            <label class="opt"><input type="radio" name="q_choke" data-score="1"><span>매 식사마다 1회 이상 사레가 걸린다.</span></label>
+            <label class="opt"><input type="radio" name="q_choke" data-score="3"><span>2~3일에 한 번꼴로 단단한 음식에 걸린다.</span></label>
+            <label class="opt"><input type="radio" name="q_choke" data-score="5"><span>거의 없거나 정상 수준이다.</span></label>
           </div>
         </div>
-        <div class="q reveal" data-scored>
-          <div class="qtext">입자·질감이 조금 바뀌어도 거부하나요? <span class="req">*</span></div>
-          <div class="opts">
-            <label class="opt"><input type="radio" name="texChange" data-score="1"><span>첫 입에 바로 울거나 완강히 거부한다.</span></label>
-            <label class="opt"><input type="radio" name="texChange" data-score="3"><span>낯설어하지만 두세 입 유도하면 적응한다.</span></label>
-            <label class="opt"><input type="radio" name="texChange" data-score="5"><span>민감하지 않고 주는 대로 잘 먹는다.</span></label>
+        <div class="q reveal">
+          <div class="qtext">삼킨 뒤 <b>목소리가 젖은(그렁그렁한) 소리</b>로 바뀔 때가 있나요?</div>
+          <div class="qhint">삼킴 안전과 관련된 신호예요. 해당하면 체크해 주세요. (점수엔 반영 안 되고, 상담 안내에만 참고해요)</div>
+          <div class="chips">
+            <label class="chip achip2" id="wetChip"><input type="checkbox" name="q_wetvoice" style="display:none"><span>네, 가끔 그래요</span></label>
           </div>
         </div>
       </section>
 
       <!-- [4] 영상 업로드 (선택) -->
       <section>
-        <div class="section-head reveal"><span class="tag">🎬 [4] 식사 영상 (선택)</span><h2>영상이 있으면 씹기까지 봐드려요</h2>
-          <p>10~20초, 아이 <b>얼굴이 보이게</b> 씹는 모습이면 충분해요. <b>없어도 결과는 받을 수 있어요.</b></p></div>
+        <div class="section-head reveal"><span class="tag">🎬 [4] 식사 영상 <b style="color:var(--danger)">(필수)</b></span><h2>씹는 모습을 30초 이상 담아주세요</h2>
+          <p>아이 <b>얼굴이 정면으로 보이게</b>, <b>30초 이상</b> 씹는 모습이면 좋아요. 정확한 분석을 위해 영상이 꼭 필요해요.</p></div>
         <label class="upload reveal" id="uploadBox">
           <div class="big">📹</div>
-          <div class="lead">식사 영상 올리기</div>
-          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴이 보이는 10~20초</div>
+          <div class="lead">식사 영상 올리기 (30초 이상)</div>
+          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴이 보이는 30초 이상</div>
           <input type="file" id="videoInput" accept="video/*" />
           <div class="fname" id="videoName"></div>
         </label>
@@ -337,13 +353,18 @@
         아이마다 발달 속도는 다르며, 새로운 식감은 여러 번 경험해야 익숙해지는 게 정상이에요.
         사레·기침·삼킴 곤란이 반복되거나 걱정되는 신호가 있으면 소아과·언어/작업치료 등 전문가와 상담하세요.
       </div>
+
+      <div class="saved" style="background:#fff7ef;color:var(--orange-dark);margin-top:12px;">
+        📩 궁금한 점·문의는 <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:var(--orange-dark);font-weight:800;">chewstep@naver.com</a>
+      </div>
     </div>
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v2)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v3)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
-    🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.
+    🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
+    📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
   </footer>
 
   <!-- ── 브라우저 씹기 지표 추출기 (MediaPipe FaceLandmarker, CDN) ──
@@ -502,6 +523,10 @@
         var group = document.getElementsByName(e.target.name);
         for (var i = 0; i < group.length; i++) { var l = group[i].closest('.opt'); if (l) l.classList.toggle('sel', group[i].checked); }
       }
+      // 젖은 목소리 체크칩(비채점) 하이라이트
+      if (e.target.type === 'checkbox' && e.target.name === 'q_wetvoice') {
+        var wl = e.target.closest('.chip'); if (wl) wl.classList.toggle('sel', e.target.checked);
+      }
       updateProgress();
     });
 
@@ -544,7 +569,7 @@
       });
     }
 
-    var scoredNames = ['age','teeth','foodType','tongueMove','jawMove','meat','hold','choke','texChange'];
+    var scoredNames = ['age','q_teeth','q_food','q_tongue','q_bolus','q_hold','q_meat','q_texture','q_choke'];
     function checkedInput(name) { var g = document.getElementsByName(name); for (var i = 0; i < g.length; i++) if (g[i].checked) return g[i]; return null; }
     function updateProgress() {
       var done = 0; for (var i = 0; i < scoredNames.length; i++) if (checkedInput(scoredNames[i])) done++;
@@ -556,15 +581,18 @@
 
     // 점수% → Level(1~5)
     function levelFor(pct) { if (pct < 30) return 1; if (pct < 50) return 2; if (pct < 70) return 3; if (pct < 88) return 4; return 5; }
-    // 월령 대비 해석 + 레드플래그
-    function interpretByAge(lv, expectMin, chokeScore) {
-      var diff = lv - expectMin, status, label, red = false, reason = '';
+    // 월령 대비 해석 + 레드플래그(사유 배열)
+    function interpretByAge(lv, expectMin, chokeScore, wetVoice) {
+      var diff = lv - expectMin, status, label;
       if (diff >= 1) { status = 'ahead'; label = '또래보다 잘 씹는 편이에요'; }
       else if (diff === 0) { status = 'ontrack'; label = '월령에 맞게 잘 크고 있어요'; }
       else if (diff === -1) { status = 'slow'; label = '또래보다 조금 천천히 — 연습으로 도와줄 수 있어요'; }
-      else { status = 'low'; label = '월령 대비 낮은 편이에요'; red = true; reason = 'age'; }
-      if (chokeScore === 1) { red = true; reason = reason ? 'age+choke' : 'choke'; }
-      return { status: status, label: label, diff: diff, red: red, reason: reason, nextGoal: Math.min(5, lv + 1) };
+      else { status = 'low'; label = '월령 대비 낮은 편이에요'; }
+      var reasons = [];
+      if (diff <= -2) reasons.push('age');
+      if (chokeScore === 1) reasons.push('choke');
+      if (wetVoice) reasons.push('wet');
+      return { status: status, label: label, diff: diff, red: reasons.length > 0, reasons: reasons, nextGoal: Math.min(5, lv + 1) };
     }
 
     form.addEventListener('submit', function (e) {
@@ -581,14 +609,25 @@
         var val = Number(picked.getAttribute('data-score')) || 0;
         total += val; max += qMax; answers[picked.name] = val;
       }
+      // 비채점 안전 문항(젖은 목소리)
+      var wetVoice = document.querySelector('input[name="q_wetvoice"]').checked;
+      answers.q_wetvoice = wetVoice ? 1 : 0;
+
+      // 영상 필수 + 30초 이상
+      var upBox = document.getElementById('uploadBox');
+      if (!videoMeta.has) { scrollToEl(upBox); return fail('식사 영상을 올려주세요. (필수)'); }
+      var vdur = videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || 0;
+      if (!vdur) { scrollToEl(upBox); return fail('영상 정보를 읽는 중이에요. 잠시 후 다시 눌러주세요.'); }
+      if (vdur < 30) { scrollToEl(upBox); return fail('영상은 30초 이상으로 올려주세요. (현재 약 ' + Math.round(vdur) + '초)'); }
+
       if (!document.getElementById('consent').checked) { scrollToEl(document.getElementById('consent')); return fail('결과를 받으려면 익명 데이터 수집에 동의해 주세요.'); }
       msgEl.textContent = '';
 
       var pct = max ? Math.round(total / max * 100) : 0;
       var lv = levelFor(pct);
       var expectMin = Number(ageInput.getAttribute('data-expectmin')) || 1;
-      var chokeScore = answers.choke || 0;
-      var A = interpretByAge(lv, expectMin, chokeScore);
+      var chokeScore = answers.q_choke || 0;
+      var A = interpretByAge(lv, expectMin, chokeScore, wetVoice);
       var avoid = selectedAvoid();
       var nickname = document.getElementById('nickname').value.trim();
       var ageLabel = ageInput.getAttribute('data-label');
@@ -601,7 +640,7 @@
           has_video: videoMeta.has, video_name: videoMeta.name || null, video_size: videoMeta.size || null,
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
-          nickname: nickname || null, consent: true, source: 'demo-v2',
+          nickname: nickname || null, consent: true, source: 'demo-v3',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -654,15 +693,17 @@
 
       var rf = document.getElementById('rRedflag');
       if (A.red) {
-        var msg = '<b>👀 전문가 상담을 한 번 권해요.</b><br>';
-        if (A.reason === 'age') msg += '지금 씹기 수준이 월령 기대보다 여러 단계 낮은 편이에요. ';
-        else if (A.reason === 'choke') msg += '매 식사마다 사레가 걸린다고 하셨어요. ';
-        else msg += '월령 대비 낮고, 사레도 잦은 편이에요. ';
-        msg += '걱정할 일이 아닐 수도 있지만, 소아과·언어/작업치료 전문가에게 한 번 확인받아 보면 안심돼요.';
-        rf.innerHTML = msg; rf.style.display = 'block';
+        var parts = [];
+        if (A.reasons.indexOf('age') >= 0) parts.push('지금 씹기 수준이 월령 기대보다 여러 단계 낮은 편');
+        if (A.reasons.indexOf('choke') >= 0) parts.push('매 식사마다 사레가 걸리는 편');
+        if (A.reasons.indexOf('wet') >= 0) parts.push('삼킨 뒤 목소리가 젖은 소리로 바뀌는 모습');
+        rf.innerHTML = '<b>👀 전문가 상담을 한 번 권해요.</b><br>' + parts.join(' · ') +
+          '이 관찰됐어요. 걱정할 일이 아닐 수도 있지만, 소아과·언어/작업치료 전문가에게 한 번 확인받아 보면 안심돼요.';
+        rf.style.display = 'block';
       } else { rf.style.display = 'none'; }
 
       form.style.display = 'none';
+      var heroEl = document.querySelector('.hero'); if (heroEl) heroEl.style.display = 'none'; // 결과에선 '참가하면 받아요' 배너 숨김(첫 페이지에만)
       document.getElementById('result').style.display = 'block';
       document.getElementById('progressFill').style.width = '100%';
       document.getElementById('progressLabel').textContent = '완료 ✓';
