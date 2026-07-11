@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v5</title>
-  <meta name="app-version" content="demo-v5" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v6</title>
+  <meta name="app-version" content="demo-v6" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -81,8 +81,9 @@
     .chip .hot { font-size: 10px; font-weight: 800; color: #d9534f; margin-left: 3px; }
     .chip.sel .hot { color: #fff; }
 
-    input[type="text"] { width: 100%; font-family: inherit; font-size: 15px; color: var(--ink); padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: #fffdfb; }
-    input[type="text"]:focus { outline: none; border-color: var(--orange); }
+    input[type="text"], textarea { width: 100%; font-family: inherit; font-size: 15px; color: var(--ink); padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: #fffdfb; }
+    input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--orange); }
+    textarea { resize: vertical; min-height: 66px; line-height: 1.6; }
 
     /* 영상 업로드 */
     .upload { display: block; border: 2px dashed #e6c9a3; border-radius: 16px; background: #fffaf3; padding: 24px 18px; text-align: center; cursor: pointer; transition: border-color .12s, background .12s; }
@@ -172,7 +173,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v5</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v6</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -200,6 +201,7 @@
             <label class="opt"><input type="radio" name="age" data-key="10-12" data-expectmin="2" data-label="10~12개월"><span>10~12개월 <small style="color:var(--ink-soft);">(후기~완료기, 잇몸 씹기 시작)</small></span></label>
             <label class="opt"><input type="radio" name="age" data-key="13-18" data-expectmin="3" data-label="13~18개월"><span>13~18개월 <small style="color:var(--ink-soft);">(유아식 초기, 첫 어금니)</small></span></label>
             <label class="opt"><input type="radio" name="age" data-key="19-24" data-expectmin="4" data-label="19~24개월"><span>19~24개월 <small style="color:var(--ink-soft);">(유아식 중기)</small></span></label>
+            <label class="opt"><input type="radio" name="age" data-key="25+" data-expectmin="5" data-label="25개월 이상"><span>25개월 이상 <small style="color:var(--ink-soft);">(참고용 · 씹기 완성기~편식 관리)</small></span></label>
           </div>
         </div>
         <div class="q reveal" data-scored>
@@ -315,6 +317,16 @@
           <p><b>많은 아이들이 싫어하는 순</b>으로 모았어요. 있으면 골라주세요.</p></div>
         <div class="q reveal">
           <div class="chips" id="avoidChips"></div>
+          <input type="text" id="avoidEtc" placeholder="목록에 없는 재료가 있다면 적어주세요 (쉼표로 여러 개)" maxlength="80" style="margin-top:12px;" />
+        </div>
+      </section>
+
+      <!-- [6] 식습관 고민 (선택, 자유 입력) -->
+      <section>
+        <div class="section-head reveal"><span class="tag">💬 [6] 식습관 고민 (선택)</span><h2>가장 고민되는 점이 있나요?</h2>
+          <p>식사·씹기·편식에서 제일 걱정되는 걸 자유롭게 적어주세요. <b>이름·연락처 등 개인정보는 적지 말아주세요.</b></p></div>
+        <div class="q reveal">
+          <textarea id="concernNote" rows="3" maxlength="300" placeholder="예: 고기만 주면 오래 물고 있다가 뱉어요. 새로운 채소는 아예 안 먹으려고 해요."></textarea>
         </div>
       </section>
 
@@ -396,7 +408,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v5)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v6)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -603,8 +615,11 @@
       });
     })();
     function selectedAvoid() {
-      return Array.prototype.slice.call(document.querySelectorAll('#avoidChips .achip.sel'))
+      var chips = Array.prototype.slice.call(document.querySelectorAll('#avoidChips .achip.sel'))
         .map(function (e) { return e.dataset.f; }).filter(function (f) { return f && f !== 'none'; });
+      var etc = (document.getElementById('avoidEtc').value || '').trim();
+      if (etc) etc.split(',').forEach(function (x) { x = x.trim(); if (x) chips.push(x); });
+      return chips;
     }
 
     // 옵션 하이라이트 + 진행률
@@ -672,17 +687,25 @@
     // 점수% → Level(1~5)
     function levelFor(pct) { if (pct < 30) return 1; if (pct < 50) return 2; if (pct < 70) return 3; if (pct < 88) return 4; return 5; }
     // 월령 대비 해석 + 레드플래그(사유 배열)
-    function interpretByAge(lv, expectMin, chokeScore, wetVoice) {
-      var diff = lv - expectMin, status, label;
-      if (diff >= 1) { status = 'ahead'; label = '또래보다 잘 씹는 편이에요'; }
-      else if (diff === 0) { status = 'ontrack'; label = '월령에 맞게 잘 크고 있어요'; }
-      else if (diff === -1) { status = 'slow'; label = '또래보다 조금 천천히 — 연습으로 도와줄 수 있어요'; }
-      else { status = 'low'; label = '월령 대비 낮은 편이에요'; }
+    function interpretByAge(lv, expectMin, chokeScore, wetVoice, ageKey) {
+      var diff = lv - expectMin, older = (ageKey === '25+'), status, label;
       var reasons = [];
-      if (diff <= -2) reasons.push('age');
+      if (older) {
+        // 25개월 이상: 정밀 또래비교 대신 '씹기 기능 완성' 점검(참고용). 씹기 기능은 만 2~2.5세경 대체로 완성.
+        if (lv >= 5) { status = 'ahead'; label = '씹기 기능이 완성 단계로 보여요 👍 이제 편식·식습관을 다질 때예요'; }
+        else if (lv === 4) { status = 'ontrack'; label = '거의 완성 단계예요 — 새로운 식감을 조금 더 넓혀가요'; }
+        else { status = 'low'; label = '이 개월수면 씹기 기능이 대체로 완성되는 시기예요. 아직 초기 단계로 보여요'; }
+        if (lv <= 3) reasons.push('age');  // 만 2세 넘어 Level 3 이하 → 상담 권유
+      } else {
+        if (diff >= 1) { status = 'ahead'; label = '또래보다 잘 씹는 편이에요'; }
+        else if (diff === 0) { status = 'ontrack'; label = '월령에 맞게 잘 크고 있어요'; }
+        else if (diff === -1) { status = 'slow'; label = '또래보다 조금 천천히 — 연습으로 도와줄 수 있어요'; }
+        else { status = 'low'; label = '월령 대비 낮은 편이에요'; }
+        if (diff <= -2) reasons.push('age');
+      }
       if (chokeScore === 1) reasons.push('choke');
       if (wetVoice) reasons.push('wet');
-      return { status: status, label: label, diff: diff, red: reasons.length > 0, reasons: reasons, nextGoal: Math.min(5, lv + 1) };
+      return { status: status, label: label, diff: diff, older: older, red: reasons.length > 0, reasons: reasons, nextGoal: Math.min(5, lv + 1) };
     }
 
     form.addEventListener('submit', function (e) {
@@ -717,7 +740,7 @@
       var lv = levelFor(pct);
       var expectMin = Number(ageInput.getAttribute('data-expectmin')) || 1;
       var chokeScore = answers.q_choke || 0;
-      var A = interpretByAge(lv, expectMin, chokeScore, wetVoice);
+      var A = interpretByAge(lv, expectMin, chokeScore, wetVoice, answers.age_band);
       var avoid = selectedAvoid();
       var nickname = document.getElementById('nickname').value.trim();
       var ageLabel = ageInput.getAttribute('data-label');
@@ -730,7 +753,8 @@
           has_video: videoMeta.has, video_name: videoMeta.name || null, video_size: videoMeta.size || null,
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
-          nickname: nickname || null, consent: true, source: 'demo-v5',
+          note: (document.getElementById('concernNote').value || '').trim() || null,
+          nickname: nickname || null, consent: true, source: 'demo-v6',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -755,8 +779,13 @@
 
       var st = document.getElementById('rStatus');
       st.className = 'r-status ' + A.status;
-      st.innerHTML = '② ' + (ageLabel || '또래') + ' 또래 대비<br>' + A.label +
-        '<small>' + (A.diff >= 1 ? '기대보다 앞선 편' : A.diff === 0 ? '기대 수준에 맞음' : A.diff === -1 ? '기대보다 한 단계 아래' : '기대보다 여러 단계 아래') + '</small>';
+      if (A.older) {
+        st.innerHTML = '② 25개월 이상 · 씹기 기능 점검<br>' + A.label +
+          '<small>참고용이에요 — 우리 기준 데이터는 6~24개월 중심이라, 이 나이대는 완성 여부만 대략 봐요.</small>';
+      } else {
+        st.innerHTML = '② ' + (ageLabel || '또래') + ' 또래 대비<br>' + A.label +
+          '<small>' + (A.diff >= 1 ? '기대보다 앞선 편' : A.diff === 0 ? '기대 수준에 맞음' : A.diff === -1 ? '기대보다 한 단계 아래' : '기대보다 여러 단계 아래') + '</small>';
+      }
 
       document.getElementById('rFoods').innerHTML = L.good.map(function (f) { return '<span class="fc">✔ ' + f + '</span>'; }).join('');
       document.getElementById('rCareful').innerHTML = L.careful.map(function (f) { return '<span class="fc no">✕ ' + f + '</span>'; }).join('');
@@ -795,7 +824,7 @@
       var rf = document.getElementById('rRedflag');
       if (A.red) {
         var parts = [];
-        if (A.reasons.indexOf('age') >= 0) parts.push('지금 씹기 수준이 월령 기대보다 여러 단계 낮은 편');
+        if (A.reasons.indexOf('age') >= 0) parts.push(A.older ? '만 2세가 지났는데 씹기가 아직 초기 단계로 보이는 점' : '지금 씹기 수준이 월령 기대보다 여러 단계 낮은 편');
         if (A.reasons.indexOf('choke') >= 0) parts.push('매 식사마다 사레가 걸리는 편');
         if (A.reasons.indexOf('wet') >= 0) parts.push('삼킨 뒤 목소리가 젖은 소리로 바뀌는 모습');
         rf.innerHTML = '<b>👀 전문가 상담을 한 번 권해요.</b><br>' + parts.join(' · ') +
