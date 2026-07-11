@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v9</title>
-  <meta name="app-version" content="demo-v9" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v10</title>
+  <meta name="app-version" content="demo-v10" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -173,7 +173,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v9</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v10</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이유식·유아식 전환기(6~24개월) 아이의 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -408,7 +408,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v9)<br />
+    <b>Chew_Step</b> · 이유식·유아식 전환기(6~24개월) 씹기 발달 · 무료 베타 데모 (demo v10)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -439,8 +439,8 @@
     function r4(x) { return Math.round(x * 10000) / 10000; }
     function downsample(o, maxN) {
       var n = o.t.length; if (n <= maxN) return o;
-      var st = n / maxN, out = { t: [], jaw_open: [], jaw_left: [], jaw_right: [] };
-      for (var i = 0; i < maxN; i++) { var k = Math.floor(i * st); out.t.push(o.t[k]); out.jaw_open.push(o.jaw_open[k]); out.jaw_left.push(o.jaw_left[k]); out.jaw_right.push(o.jaw_right[k]); }
+      var st = n / maxN, out = { t: [], jaw_open: [], jaw_left: [], jaw_right: [], tongue_out: [] };
+      for (var i = 0; i < maxN; i++) { var k = Math.floor(i * st); out.t.push(o.t[k]); out.jaw_open.push(o.jaw_open[k]); out.jaw_left.push(o.jaw_left[k]); out.jaw_right.push(o.jaw_right[k]); out.tongue_out.push((o.tongue_out || [])[k] || 0); }
       return out;
     }
     // 영상을 '재생하며' 프레임을 읽어 지표 추출 (모바일에서 seek가 특정 프레임에 멈추는 문제 회피).
@@ -459,14 +459,14 @@
       });
       var duration = video.duration || 0;
 
-      var T = [], JO = [], JL = [], JR = [];
+      var T = [], JO = [], JL = [], JR = [], TO = [], LC = [];
       var state = 'closed', chew = 0, faces = 0, cnt = 0, openCnt = 0, lastMs = -1, lastSampleT = -1;
       var SAMPLE_DT = 1 / 8;  // media-time 기준 초당 ~8샘플(씹기 검출엔 충분, 속도 확보)
 
       function sampleAt(t) {
         var ms = Math.round(t * 1000); if (ms <= lastMs) ms = lastMs + 1; lastMs = ms;
         var res = null; try { res = fl.detectForVideo(video, ms); } catch (e) { res = null; }
-        var jo = 0, jl = 0, jr = 0;
+        var jo = 0, jl = 0, jr = 0, to = 0, lc = 0;
         if (res && res.faceBlendshapes && res.faceBlendshapes.length) {
           faces++;
           var cats = res.faceBlendshapes[0].categories;
@@ -475,12 +475,14 @@
             if (nm === 'jawOpen') jo = cats[c].score;
             else if (nm === 'jawLeft') jl = cats[c].score;
             else if (nm === 'jawRight') jr = cats[c].score;
+            else if (nm === 'tongueOut') to = cats[c].score;   // 혀 내밀기(설출)
+            else if (nm === 'mouthClose') lc = cats[c].score;  // 입술 다물기
           }
           if (jo >= 0.15) openCnt++;
           if (state === 'closed' && jo >= 0.15) state = 'open';
           else if (state === 'open' && jo <= 0.06) { chew++; state = 'closed'; }
         }
-        cnt++; T.push(Math.round(t * 100) / 100); JO.push(r4(jo)); JL.push(r4(jl)); JR.push(r4(jr));
+        cnt++; T.push(Math.round(t * 100) / 100); JO.push(r4(jo)); JL.push(r4(jl)); JR.push(r4(jr)); TO.push(r4(to)); LC.push(r4(lc));
       }
 
       await new Promise(function (resolve) {
@@ -524,6 +526,9 @@
       var detect = cnt ? Math.round(faces / cnt * 1000) / 10 : 0;
       var maxJaw = r4(JO.length ? Math.max.apply(null, JO) : 0);
       var openRatio = cnt ? Math.round(openCnt / cnt * 1000) / 10 : 0;  // 입 벌림(움직임) 비율 %
+      var toCnt = 0; for (var ti = 0; ti < TO.length; ti++) if (TO[ti] >= 0.3) toCnt++;
+      var tongueThrust = faces ? Math.round(toCnt / faces * 1000) / 10 : 0;  // 혀 내밀기(설출) 비율 % (실험 지표)
+      var avgLipClose = r4(avg(LC));
       // 품질 등급: 얼굴 검출·입 움직임으로 '씹기 영상으로 쓸 만한지' 판정
       var quality = 'medium';
       if (faces === 0 || detect < 55) quality = 'low_face';        // 얼굴이 충분히 안 잡힘
@@ -534,10 +539,11 @@
         avg_jaw_open: r4(avg(JO)), max_jaw_open: maxJaw, mouth_open_ratio: openRatio,
         left_pct: leftPct, right_pct: Math.round((100 - leftPct) * 10) / 10,
         detect_rate: detect, duration_sec: Math.round(duration * 100) / 100,
+        tongue_thrust_ratio: tongueThrust, avg_lip_close: avgLipClose,
         samples: cnt, observed_sec: Math.round(obsSpan * 10) / 10, quality: quality,
-        algo: ALGO_VERSION, thresholds: { open: 0.15, close: 0.06 }
+        algo: ALGO_VERSION, thresholds: { open: 0.15, close: 0.06, tongue_out: 0.3 }
       };
-      var series = downsample({ t: T, jaw_open: JO, jaw_left: JL, jaw_right: JR }, 300);
+      var series = downsample({ t: T, jaw_open: JO, jaw_left: JL, jaw_right: JR, tongue_out: TO }, 300);
       return { metrics: metrics, series: series, faceFound: faces > 0, detectRate: detect };
     };
     window.__chewReady = true;
@@ -795,7 +801,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v9',
+          nickname: nickname || null, consent: true, source: 'demo-v10',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -863,6 +869,8 @@
         } else {
           var cpmObs = m.chews_per_min < 25 ? '조금 적은 편' : (m.chews_per_min > 45 ? '활발한 편' : '보통 정도');
           var balObs = Math.abs(m.left_pct - 50) >= 12 ? '한쪽으로 조금 치우친 편' : '비교적 균형적인 편';
+          var tt = m.tongue_thrust_ratio || 0;
+          var ttObs = tt >= 15 ? '자주 보이는 편' : (tt >= 5 ? '가끔' : '거의 없음');
           var badge = q === 'high'
             ? '<span style="background:#e7f5e7;color:var(--green-dark);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800">🟢 분석 신뢰도 높음</span>'
             : '<span style="background:#fff3e3;color:var(--orange-dark);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800">🟡 분석 신뢰도 보통</span>';
@@ -871,9 +879,10 @@
             '<div class="foodchips">' +
               '<span class="fc">🔁 분당 ' + m.chews_per_min + '회 <b style="color:var(--ink-soft)">(' + cpmObs + ')</b></span>' +
               '<span class="fc">↔ 좌우 ' + m.left_pct + '/' + m.right_pct + ' <b style="color:var(--ink-soft)">(' + balObs + ')</b></span>' +
+              '<span class="fc">👅 혀 내밀기 ' + tt + '% <b style="color:var(--ink-soft)">(' + ttObs + '·실험)</b></span>' +
               '<span class="fc">👁 얼굴 검출 ' + m.detect_rate + '%</span>' +
             '</div>' +
-            '<div style="font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5">겉으로 보이는 턱 움직임 기반 <b>추정치</b>예요(입안·혀는 관찰 못 함, 웃음·말하기를 씹기로 볼 수 있음). 관찰형 참고치이며 의료 아님.</div>';
+            '<div style="font-size:12px;color:var(--ink-soft);margin-top:9px;line-height:1.5">겉으로 보이는 턱·입 움직임 기반 <b>추정치</b>예요(입안·혀 속은 관찰 못 함, 웃음·말하기를 씹기로 볼 수 있음). <b>혀 내밀기(설출)</b>는 이유식 초기엔 자연스럽고 씹기로 넘어가며 줄어드는 반응 — 아직 실험 지표예요. 관찰형 참고치이며 의료 아님.</div>';
           vc.style.display = 'block';
         }
       } else { vc.style.display = 'none'; }
