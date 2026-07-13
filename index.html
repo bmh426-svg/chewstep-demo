@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v15</title>
-  <meta name="app-version" content="demo-v15" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v16</title>
+  <meta name="app-version" content="demo-v16" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -191,9 +191,55 @@
     .reveal { opacity: 0; transform: translateY(18px); transition: opacity .5s ease, transform .5s ease; }
     .reveal.in { opacity: 1; transform: none; }
     @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+    /* 항상 보이는 플로팅 문의하기 버튼 (스크롤과 무관하게 늘 화면에 고정) */
+    .contact-fab {
+      position: fixed; left: 16px; bottom: 18px; z-index: 40;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--green); color: #fff; text-decoration: none;
+      font-family: inherit; font-weight: 800; font-size: 14.5px; letter-spacing: -.2px;
+      padding: 12px 18px; border-radius: 999px;
+      box-shadow: 0 10px 26px rgba(92,184,92,.4); border: 2px solid #fff;
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    .contact-fab:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 14px 30px rgba(92,184,92,.5); }
+    .contact-fab .fico { font-size: 17px; line-height: 1; }
+    @media (max-width: 420px) { .contact-fab { left: 12px; bottom: 14px; padding: 11px 16px; font-size: 13.5px; } }
+
+    /* 문의하기 팝업 */
+    #inqOverlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(58,50,48,.5); align-items: center; justify-content: center; padding: 20px; }
+    #inqOverlay.on { display: flex; }
+    .inq-box { position: relative; background: var(--card); border-radius: 20px; width: 100%; max-width: 440px; padding: 24px 22px 20px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; }
+    .inq-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border: none; background: #f4ede3; color: var(--ink-soft); border-radius: 50%; font-size: 15px; font-weight: 800; cursor: pointer; }
+    .inq-title { font-size: 19px; font-weight: 900; }
+    .inq-sub { font-size: 13px; color: var(--ink-soft); margin: 5px 0 16px; line-height: 1.55; }
+    .inq-err { font-size: 13px; color: var(--danger); font-weight: 700; margin-top: 8px; min-height: 18px; }
+    .inq-result { font-size: 13.5px; font-weight: 700; text-align: center; margin-top: 10px; min-height: 20px; }
+    .inq-fallback { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 12px; }
+    .inq-fallback a { color: var(--orange-dark); font-weight: 700; }
   </style>
 </head>
 <body>
+
+  <!-- 항상 보이는 문의하기 버튼 -->
+  <a class="contact-fab inq-open" href="#" aria-label="문의하기">
+    <span class="fico">💬</span> 문의하기
+  </a>
+
+  <!-- 문의하기 팝업 (폼 → Edge Function → 메일 발송 + DB 저장) -->
+  <div id="inqOverlay" role="dialog" aria-modal="true" aria-labelledby="inqTitle">
+    <div class="inq-box">
+      <button type="button" class="inq-x" id="inqClose" aria-label="닫기">✕</button>
+      <div class="inq-title" id="inqTitle">📩 문의하기</div>
+      <div class="inq-sub">궁금한 점·의견을 남겨주세요. 답장 받을 이메일은 선택이에요.</div>
+      <input type="text" id="inqEmail" placeholder="회신받을 이메일 (선택)" maxlength="120" inputmode="email" autocomplete="email" />
+      <textarea id="inqMsg" rows="4" placeholder="문의 내용을 적어주세요." maxlength="1500" style="margin-top:10px;"></textarea>
+      <div class="inq-err" id="inqErr"></div>
+      <button type="button" class="btn lg" id="inqSend" style="margin-top:12px;">보내기</button>
+      <div class="inq-result" id="inqResult"></div>
+      <div class="inq-fallback">전송이 안 되면 <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의">chewstep@naver.com</a> 으로 보내주세요.</div>
+    </div>
+  </div>
 
   <div class="progress-wrap">
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -202,7 +248,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v15</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v16</span>
     <div class="cred"><span class="cico">👩‍⚕️</span> <span><b>대학병원 소아과 간호사</b>가 직접 만들었어요</span></div>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고 <b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
@@ -459,17 +505,17 @@
       </div>
 
       <div class="saved" style="background:#fff7ef;color:var(--orange-dark);margin-top:12px;">
-        📩 궁금한 점·문의는 <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:var(--orange-dark);font-weight:800;">chewstep@naver.com</a>
+        📩 궁금한 점·의견이 있으면 <a href="#" class="inq-open" style="color:var(--orange-dark);font-weight:800;">문의하기 →</a>
       </div>
     </div>
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v15)<br />
+    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v16)<br />
     👩‍⚕️ 대학병원 소아과 간호사가 만든 참고용 씹기 발달 가이드입니다.<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
-    📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
+    📩 문의: <a href="#" class="inq-open" style="color:inherit;text-decoration:underline;">문의하기</a>
   </footer>
 
   <!-- ── 브라우저 씹기 지표 추출기 (MediaPipe FaceLandmarker, CDN) ──
@@ -895,7 +941,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v15',
+          nickname: nickname || null, consent: true, source: 'demo-v16',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -1045,6 +1091,36 @@
         _ub.parentNode.insertBefore(_w, _ub.nextSibling);
       }
     }
+    // ── 문의하기 팝업 (폼 → Edge Function send-inquiry → 메일 발송 + DB 저장) ──
+    (function () {
+      var ov = document.getElementById('inqOverlay');
+      if (!ov) return;
+      function openInq(e) { if (e) e.preventDefault(); ov.classList.add('on'); setTimeout(function () { var m = document.getElementById('inqMsg'); if (m) m.focus(); }, 60); }
+      function closeInq() { ov.classList.remove('on'); }
+      Array.prototype.forEach.call(document.querySelectorAll('.inq-open'), function (b) { b.addEventListener('click', openInq); });
+      document.getElementById('inqClose').addEventListener('click', closeInq);
+      ov.addEventListener('click', function (e) { if (e.target === ov) closeInq(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('on')) closeInq(); });
+      document.getElementById('inqSend').addEventListener('click', function () {
+        var msgEl2 = document.getElementById('inqMsg'), emailEl = document.getElementById('inqEmail');
+        var errEl = document.getElementById('inqErr'), resEl = document.getElementById('inqResult');
+        var msg = (msgEl2.value || '').trim(), email = (emailEl.value || '').trim();
+        errEl.textContent = '';
+        if (!msg) { errEl.textContent = '문의 내용을 입력해 주세요.'; return; }
+        var btn = this; btn.disabled = true; resEl.style.color = 'var(--ink-soft)'; resEl.textContent = '보내는 중…';
+        fetch(SUPA_URL + '/functions/v1/send-inquiry', {
+          method: 'POST',
+          headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, email: email || null, source: 'demo-v16' })
+        }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (o) {
+            btn.disabled = false;
+            if (o.ok && o.j && o.j.ok) { resEl.style.color = 'var(--green-dark)'; resEl.textContent = '✅ 문의가 접수됐어요. 감사합니다!'; msgEl2.value = ''; emailEl.value = ''; setTimeout(closeInq, 1600); }
+            else { resEl.style.color = 'var(--danger)'; resEl.textContent = '⚠️ 전송 실패 — 아래 메일 주소로 보내주세요.'; }
+          }).catch(function () { btn.disabled = false; resEl.style.color = 'var(--danger)'; resEl.textContent = '⚠️ 네트워크 문제로 전송 실패 — 아래 메일 주소로 보내주세요.'; });
+      });
+    })();
+
     updateProgress();
   </script>
 
