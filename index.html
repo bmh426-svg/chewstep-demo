@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v11</title>
-  <meta name="app-version" content="demo-v11" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v12</title>
+  <meta name="app-version" content="demo-v12" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -199,7 +199,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v11</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v12</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고 <b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -461,7 +461,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v11)<br />
+    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v12)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -500,11 +500,20 @@
     // 워치독 타이머로 어떤 경우에도 무한 대기하지 않음.
     window.extractChewing = async function (file, onProgress) {
       var fl = await ensure();
+      // 분석용 미니 프리뷰를 화면에 '실제로 보이게' 둔다.
+      // iOS 인앱 WebView(카톡·인스타 등)는 숨긴/화면밖 비디오를 렌더링하지 않아
+      // 프레임·얼굴 검출이 0이 되는 문제가 있어, 작게라도 합성되는 상태로 재생해야 프레임이 디코딩된다.
+      var stage = document.createElement('div');
+      stage.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:9999;width:96px;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.25);background:#000';
       var video = document.createElement('video');
-      video.muted = true; video.playsInline = true;
-      video.setAttribute('playsinline', ''); video.setAttribute('muted', ''); video.preload = 'auto';
-      video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
-      document.body.appendChild(video);
+      video.muted = true; video.playsInline = true; video.controls = false;
+      video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', ''); video.setAttribute('muted', ''); video.preload = 'auto';
+      video.style.cssText = 'display:block;width:96px;height:auto;background:#000';
+      var tagEl = document.createElement('div');
+      tagEl.style.cssText = 'font:700 10px/1.4 -apple-system,sans-serif;color:#fff;background:rgba(0,0,0,.6);text-align:center;padding:3px 4px';
+      tagEl.textContent = '🔎 씹기 분석 중…';
+      stage.appendChild(video); stage.appendChild(tagEl);
+      document.body.appendChild(stage);
       video.src = URL.createObjectURL(file);
       await new Promise(function (res) {   // 로드 대기(지연 대비 8초 타임아웃)
         var done = false; function ok() { if (!done) { done = true; res(); } }
@@ -512,13 +521,24 @@
       });
       var duration = video.duration || 0;
 
+      // 검출은 video를 직접 넘기지 않고 캔버스에 그린 프레임으로 한다(WebView에서 훨씬 안정적).
+      var canvas = document.createElement('canvas');
+      var cctx = canvas.getContext('2d');
+      function drawFrame() {
+        var vw = video.videoWidth || 0, vh = video.videoHeight || 0;
+        if (!vw || !vh) return false;
+        if (!canvas.width) { var sc = Math.min(1, 480 / Math.max(vw, vh)); canvas.width = Math.max(2, Math.round(vw * sc)); canvas.height = Math.max(2, Math.round(vh * sc)); }
+        try { cctx.drawImage(video, 0, 0, canvas.width, canvas.height); return true; } catch (e) { return false; }
+      }
+
       var T = [], JO = [], JL = [], JR = [], TO = [], LC = [];
       var state = 'closed', chew = 0, faces = 0, cnt = 0, openCnt = 0, lastMs = -1, lastSampleT = -1;
       var SAMPLE_DT = 1 / 8;  // media-time 기준 초당 ~8샘플(씹기 검출엔 충분, 속도 확보)
 
       function sampleAt(t) {
         var ms = Math.round(t * 1000); if (ms <= lastMs) ms = lastMs + 1; lastMs = ms;
-        var res = null; try { res = fl.detectForVideo(video, ms); } catch (e) { res = null; }
+        var res = null;
+        if (drawFrame()) { try { res = fl.detectForVideo(canvas, ms); } catch (e) { res = null; } }
         var jo = 0, jl = 0, jr = 0, to = 0, lc = 0;
         if (res && res.faceBlendshapes && res.faceBlendshapes.length) {
           faces++;
@@ -539,37 +559,45 @@
       }
 
       await new Promise(function (resolve) {
-        var finished = false;
-        function finish() { if (finished) return; finished = true; try { video.pause(); } catch (e) {} resolve(); }
+        var finished = false, ivId = null;
+        function finish() { if (finished) return; finished = true; if (ivId) { clearInterval(ivId); ivId = null; } try { video.pause(); } catch (e) {} resolve(); }
         var watchdog = setTimeout(finish, Math.max(25000, (duration + 10) * 1000));  // 절대 무한 대기 방지
         var useRVFC = typeof video.requestVideoFrameCallback === 'function';
         function tick(t) {
           if (t - lastSampleT >= SAMPLE_DT) { lastSampleT = t; sampleAt(t); if (onProgress && duration) onProgress(Math.min(0.99, t / duration)); }
         }
+        function startInterval() {   // rVFC 미지원/정체 시 currentTime 기반 폴백
+          if (ivId) return;
+          ivId = setInterval(function () {
+            if (finished || video.ended) { clearInterval(ivId); ivId = null; if (video.ended) { clearTimeout(watchdog); finish(); } return; }
+            tick(video.currentTime);
+          }, 60);
+        }
         function onFrame(now, meta) {
-          if (finished) return;
+          if (finished || ivId) return;   // 폴백으로 전환됐으면 rVFC 중단
           tick(meta ? meta.mediaTime : video.currentTime);
           if (video.ended) { clearTimeout(watchdog); if (onProgress) onProgress(1); finish(); return; }
           video.requestVideoFrameCallback(onFrame);
         }
         video.onended = function () { clearTimeout(watchdog); if (onProgress) onProgress(1); finish(); };
         function started() {
-          try { video.playbackRate = 4; } catch (e) {}  // 4배속 재생 → 분석 시간 대폭 단축
-          if (useRVFC) video.requestVideoFrameCallback(onFrame);
-          else {
-            var iv = setInterval(function () {
-              if (finished || video.ended) { clearInterval(iv); if (video.ended) { clearTimeout(watchdog); finish(); } return; }
-              tick(video.currentTime);
-            }, 60);
-          }
+          try { video.playbackRate = 2; } catch (e) {}  // 2배속(인앱 WebView는 고배속에서 프레임 유실이 커서 낮춤)
+          if (useRVFC) {
+            video.requestVideoFrameCallback(onFrame);
+            // rVFC 정체 감지: 2.5초간 한 프레임도 못 읽으면 interval 폴백으로 전환(WebView 대비)
+            setTimeout(function () { if (!finished && cnt === 0) startInterval(); }, 2500);
+          } else startInterval();
         }
         var pr = video.play();
-        if (pr && typeof pr.then === 'function') pr.then(started).catch(function () { clearTimeout(watchdog); finish(); });
+        if (pr && typeof pr.then === 'function') pr.then(started).catch(function () {
+          // 자동재생 거부 등 → interval 폴백으로라도 시도(무음·인라인이라 대개 통과), 6초간 무샘플이면 종료
+          startInterval(); setTimeout(function () { if (!finished && cnt === 0) { clearTimeout(watchdog); finish(); } }, 6000);
+        });
         else started();
       });
 
       try { URL.revokeObjectURL(video.src); } catch (e) {}
-      try { video.remove(); } catch (e) {}
+      try { stage.remove(); } catch (e) {}
 
       var avg = function (a) { if (!a.length) return 0; var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
       var aL = avg(JL), aR = avg(JR), lr = aL + aR;
@@ -603,6 +631,13 @@
   </script>
 
   <script>
+    // ── 인앱 브라우저 감지(카톡·인스타·페북·네이버·라인 등 WebView) ──
+    // 이런 WebView는 백그라운드 비디오 렌더링을 막아 영상 분석 성공률이 크게 떨어져서 사전·사후 안내를 붙인다.
+    var IS_INAPP = /KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|NAVER\(inapp|DaumApps|Line\/|IABMV|Barcelona/i.test(navigator.userAgent || '');
+    var INAPP_TIP = IS_INAPP
+      ? '<br><span style="color:#c0392b;font-weight:700">📱 지금은 인앱 화면(카톡·인스타 등)이라 영상 분석이 잘 안 될 수 있어요. 오른쪽 위 <b>‥ 메뉴 → 다른 브라우저(Safari·Chrome)로 열기</b>를 추천해요.</span>'
+      : '';
+
     // ── Supabase 설정 (익명 INSERT 전용 public 키) ──
     var SUPA_URL = "https://adiqnrdgsmszmqvveoow.supabase.co";
     var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkaXFucmRnc21zem1xdnZlb293Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjY5NjEsImV4cCI6MjA5OTIwMjk2MX0.rn6sj1JlwIXXtmzaa_rP-yhALcXy9GPEdPI7JmwFDmw";
@@ -763,7 +798,7 @@
       }).then(function (res) {
         videoMeta.metrics = res.metrics; videoMeta.series = res.series; videoMeta.faceFound = res.faceFound; videoMeta.done = true;
         if (res.faceFound) nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:var(--green-dark);font-weight:700">✔ 씹기 지표 추출 완료 (분당 ' + res.metrics.chews_per_min + '회)</span>';
-        else nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:#a94438;font-weight:700">⚠️ 영상에서 얼굴을 찾지 못했어요 — 결과엔 반영되지 않아요</span>';
+        else nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:#a94438;font-weight:700">⚠️ 영상에서 얼굴을 찾지 못했어요 — 결과엔 반영되지 않아요</span>' + INAPP_TIP;
         return res;
       }).catch(function () {
         videoMeta.done = true; videoMeta.metrics = null;
@@ -854,7 +889,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v11',
+          nickname: nickname || null, consent: true, source: 'demo-v12',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -917,7 +952,7 @@
             : '영상에서 <b>얼굴이 충분히 잡히지 않았어요.</b> 아이 얼굴이 <b>정면으로 밝게</b> 보이게 다시 찍어주세요.';
           vb.innerHTML =
             '<div style="background:#fdecea;color:#c0392b;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.55;font-weight:700">⚠️ 이 영상은 씹기 분석에 적합하지 않아요</div>' +
-            '<div style="font-size:13px;color:var(--ink-soft);margin-top:9px;line-height:1.55">' + why + '<br>아래 결과는 <b>체크리스트 기준</b>이며, 영상 지표는 신뢰도가 낮아 반영하지 않았어요.</div>';
+            '<div style="font-size:13px;color:var(--ink-soft);margin-top:9px;line-height:1.55">' + why + '<br>아래 결과는 <b>체크리스트 기준</b>이며, 영상 지표는 신뢰도가 낮아 반영하지 않았어요.' + INAPP_TIP + '</div>';
           vc.style.display = 'block';
         } else {
           var cpmObs = m.chews_per_min < 25 ? '조금 적은 편' : (m.chews_per_min > 45 ? '활발한 편' : '보통 정도');
@@ -983,6 +1018,17 @@
       var io = new IntersectionObserver(function (ent) { ent.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }); }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
       items.forEach(function (el) { io.observe(el); });
     })();
+
+    // 인앱 브라우저면 업로드칸 아래에 사전 안내(영상 분석 성공률↑)
+    if (IS_INAPP) {
+      var _ub = document.getElementById('uploadBox');
+      if (_ub) {
+        var _w = document.createElement('div');
+        _w.style.cssText = 'margin-top:10px;background:#fdecea;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;color:#c0392b;line-height:1.5';
+        _w.innerHTML = '📱 지금 <b>인앱 화면</b>(카톡·인스타 등)에서 열려 있어요. 영상 분석이 안 될 수 있으니, 오른쪽 위 <b>‥ 메뉴 → Safari·Chrome로 열기</b>를 권해요.';
+        _ub.parentNode.insertBefore(_w, _ub.nextSibling);
+      }
+    }
     updateProgress();
   </script>
 
