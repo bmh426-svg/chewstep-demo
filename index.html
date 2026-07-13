@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v12</title>
-  <meta name="app-version" content="demo-v12" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v13</title>
+  <meta name="app-version" content="demo-v13" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -43,6 +43,7 @@
     .hero { text-align: center; padding: 40px 20px 14px; background: radial-gradient(120% 90% at 50% 0%, var(--ivory-2) 0%, var(--ivory) 60%); }
     .hero .emoji { font-size: 50px; display: block; margin-bottom: 6px; }
     .hero .kicker { display: inline-block; font-size: 12.5px; font-weight: 800; color: var(--green-dark); background: #e7f5e7; padding: 7px 15px; border-radius: 999px; margin-bottom: 12px; }
+    .hero .cred { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--green-dark); background: #eef7ee; border: 1px solid #d6ecd6; padding: 7px 15px; border-radius: 999px; margin: 0 auto 14px; }
     .hero h1 { font-size: 26px; margin-bottom: 10px; }
     .hero h1 .hl { color: var(--orange); }
     .hero .sub { font-size: 15px; color: var(--ink-soft); max-width: 470px; margin: 0 auto; }
@@ -199,7 +200,8 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v12</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v13</span>
+    <div class="cred">👩‍⚕️ 대학병원 소아과 간호사가 만들었어요</div>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고 <b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
@@ -461,7 +463,8 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v12)<br />
+    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v13)<br />
+    👩‍⚕️ 대학병원 소아과 간호사가 만든 참고용 씹기 발달 가이드입니다.<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -889,7 +892,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v12',
+          nickname: nickname || null, consent: true, source: 'demo-v13',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
