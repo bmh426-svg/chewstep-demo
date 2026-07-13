@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v10</title>
-  <meta name="app-version" content="demo-v10" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v11</title>
+  <meta name="app-version" content="demo-v11" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -27,9 +27,11 @@
     body {
       font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       background: var(--ivory); color: var(--ink); line-height: 1.65; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+      word-break: keep-all; overflow-wrap: break-word;   /* 한글 단어(어절) 중간에서 어색하게 끊기지 않게 */
     }
     .wrap { max-width: 620px; margin: 0 auto; padding: 0 18px; }
-    h1, h2, h3 { letter-spacing: -.5px; line-height: 1.3; }
+    h1, h2, h3 { letter-spacing: -.5px; line-height: 1.3; text-wrap: balance; }
+    p, li, .qtext, .qhint, .sub { text-wrap: pretty; }
 
     /* 진행바 */
     .progress-wrap { position: sticky; top: 0; z-index: 20; background: var(--ivory); padding: 10px 18px 8px; }
@@ -45,12 +47,36 @@
     .hero h1 .hl { color: var(--orange); }
     .hero .sub { font-size: 15px; color: var(--ink-soft); max-width: 470px; margin: 0 auto; }
 
-    /* 보상 안내 카드 */
-    .reward-box { background: linear-gradient(135deg, #fff4e9, #eaf7ea); border-radius: 18px; padding: 18px 18px 14px; margin: 16px 0 4px; }
-    .reward-box .rt { font-weight: 900; font-size: 15px; margin-bottom: 8px; }
-    .reward-box ul { list-style: none; }
-    .reward-box li { font-size: 13.8px; padding: 5px 0 5px 26px; position: relative; }
-    .reward-box li::before { content: "🎁"; position: absolute; left: 0; }
+    /* 보상 미리보기(블러 티저) — 참여하면 받는 리포트를 흐릿하게 먼저 보여줌 */
+    .reward-preview { background: linear-gradient(135deg, #fff4e9, #eaf7ea); border-radius: 20px; padding: 16px 16px 15px; margin: 18px 0 4px; box-shadow: var(--shadow); border: 1px solid #f3e6d3; }
+    .rp-head { text-align: center; margin-bottom: 12px; }
+    .rp-gift { display: inline-block; font-size: 12px; font-weight: 800; color: var(--green-dark); background: #fff; padding: 6px 13px; border-radius: 999px; }
+    .rp-title { font-size: 17px; font-weight: 900; margin-top: 9px; }
+    .rp-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+
+    /* 흐릿하게 처리된 리포트 미리보기 무대 */
+    .rp-stage { position: relative; border-radius: 16px; overflow: hidden; }
+    .rp-mock { padding: 18px 16px 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; filter: blur(5px); user-select: none; }
+    .rp-mock .m-badge { text-align: center; font-size: 34px; line-height: 1; }
+    .rp-mock .m-lvl { text-align: center; font-size: 23px; font-weight: 900; color: var(--orange); margin-top: 4px; letter-spacing: 1px; }
+    .rp-mock .m-stage { text-align: center; font-size: 13px; font-weight: 800; color: var(--green-dark); margin-bottom: 12px; }
+    .rp-mock .m-line { height: 9px; border-radius: 999px; background: #efe7db; margin: 8px 0; }
+    .rp-mock .m-line.s { width: 62%; } .rp-mock .m-line.m { width: 90%; }
+    .rp-mock .m-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .rp-mock .m-chip { background: #f4faf4; color: var(--green-dark); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 700; }
+    .rp-mock .m-chip.o { background: #fff1e8; color: var(--orange-dark); }
+
+    /* 잠금 오버레이(흐린 유리 위 자물쇠) */
+    .rp-lock { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: rgba(255,249,240,.28); }
+    .rp-lock .lk { font-size: 30px; }
+    .rp-lock .lt { font-size: 14.5px; font-weight: 900; margin-top: 5px; color: var(--ink); }
+    .rp-lock .ld { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+
+    /* 받는 정보 목록(선명하게) */
+    .rp-list { list-style: none; margin-top: 13px; display: grid; gap: 8px; }
+    .rp-list li { font-size: 13.3px; font-weight: 600; padding-left: 25px; position: relative; line-height: 1.45; }
+    .rp-list li::before { content: "🔓"; position: absolute; left: 0; }
+    .rp-list b { color: var(--orange-dark); font-weight: 800; }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; -webkit-appearance: none; appearance: none; font-family: inherit; background: var(--orange); color: #fff; text-decoration: none; font-weight: 800; font-size: 17px; padding: 16px 32px; border: none; border-radius: 999px; box-shadow: 0 8px 20px rgba(255,138,61,.35); cursor: pointer; transition: transform .15s, box-shadow .15s, background .15s; }
     .btn:hover { background: var(--orange-dark); transform: translateY(-2px); }
@@ -173,15 +199,42 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v10</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v11</span>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
-    <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고,<br /><b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
+    <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고 <b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
     <div class="wrap">
-      <div class="reward-box">
-        <div class="rt">🎁 참여하면 이걸 받아요 (무료)</div>
-        <ul>
-          <li>우리 아이 <b>씹기 Level</b> (또래 대비 포함)</li>
-          <li>지금 단계 <b>추천 음식 &amp; 다음 목표</b> 1페이지 가이드</li>
+      <div class="reward-preview">
+        <div class="rp-head">
+          <span class="rp-gift">🎁 참여하면 무료로 받아요</span>
+          <div class="rp-title">우리 아이 씹기 리포트</div>
+          <div class="rp-sub">1분 체크 + 식사 영상이면 아래 내용이 전부 열려요</div>
+        </div>
+
+        <div class="rp-stage" aria-hidden="true">
+          <div class="rp-mock">
+            <div class="m-badge">🌿</div>
+            <div class="m-lvl">Level&nbsp;?</div>
+            <div class="m-stage">우리 아이 씹기 단계</div>
+            <div class="m-line m"></div>
+            <div class="m-line s"></div>
+            <div class="m-chips">
+              <span class="m-chip">✔ 추천 음식</span>
+              <span class="m-chip o">🎯 다음 목표</span>
+              <span class="m-chip">🪜 연습법</span>
+            </div>
+          </div>
+          <div class="rp-lock">
+            <div class="lk">🔒</div>
+            <div class="lt">우리 아이는 Level 몇일까?</div>
+            <div class="ld">1분이면 지금 확인할 수 있어요 ↓</div>
+          </div>
+        </div>
+
+        <ul class="rp-list">
+          <li>우리 아이 <b>씹기 Level</b>과 또래 대비 위치</li>
+          <li>지금 단계 <b>추천 음식 · 아직 이른 음식</b></li>
+          <li>다음 단계로 가는 <b>맞춤 연습법 &amp; 목표</b></li>
+          <li>영상으로 본 <b>씹기 지표</b> (분당 횟수 · 좌우 균형)</li>
         </ul>
       </div>
     </div>
@@ -408,7 +461,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v10)<br />
+    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v11)<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
     📩 문의: <a href="mailto:chewstep@naver.com?subject=Chew_Step%20문의" style="color:inherit;text-decoration:underline;">chewstep@naver.com</a>
@@ -801,7 +854,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v10',
+          nickname: nickname || null, consent: true, source: 'demo-v11',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
