@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v14</title>
-  <meta name="app-version" content="demo-v14" />
+  <title>Chew_Step 데모 — 우리 아이 씹기 1분 체크 (무료 베타) · demo v15</title>
+  <meta name="app-version" content="demo-v15" />
   <meta name="description" content="체크리스트와 식사 영상으로 우리 아이 씹기 레벨과 맞춤 1페이지 가이드를 무료로 받아보세요. Chew_Step 베타 데모(익명 데이터 수집)." />
   <!--
     Chew_Step 데모버전 (배포용 · 데이터 모집 프로토타입) · demo v2 · 2026-07-11
@@ -202,7 +202,7 @@
 
   <header class="hero">
     <span class="emoji">🥄</span>
-    <span class="kicker">Chew_Step · 무료 베타 · demo v14</span>
+    <span class="kicker">Chew_Step · 무료 베타 · demo v15</span>
     <div class="cred"><span class="cico">👩‍⚕️</span> <span><b>대학병원 소아과 간호사</b>가 직접 만들었어요</span></div>
     <h1>우리 아이 <span class="hl">씹기 발달</span> 1분 체크</h1>
     <p class="sub">이제 막 이유식을 뗀 아기부터 유아식이 서툰 아이까지 — 씹기 수준을 확인하고 <b>레벨별 맞춤 가이드 1페이지</b>를 무료로 받아보세요.</p>
@@ -465,7 +465,7 @@
   </main>
 
   <footer>
-    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v14)<br />
+    <b>Chew_Step</b> · 이유식·유아식 씹기 발달 · 무료 베타 데모 (demo v15)<br />
     👩‍⚕️ 대학병원 소아과 간호사가 만든 참고용 씹기 발달 가이드입니다.<br />
     ※ 프로토타입 — 결제 단계 없음. 응답은 익명으로 수집됩니다.<br />
     🔒 영상은 저장하지 않아요 — 기기 안에서 씹기 지표만 추출해 숫자만 남깁니다.<br />
@@ -639,6 +639,7 @@
     // ── 인앱 브라우저 감지(카톡·인스타·페북·네이버·라인 등 WebView) ──
     // 이런 WebView는 백그라운드 비디오 렌더링을 막아 영상 분석 성공률이 크게 떨어져서 사전·사후 안내를 붙인다.
     var IS_INAPP = /KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|NAVER\(inapp|DaumApps|Line\/|IABMV|Barcelona/i.test(navigator.userAgent || '');
+    var IS_KAKAO = /KAKAOTALK/i.test(navigator.userAgent || '');   // 카톡 인앱은 스킴으로 외부 브라우저(Safari) 자동 열기 가능
     var INAPP_TIP = IS_INAPP
       ? '<br><span style="color:#c0392b;font-weight:700">📱 지금은 인앱 화면(카톡·인스타 등)이라 영상 분석이 잘 안 될 수 있어요. 오른쪽 위 <b>‥ 메뉴 → 다른 브라우저(Safari·Chrome)로 열기</b>를 추천해요.</span>'
       : '';
@@ -894,7 +895,7 @@
           video_duration: videoMeta.duration || (videoMeta.metrics && videoMeta.metrics.duration_sec) || null,
           video_metrics: videoMeta.metrics || null, video_series: videoMeta.series || null,
           note: (document.getElementById('concernNote').value || '').trim() || null,
-          nickname: nickname || null, consent: true, source: 'demo-v14',
+          nickname: nickname || null, consent: true, source: 'demo-v15',
           user_agent: (navigator.userAgent || '').slice(0, 300)
         });
       }
@@ -1024,13 +1025,23 @@
       items.forEach(function (el) { io.observe(el); });
     })();
 
-    // 인앱 브라우저면 업로드칸 아래에 사전 안내(영상 분석 성공률↑)
+    // 인앱 브라우저면: 상단 안내 배너 + 업로드칸 힌트 (영상 분석 성공률↑)
+    // 카톡은 스킴으로 Safari 자동 열기 버튼 제공, 그 외(인스타 등)는 수동 안내(iOS는 강제 불가).
     if (IS_INAPP) {
+      var _openUrl = location.href;
+      var _actionHtml = IS_KAKAO
+        ? '<div style="margin-top:9px"><a href="kakaotalk://web/openExternal?url=' + encodeURIComponent(_openUrl) + '" style="display:inline-block;background:#fff;color:#c0392b;font-weight:900;font-size:14.5px;padding:10px 20px;border-radius:999px;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.18)">📲 Safari에서 열기 →</a></div>'
+        : '<div style="margin-top:7px;font-weight:800">👉 오른쪽 위 <b>⋯</b> 메뉴 → <b>“외부 브라우저(Safari)로 열기”</b>를 눌러주세요</div>';
+      var _bar = document.createElement('div');
+      _bar.style.cssText = 'background:#c0392b;color:#fff;text-align:center;padding:13px 16px;font-size:13.5px;line-height:1.5;font-weight:700';
+      _bar.innerHTML = '📱 지금 <b>인앱 화면</b>이라 <b>식사 영상 분석이 안 될 수 있어요.</b><br>정확한 결과를 위해 <b>Safari로 열어주세요.</b>' + _actionHtml;
+      document.body.insertBefore(_bar, document.body.firstChild);
+
       var _ub = document.getElementById('uploadBox');
       if (_ub) {
         var _w = document.createElement('div');
         _w.style.cssText = 'margin-top:10px;background:#fdecea;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;color:#c0392b;line-height:1.5';
-        _w.innerHTML = '📱 지금 <b>인앱 화면</b>(카톡·인스타 등)에서 열려 있어요. 영상 분석이 안 될 수 있으니, 오른쪽 위 <b>‥ 메뉴 → Safari·Chrome로 열기</b>를 권해요.';
+        _w.innerHTML = '📱 <b>인앱 화면</b>에서는 영상 분석이 안 될 수 있어요. ' + (IS_KAKAO ? '맨 위 <b>“Safari에서 열기”</b> 버튼으로 다시 열어주세요.' : '오른쪽 위 <b>⋯ → 외부 브라우저로 열기</b>를 권해요.');
         _ub.parentNode.insertBefore(_w, _ub.nextSibling);
       }
     }
