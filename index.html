@@ -404,11 +404,11 @@
       <!-- [4] 영상 업로드 (선택) -->
       <section>
         <div class="section-head reveal"><span class="tag">🎬 [4] 식사 영상 <b style="color:var(--danger)">(필수)</b></span><h2>씹는 모습을 20초 이상 담아주세요</h2>
-          <p>아이 <b>얼굴이 정면으로 보이게</b> 씹는 모습을 담아주세요. <b>최소 20초</b>(권장 <b>40초 이상</b>) — 길수록 분석이 정확해져요.</p></div>
+          <p>아이 <b>얼굴과 입이 보이게</b> 씹는 모습을 담아주세요. 꼭 정면이 아니어도 괜찮아요 — <b>옆·비스듬한 각도도 OK</b>, 너무 어둡지만 않으면 돼요. <b>최소 20초</b>(권장 <b>40초 이상</b>) — 길수록 분석이 정확해져요.</p></div>
         <label class="upload reveal" id="uploadBox">
           <div class="big">📹</div>
           <div class="lead">식사 영상 올리기 (최소 20초 · 권장 40초+)</div>
-          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴이 보이는 20초 이상(길수록 좋아요)</div>
+          <div class="desc">🔒 <b>영상은 서버에 올리지 않아요.</b> 휴대폰·PC 안에서 씹는 움직임 지표만 뽑아 그 숫자만 저장해요.<br />mp4·mov 등 · 얼굴·입이 보이는 20초 이상(옆·비스듬해도 OK, 길수록 좋아요)</div>
           <input type="file" id="videoInput" accept="video/*" />
           <div class="fname" id="videoName"></div>
         </label>
@@ -525,12 +525,17 @@
     import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
     var WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
     var MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
-    var ALGO_VERSION = "hysteresis-open0.15-close0.06-v1";  // 씹기 카운트 기준(나중에 바꾸면 버전 올림)
+    var ALGO_VERSION = "hysteresis-open0.15-close0.06-v2-relaxed";  // 씹기 카운트 기준(v2: 감지 신뢰도·품질게이트 완화, 카운트 문턱은 동일 유지)
     var _fl = null;
     async function ensure() {
       if (_fl) return _fl;
       var vision = await FilesetResolver.forVisionTasks(WASM);
-      var opts = { baseOptions: { modelAssetPath: MODEL, delegate: "GPU" }, runningMode: "VIDEO", numFaces: 1, outputFaceBlendshapes: true };
+      // 감지 신뢰도 기본 0.5 → 0.3: 아이가 고개를 옆으로 돌리거나 숙여도(정면이 아니어도) 얼굴을 놓치지 않게 완화.
+      var opts = {
+        baseOptions: { modelAssetPath: MODEL, delegate: "GPU" }, runningMode: "VIDEO",
+        numFaces: 1, outputFaceBlendshapes: true,
+        minFaceDetectionConfidence: 0.3, minFacePresenceConfidence: 0.3, minTrackingConfidence: 0.3
+      };
       try {
         _fl = await FaceLandmarker.createFromOptions(vision, opts);
       } catch (e) {
@@ -584,7 +589,7 @@
 
       var T = [], JO = [], JL = [], JR = [], TO = [], LC = [];
       var state = 'closed', chew = 0, faces = 0, cnt = 0, openCnt = 0, lastMs = -1, lastSampleT = -1;
-      var SAMPLE_DT = 1 / 8;  // media-time 기준 초당 ~8샘플(씹기 검출엔 충분, 속도 확보)
+      var SAMPLE_DT = 1 / 12;  // media-time 기준 초당 ~12샘플: 순간적으로 정면이 되는 프레임을 더 많이 포착(측면 영상 대응)
 
       function sampleAt(t) {
         var ms = Math.round(t * 1000); if (ms <= lastMs) ms = lastMs + 1; lastMs = ms;
@@ -661,11 +666,11 @@
       var toCnt = 0; for (var ti = 0; ti < TO.length; ti++) if (TO[ti] >= 0.3) toCnt++;
       var tongueThrust = faces ? Math.round(toCnt / faces * 1000) / 10 : 0;  // 혀 내밀기(설출) 비율 % (실험 지표)
       var avgLipClose = r4(avg(LC));
-      // 품질 등급: 얼굴 검출·입 움직임으로 '씹기 영상으로 쓸 만한지' 판정
+      // 품질 등급: 얼굴 검출·입 움직임으로 '씹기 영상으로 쓸 만한지' 판정 (v2: 측면·기울어진 영상도 최대한 살리도록 문턱 완화)
       var quality = 'medium';
-      if (faces === 0 || detect < 55) quality = 'low_face';        // 얼굴이 충분히 안 잡힘
-      else if (maxJaw < 0.12 || openRatio < 3) quality = 'low_motion'; // 입 움직임(씹기)이 거의 없음
-      else if (detect >= 80 && obsSpan >= 20) quality = 'high';
+      if (faces === 0 || detect < 35) quality = 'low_face';        // 얼굴이 거의 안 잡힘(55→35로 완화)
+      else if (maxJaw < 0.08 || openRatio < 2) quality = 'low_motion'; // 입 움직임(씹기)이 거의 없음(각도로 낮아진 턱벌림 감안해 완화)
+      else if (detect >= 65 && obsSpan >= 20) quality = 'high';    // 고신뢰 기준 80→65로 완화
       var metrics = {
         chew_count: chew, chews_per_min: cpm,
         avg_jaw_open: r4(avg(JO)), max_jaw_open: maxJaw, mouth_open_ratio: openRatio,
@@ -851,7 +856,7 @@
       }).then(function (res) {
         videoMeta.metrics = res.metrics; videoMeta.series = res.series; videoMeta.faceFound = res.faceFound; videoMeta.done = true;
         if (res.faceFound) nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:var(--green-dark);font-weight:700">✔ 씹기 지표 추출 완료 (분당 ' + res.metrics.chews_per_min + '회)</span>';
-        else nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:#a94438;font-weight:700">⚠️ 영상에서 얼굴을 찾지 못했어요 — 결과엔 반영되지 않아요</span>' + INAPP_TIP;
+        else nameEl.innerHTML = '✅ ' + f.name + '<br><span style="color:#a94438;font-weight:700">⚠️ 영상에서 얼굴을 거의 못 찾았어요(너무 어둡거나 얼굴이 화면 밖) — 결과엔 반영되지 않아요</span>' + INAPP_TIP;
         return res;
       }).catch(function () {
         videoMeta.done = true; videoMeta.metrics = null;
@@ -1002,7 +1007,7 @@
         if (q === 'low_face' || q === 'low_motion' || !videoMeta.faceFound) {
           var why = (q === 'low_motion')
             ? '영상에서 <b>씹는(입을 움직이는) 모습이 거의 관찰되지 않았어요.</b> 아이가 실제로 <b>음식을 씹는 장면</b>이 맞는지 확인해 주세요.'
-            : '영상에서 <b>얼굴이 충분히 잡히지 않았어요.</b> 아이 얼굴이 <b>정면으로 밝게</b> 보이게 다시 찍어주세요.';
+            : '영상에서 <b>얼굴이 충분히 잡히지 않았어요.</b> 정면이 아니어도 괜찮으니, 아이 <b>얼굴과 입이 화면 안에 밝게</b> 보이게 다시 찍어주세요.';
           vb.innerHTML =
             '<div style="background:#fdecea;color:#c0392b;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.55;font-weight:700">⚠️ 이 영상은 씹기 분석에 적합하지 않아요</div>' +
             '<div style="font-size:13px;color:var(--ink-soft);margin-top:9px;line-height:1.55">' + why + '<br>아래 결과는 <b>체크리스트 기준</b>이며, 영상 지표는 신뢰도가 낮아 반영하지 않았어요.' + INAPP_TIP + '</div>';
