@@ -135,6 +135,14 @@
   .uploadchoices{display:grid;gap:12px;grid-template-columns:1fr;}
   @media(min-width:520px){ .uploadchoices{grid-template-columns:1fr 1fr;} }
   @keyframes screenIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
+  /* 감사 화면 */
+  .thanks{max-width:520px;margin:6vh auto 0;text-align:center;background:var(--surface);border:1px solid var(--line);
+    border-radius:20px;padding:44px 26px 38px;box-shadow:0 1px 2px rgba(16,32,26,.04),0 10px 30px rgba(16,32,26,.06);}
+  .thanks-emoji{font-size:56px;line-height:1;animation:thanksPop .5s cubic-bezier(.2,1.2,.4,1) both;}
+  @keyframes thanksPop{0%{opacity:0;transform:scale(.4) translateY(8px);}100%{opacity:1;transform:none;}}
+  .thanks-title{font-size:clamp(24px,4vw,32px);margin:16px 0 8px;color:var(--brand-deep);}
+  .thanks-lede{color:var(--ink-soft);font-size:14.5px;line-height:1.7;margin:0 0 26px;}
+  .thanks-actions{display:flex;justify-content:center;}
   .drop.dragover{border-color:var(--brand);background:var(--brand-tint);transform:scale(1.01);}
   .step-eyebrow{display:inline-block;font-size:12px;font-weight:800;color:var(--brand-deep);letter-spacing:.03em;background:var(--brand-tint);padding:5px 11px;border-radius:999px;margin-bottom:6px;}
 
@@ -458,6 +466,19 @@
     </div>
 
     <button class="again" id="again">🔄 다른 영상 분석</button>
+  </section>
+
+  <!-- 감사 화면 (의견 보내기 → 화면 전환) -->
+  <section class="screen" id="screenThanks">
+    <div class="thanks">
+      <div class="thanks-emoji" aria-hidden="true">🌱</div>
+      <h1 class="thanks-title">고마워요!</h1>
+      <p class="thanks-lede">보내주신 소중한 의견, <b>꼭 반영하겠습니다.</b><br/>
+        세상 모든 아이가 자신만의 속도로 <b style="color:var(--brand-deep)">‘먹짱’</b>이 될 수 있도록 계속 다듬어 나갈게요 🙂</p>
+      <div class="thanks-actions">
+        <button type="button" class="btn-primary" id="thanksAgain">🔄 다른 영상 분석하기</button>
+      </div>
+    </div>
   </section>
 
 </div>
@@ -1129,6 +1150,9 @@
     };
     if(!fb.helpful && !fb.most_useful && !fb.feedback_text) return;   // 아무 입력 없으면 무시
 
+    // 감사 화면으로 즉시 전환(저장/메일은 백그라운드에서 best-effort로 계속)
+    showScreen("screenThanks");
+
     // 후기를 메일로도 발송(send-inquiry Edge Function) — 저장 성공 여부와 무관하게 시도(best-effort)
     try{
       const HELP={much:"매우 도움이 됐어요",some:"조금 도움이 됐어요",unsure:"잘 모르겠어요",none:"도움이 되지 않았어요"};
@@ -1144,14 +1168,15 @@
       }}).catch(function(){});
     }catch(e){ /* 메일 실패는 무시 */ }
 
-    if(!lastRowId){ if(window.csLog) window.csLog("demo_feedback", Object.assign({saved:false}, fb)); $("fbThanks").style.display="inline"; return; }
+    if(!lastRowId){ if(window.csLog) window.csLog("demo_feedback", Object.assign({saved:false}, fb)); return; }
     try{
       const { error } = await supabase.from("demo_responses").update({ feedback: fb }).eq("id", lastRowId);
       if(error){ if(window.csLog) window.csLog("demo_feedback_error", { msg: error.message }); }
-      else { $("fbThanks").style.display="inline"; if(window.csLog) window.csLog("demo_feedback", Object.assign({saved:true}, fb)); }
+      else { if(window.csLog) window.csLog("demo_feedback", Object.assign({saved:true}, fb)); }
     }catch(e){ if(window.csLog) window.csLog("demo_feedback_error", { msg: String(e) }); }
   }
   $("fbSend").addEventListener("click", saveFeedback);
+  $("thanksAgain").addEventListener("click", resetAll);
 
   // ── 다른 영상 분석 → 처음(업로드) 화면으로 ──
   function resetAll(){
