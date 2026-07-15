@@ -1056,6 +1056,22 @@
       feedback_text: ($("fbText").value || "").trim().slice(0, 1000) || null
     };
     if(!fb.helpful && !fb.most_useful && !fb.feedback_text) return;   // 아무 입력 없으면 무시
+
+    // 후기를 메일로도 발송(send-inquiry Edge Function) — 저장 성공 여부와 무관하게 시도(best-effort)
+    try{
+      const HELP={much:"매우 도움이 됐어요",some:"조금 도움이 됐어요",unsure:"잘 모르겠어요",none:"도움이 되지 않았어요"};
+      const USE={observation:"영상에서 관찰된 내용",interpret:"설문을 반영한 해석",action:"다음 식사에서 해볼 방법",consult:"전문가 상담 기준",etc:"기타"};
+      supabase.functions.invoke("send-inquiry", { body: {
+        type:"feedback", source:"demo-feedback",
+        message: fb.feedback_text || "(자유서술 없음)",
+        meta: {
+          "도움 정도": HELP[fb.helpful] || fb.helpful || "",
+          "가장 도움된 부분": USE[fb.most_useful] || fb.most_useful || "",
+          "응답 id": lastRowId || "(익명)"
+        }
+      }}).catch(function(){});
+    }catch(e){ /* 메일 실패는 무시 */ }
+
     if(!lastRowId){ if(window.csLog) window.csLog("demo_feedback", Object.assign({saved:false}, fb)); $("fbThanks").style.display="inline"; return; }
     try{
       const { error } = await supabase.from("demo_responses").update({ feedback: fb }).eq("id", lastRowId);

@@ -752,7 +752,9 @@
 
   // ── 쉽게 교체 가능한 상수 ──────────────────────────────
   const DEMO_URL   = "demo.html";  // 데모 페이지(촬영 체크리스트 → 영상 분석 → 결과)
-  const FORM_ENDPOINT = ""; // TODO: 사전 신청 폼 전송 엔드포인트(Supabase/서버리스/Tally 등). 미설정 시 제출은 안내만.
+  // 사전 신청·문의 접수 엔드포인트 = Supabase Edge Function(send-inquiry) → 메일 발송 + DB 저장
+  const CONTACT_FN = "https://adiqnrdgsmszmqvveoow.supabase.co/functions/v1/send-inquiry";
+  const SB_ANON_KEY = "sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_"; // 공개키(apikey 헤더용, 노출 무방)
   const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_nVIxbX/chat"; // 카카오톡 채널 상담 링크
 
   // 1) 데모 CTA 연결
@@ -822,7 +824,11 @@
     reveals.forEach(function (el) { io.observe(el); });
   }
 
-  // 5) 사전 신청 폼 — 백엔드 미연결 시 '가짜 성공' 금지, 정직하게 안내
+  // 5) 사전 신청 폼 → send-inquiry Edge Function(메일 발송 + DB 저장)
+  const CONCERN_LABELS = {
+    refuse: "아예 안 먹어요", spit: "자꾸 뱉어요", slow: "너무 느리게 먹어요",
+    picky: "특정 음식만 먹어요", amount: "양이 적어 걱정돼요", other: "기타"
+  };
   const form = document.getElementById("applyForm");
   const msg = document.getElementById("formMsg");
   if (form) {
@@ -830,30 +836,41 @@
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
-      if (!FORM_ENDPOINT) {
-        // TODO: FORM_ENDPOINT 연결 전까지는 실제 접수되지 않음을 명확히 안내
-        msg.textContent = "현재 사전 신청 접수 연결이 준비 중입니다. (FORM_ENDPOINT 설정 후 활성화됩니다)";
-        msg.classList.add("show");
-        return;
-      }
-
-      // FORM_ENDPOINT가 설정된 경우에만 실제 전송
       const data = Object.fromEntries(new FormData(form).entries());
-      fetch(FORM_ENDPOINT, {
+      const btn = form.querySelector('button[type="submit"]');
+      const payload = {
+        type: "signup",
+        source: "landing-signup",
+        email: (data.email || "").trim(),
+        message: "사전 체험 신청",
+        meta: {
+          "보호자 닉네임": data.nickname || "",
+          "아이 월령(개월)": data.months || "",
+          "가장 큰 식사 고민": CONCERN_LABELS[data.concern] || data.concern || "",
+          "연락처/이메일": data.email || ""
+        }
+      };
+
+      msg.textContent = "신청을 전송하고 있어요…";
+      msg.classList.add("show");
+      if (btn) btn.disabled = true;
+
+      fetch(CONTACT_FN, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: { "Content-Type": "application/json", "apikey": SB_ANON_KEY },
+        body: JSON.stringify(payload)
       })
-      .then(function (r) {
-        if (!r.ok) throw new Error("bad response");
-        msg.textContent = "사전 신청이 접수되었습니다. 감사합니다!";
+      .then(function (r) { if (!r.ok) throw new Error("bad response"); return r.json(); })
+      .then(function () {
+        msg.textContent = "사전 신청이 접수되었습니다. 감사합니다! 🙌";
         msg.classList.add("show");
         form.reset();
       })
       .catch(function () {
         msg.textContent = "전송 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.";
         msg.classList.add("show");
-      });
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
     });
   }
 </script>
