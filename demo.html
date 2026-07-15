@@ -124,6 +124,16 @@
   /* ===== 단계별 화면 전환 ===== */
   .screen{display:none;}
   .screen.active{display:block;animation:screenIn .28s ease;}
+  /* 진행 순서 안내(인트로) */
+  .flowsteps{list-style:none;padding:0;margin:18px 0 22px;display:grid;gap:10px;}
+  .flowsteps li{display:flex;align-items:flex-start;gap:12px;background:var(--brand-tint,#f4faf7);border:1px solid rgba(0,0,0,.05);border-radius:12px;padding:12px 14px;}
+  .flowsteps .fs-n{flex:0 0 26px;height:26px;border-radius:50%;background:var(--brand,#12a37a);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .flowsteps li>div{display:flex;flex-direction:column;gap:2px;}
+  .flowsteps li b{font-size:15px;}
+  .flowsteps li .fs-d{font-size:12.8px;color:var(--ink-faint,#78807d);line-height:1.5;}
+  /* 업로드/촬영 선택지 */
+  .uploadchoices{display:grid;gap:12px;grid-template-columns:1fr;}
+  @media(min-width:520px){ .uploadchoices{grid-template-columns:1fr 1fr;} }
   @keyframes screenIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
   .drop.dragover{border-color:var(--brand);background:var(--brand-tint);transform:scale(1.01);}
   .step-eyebrow{display:inline-block;font-size:12px;font-weight:800;color:var(--brand-deep);letter-spacing:.03em;background:var(--brand-tint);padding:5px 11px;border-radius:999px;margin-bottom:6px;}
@@ -217,18 +227,64 @@
 </script>
 <div class="wrap">
 
-  <!-- ===== 화면 1 · 업로드 ===== -->
-  <section class="screen active" id="screenUpload">
-    <span class="kicker"><span class="dot"></span> Chewstep · 실시간 분석</span>
-    <h1>아이 식사 영상 올리기</h1>
-    <p class="lede">식사 영상을 올리면 브라우저 안에서 바로 분석합니다. 얼굴 위에 인식 지점이 표시되고, 씹는 움직임과 횟수가 실시간으로 그려져요. <b>원본 영상은 어디에도 저장·업로드되지 않아요.</b></p>
+  <!-- ===== 화면 0 · 안내 + 간단 설문 ===== -->
+  <section class="screen active" id="screenIntro">
+    <span class="kicker"><span class="dot"></span> Chewstep · 무료 데모 체험</span>
+    <h1>우리 아이 씹기, 이렇게 확인해요</h1>
+    <p class="lede">식사 영상과 몇 가지 정보만으로 아이가 어떻게 씹는지 살펴보고, 다음 식사에서 시도할 점을 알려드려요. <b>2~3분이면 충분해요.</b></p>
 
-    <label class="drop" id="drop">
-      <div class="big">🎬</div>
-      <div class="lead">영상 선택 또는 여기로 끌어다 놓기</div>
-      <div class="sub">mp4 · mov 등 · 얼굴과 입이 보이면 옆·비스듬해도 OK</div>
-      <input type="file" id="file" accept="video/*" />
-    </label>
+    <ol class="flowsteps">
+      <li><span class="fs-n">1</span><div><b>간단 정보 입력</b><span class="fs-d">아이 월령과 요즘 식사 고민 (바로 아래)</span></div></li>
+      <li><span class="fs-n">2</span><div><b>식사 영상 올리기 · 촬영</b><span class="fs-d">가지고 있는 영상 올리기 또는 지금 바로 촬영</span></div></li>
+      <li><span class="fs-n">3</span><div><b>실시간 분석</b><span class="fs-d">씹는 움직임과 횟수를 눈으로 확인 · 원본 영상은 저장 안 함</span></div></li>
+      <li><span class="fs-n">4</span><div><b>결과 확인</b><span class="fs-d">또래 흐름 대비 지금 상태 + 다음 식사 팁</span></div></li>
+    </ol>
+
+    <form class="survey" id="introForm">
+      <div class="q">
+        <div class="q-title"><span class="num">1</span>아이는 지금 몇 개월인가요?</div>
+        <div class="agebox">
+          <input type="number" id="introAge" min="1" max="120" inputmode="numeric" placeholder="예: 14" />
+          <span class="unit">개월</span>
+        </div>
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">2</span>요즘 식사에서 가장 궁금하거나 걱정되는 점은요? <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="intro_concern" value="잘 안 먹어요"/><span>잘 안 먹어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="자꾸 뱉어요"/><span>자꾸 뱉어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="너무 느리게 먹어요"/><span>너무 느리게 먹어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="특정 음식만 먹어요"/><span>특정 음식만 먹어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="잘 씹고 있는지 궁금해요"/><span>잘 씹는지 궁금해요</span></label>
+        </div>
+      </div>
+      <div class="survey-actions">
+        <button type="submit" class="btn-primary" id="introStart">시작하기 · 영상 올리러 가기 →</button>
+      </div>
+      <p class="survey-note">입력 정보는 결과 보충과 서비스 개선에만 안전하게 쓰여요. <b>원본 영상은 저장하지 않습니다.</b></p>
+    </form>
+  </section>
+
+  <!-- ===== 화면 1 · 업로드 / 촬영 ===== -->
+  <section class="screen" id="screenUpload">
+    <span class="kicker"><span class="dot"></span> Chewstep · 실시간 분석</span>
+    <h1>아이 식사 영상 준비하기</h1>
+    <p class="lede">가지고 있는 영상을 올리거나, 지금 바로 촬영할 수 있어요. 얼굴과 입이 보이면 옆·비스듬해도 괜찮아요. <b>원본 영상은 어디에도 저장·업로드되지 않아요.</b></p>
+
+    <div class="uploadchoices">
+      <label class="drop" id="drop">
+        <div class="big">🎬</div>
+        <div class="lead">영상 올리기</div>
+        <div class="sub">갤러리에서 선택 · 끌어다 놓기도 OK</div>
+        <input type="file" id="file" accept="video/*" />
+      </label>
+      <label class="drop" id="dropCapture">
+        <div class="big">📷</div>
+        <div class="lead">지금 바로 촬영하기</div>
+        <div class="sub">휴대폰이면 카메라가 바로 열려요</div>
+        <input type="file" id="fileCapture" accept="video/*" capture="environment" />
+      </label>
+    </div>
     <div class="loading" id="loading"></div>
     <p class="note">분석은 100% 브라우저 안에서 실행됩니다 · 원본 영상 미저장.</p>
   </section>
@@ -855,6 +911,22 @@
 
   $("file").addEventListener("change", function(){
     const f=this.files && this.files[0]; if(f) handleFile(f);
+  });
+  // 지금 바로 촬영하기(모바일=카메라 · 데스크톱=파일선택)
+  $("fileCapture").addEventListener("change", function(){
+    const f=this.files && this.files[0]; if(f) handleFile(f);
+  });
+
+  // ── 인트로(안내+간단설문) → 업로드 화면 ──
+  $("introForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    // 간단 설문값을 뒤 '영상 정보' 설문에 미리 채워 중복 입력 방지
+    const a = parseInt($("introAge").value, 10);
+    if(!isNaN(a)) $("ageMonths").value = a;
+    const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
+    if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
+    showScreen("screenUpload");
+    try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
   });
 
   // 드래그앤드롭
