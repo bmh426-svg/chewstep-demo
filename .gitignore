@@ -4,8 +4,11 @@ Thumbs.db
 desktop.ini
 *.log
 
-# 의존성(이 데모는 사용 안 함)
+# 의존성(이 앱은 CDN ES모듈 사용, 로컬 설치 없음)
 node_modules/
 
 # Vercel
 .vercel
+
+# 로컬 실행용 런처(머신 고유 경로 · 배포 불필요)
+start-demo.bat
