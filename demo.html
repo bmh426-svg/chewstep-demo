@@ -134,6 +134,17 @@
   /* 업로드/촬영 선택지 */
   .uploadchoices{display:grid;gap:12px;grid-template-columns:1fr;}
   @media(min-width:520px){ .uploadchoices{grid-template-columns:1fr 1fr;} }
+  /* 업로드 단계: 선택 → (촬영 가이드 | 파일 업로드) */
+  .uploadphase{animation:screenIn .24s ease;}
+  button.drop{font:inherit;color:inherit;width:100%;text-align:center;-webkit-appearance:none;appearance:none;}
+  .shoot-tips{list-style:none;margin:16px 0 22px;padding:0;display:grid;gap:10px;}
+  .shoot-tips li{display:flex;gap:11px;align-items:flex-start;font-size:13.8px;line-height:1.5;color:var(--ink);}
+  .shoot-tips li .ic{flex:none;width:26px;height:26px;border-radius:8px;background:var(--brand-tint);color:var(--brand-deep);display:grid;place-items:center;font-size:14px;}
+  .shoot-tips li b{font-weight:800;}
+  .guide-img{display:block;width:100%;max-width:520px;margin:6px 0 20px;border-radius:16px;border:1px solid var(--line);box-shadow:0 6px 22px rgba(16,32,26,.08);}
+  .backlink{background:none;border:none;color:var(--ink-soft);font:700 13.5px/1 var(--sans);cursor:pointer;padding:4px 0;margin-bottom:6px;}
+  .backlink:hover{color:var(--brand-deep);}
+  .capture-note{font-size:12.8px;color:var(--ink-soft);background:var(--brand-tint);border-radius:12px;padding:11px 13px;margin:14px 0 0;line-height:1.5;}
   @keyframes screenIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
   /* 감사 화면 */
   .thanks{max-width:520px;margin:6vh auto 0;text-align:center;background:var(--surface);border:1px solid var(--line);
@@ -276,25 +287,65 @@
   <!-- ===== 화면 1 · 업로드 / 촬영 ===== -->
   <section class="screen" id="screenUpload">
     <span class="kicker"><span class="dot"></span> Chewstep · 실시간 분석</span>
-    <h1>아이 식사 영상 준비하기</h1>
-    <p class="lede">가지고 있는 영상을 올리거나, 지금 바로 촬영할 수 있어요. 얼굴과 입이 보이면 옆·비스듬해도 괜찮아요. <b>원본 영상은 어디에도 저장·업로드되지 않아요.</b></p>
 
-    <div class="uploadchoices">
+    <!-- 1단계 · 어떤 영상을 올릴지 선택 + 촬영 안내 -->
+    <div class="uploadphase" id="uphChoice">
+      <h1>어떤 영상을 올리시나요?</h1>
+      <p class="lede">아이가 <b>무엇을 어떻게 씹는지</b> 보려면, 아이 얼굴과 입이 잘 보이는 식사 영상이 필요해요.</p>
+      <ul class="shoot-tips">
+        <li><span class="ic">👶</span><div>아이의 <b>얼굴과 입 주변</b>이 잘 보이게 촬영해 주세요</div></li>
+        <li><span class="ic">🥄</span><div><b>음식이 입으로 들어가는 장면</b>이 담기면 좋아요</div></li>
+        <li><span class="ic">😋</span><div><b>씹거나 뱉거나 삼키는 모습</b>이 보이면 분석에 큰 도움이 돼요</div></li>
+      </ul>
+      <div class="uploadchoices">
+        <button type="button" class="drop" id="chooseCapture">
+          <div class="big">📷</div>
+          <div class="lead">지금 촬영할게요</div>
+          <div class="sub">촬영 가이드를 보고 바로 찍어요</div>
+        </button>
+        <button type="button" class="drop" id="choosePrev">
+          <div class="big">🎬</div>
+          <div class="lead">이전에 찍은 영상을 올릴게요</div>
+          <div class="sub">갤러리에서 선택 · 끌어다 놓기도 OK</div>
+        </button>
+      </div>
+      <p class="note">원본 영상은 어디에도 저장·업로드되지 않아요 · 분석은 100% 브라우저 안에서 실행돼요.</p>
+    </div>
+
+    <!-- 2단계-A · 지금 촬영 (촬영 가이드 이미지) -->
+    <div class="uploadphase" id="uphCapture" style="display:none">
+      <button type="button" class="backlink" data-upback>← 다시 선택</button>
+      <h1>이렇게만 찍어주세요</h1>
+      <p class="lede">부담 갖지 말고 평소 식사 모습을 담아 주세요. 아래 그림처럼 <b>아이 얼굴·입·숟가락</b>이 한 화면에 보이면 충분해요.</p>
+      <img class="guide-img" src="./assets/img/shoot-guide.png"
+           alt="촬영 가이드 — ① 휴대폰을 세워두기 ② 아이 얼굴·입·숟가락이 한 화면에 보이게(식판 전체는 안 보여도 OK) ③ 먹기 시작할 때 눌러 30초 정도 촬영" />
+      <label class="drop" id="dropCapture">
+        <div class="big">🔴</div>
+        <div class="lead">촬영 시작하기</div>
+        <div class="sub">휴대폰이면 카메라가 바로 열려요 · 30초면 충분해요</div>
+        <input type="file" id="fileCapture" accept="video/*" capture="environment" />
+      </label>
+      <p class="capture-note">🍽 <b>음식이 뭔지는 다음 설문에서</b> 알려주시면 돼요 — 식판을 따로 예쁘게 담지 않아도, 영상엔 아이 먹는 모습만 있으면 괜찮아요.</p>
+    </div>
+
+    <!-- 2단계-B · 이전에 찍은 영상 올리기 -->
+    <div class="uploadphase" id="uphPrev" style="display:none">
+      <button type="button" class="backlink" data-upback>← 다시 선택</button>
+      <h1>가지고 있는 영상 올리기</h1>
+      <p class="lede">얼굴과 입이 보이면 옆·비스듬한 각도여도 괜찮아요. <b>원본 영상은 어디에도 저장·업로드되지 않아요.</b></p>
+      <ul class="shoot-tips">
+        <li><span class="ic">👶</span><div>아이의 <b>얼굴과 입 주변</b>이 보이는 영상</div></li>
+        <li><span class="ic">🥄</span><div><b>음식이 입으로 들어가고</b> 씹는 장면이 담긴 부분</div></li>
+      </ul>
       <label class="drop" id="drop">
         <div class="big">🎬</div>
         <div class="lead">영상 올리기</div>
         <div class="sub">갤러리에서 선택 · 끌어다 놓기도 OK</div>
         <input type="file" id="file" accept="video/*" />
       </label>
-      <label class="drop" id="dropCapture">
-        <div class="big">📷</div>
-        <div class="lead">지금 바로 촬영하기</div>
-        <div class="sub">휴대폰이면 카메라가 바로 열려요</div>
-        <input type="file" id="fileCapture" accept="video/*" capture="environment" />
-      </label>
     </div>
+
     <div class="loading" id="loading"></div>
-    <p class="note">분석은 100% 브라우저 안에서 실행됩니다 · 원본 영상 미저장.</p>
   </section>
 
   <!-- ===== 화면 2 · 분석 중 ===== -->
@@ -374,6 +425,9 @@
           <label class="opt"><input type="radio" name="food_texture" value="mixed"/><span>여러 질감</span></label>
           <label class="opt"><input type="radio" name="food_texture" value="unknown"/><span>잘 모르겠어요</span></label>
         </div>
+        <input type="text" id="foodName" class="date-inp" maxlength="120"
+               style="margin-top:10px;width:100%;max-width:340px;"
+               placeholder="어떤 음식이었나요? 예: 소고기죽, 진밥 (선택)" />
       </div>
 
       <div class="q">
@@ -749,7 +803,7 @@
     };
     const series = { t: sT, jaw_open: sJo, jaw_left: sJl, jaw_right: sJr, tongue_out: sTo };
     // 영상 정보 설문 — 하나라도 입력됐으면 저장
-    const hasAns = answers && (answers.food_texture || answers.video_segment || answers.vs_usual ||
+    const hasAns = answers && (answers.food_texture || answers.food_name || answers.video_segment || answers.vs_usual ||
                    answers.child_age_months != null || answers.concern_text || answers.capture_date);
     const months = (answers && answers.child_age_months != null) ? answers.child_age_months : null;
     try {
@@ -938,6 +992,25 @@
     const f=this.files && this.files[0]; if(f) handleFile(f);
   });
 
+  // ── 업로드 단계 전환: 선택 → (촬영 가이드 | 파일 업로드) ──
+  function showUploadPhase(which){
+    const map = { choice:"uphChoice", capture:"uphCapture", prev:"uphPrev" };
+    Object.keys(map).forEach(k=>{ const el=$(map[k]); if(el) el.style.display="none"; });
+    const el = $(map[which] || "uphChoice"); if(el) el.style.display="";
+    $("loading").textContent="";
+  }
+  $("chooseCapture").addEventListener("click", function(){
+    showUploadPhase("capture");
+    if(window.csLog) window.csLog("demo_upload_choice", { choice:"capture" });
+  });
+  $("choosePrev").addEventListener("click", function(){
+    showUploadPhase("prev");
+    if(window.csLog) window.csLog("demo_upload_choice", { choice:"prev" });
+  });
+  document.querySelectorAll("[data-upback]").forEach(function(b){
+    b.addEventListener("click", function(){ showUploadPhase("choice"); });
+  });
+
   // ── 인트로(안내+간단설문) → 업로드 화면 ──
   $("introForm").addEventListener("submit", function(e){
     e.preventDefault();
@@ -946,6 +1019,7 @@
     if(!isNaN(a)) $("ageMonths").value = a;
     const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
     if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
+    showUploadPhase("choice");
     showScreen("screenUpload");
     try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
   });
@@ -983,10 +1057,12 @@
     let cdate = pick("capture_date");
     if(cdate==="custom"){ cdate = $("captureDateInput").value || "custom"; }
     const concern = ($("concernText").value || "").trim().slice(0, 1000) || null;
+    const foodName = ($("foodName").value || "").trim().slice(0, 120) || null;
     return {
       capture_date: cdate,
       child_age_months: isNaN(age) ? null : age,
       food_texture: pick("food_texture"),
+      food_name: foodName,
       video_segment: pick("video_segment"),
       vs_usual: pick("vs_usual"),
       concern_text: concern
@@ -1060,7 +1136,8 @@
     const meta = [];
     if(answers){
       if(answers.child_age_months!=null) meta.push(`월령 ${answers.child_age_months}개월`);
-      if(TEX_LABEL[answers.food_texture]) meta.push(`음식 ${TEX_LABEL[answers.food_texture]}`);
+      if(answers.food_name) meta.push(`음식 ${escapeHtml(answers.food_name)}`);
+      else if(TEX_LABEL[answers.food_texture]) meta.push(`음식 ${TEX_LABEL[answers.food_texture]}`);
       if(answers.video_segment && answers.video_segment!=="full" && SEG_LABEL[answers.video_segment]) meta.push(`영상 ${SEG_LABEL[answers.video_segment]} 구간`);
     }
     meta.push(`분석에 쓴 영상 ${cur.detect}%`);
@@ -1189,6 +1266,8 @@
     try{ document.querySelectorAll('#fbBlock input[type="radio"]').forEach(r=>r.checked=false); }catch(e){}
     $("fbText").value=""; $("fbThanks").style.display="none";
     $("secInterpret").style.display="none"; $("secActions").style.display="none"; $("secConsult").style.display="none";
+    try{ $("fileCapture").value=""; }catch(e){}
+    showUploadPhase("choice");
     showScreen("screenUpload");
   }
   $("again").addEventListener("click", resetAll);
