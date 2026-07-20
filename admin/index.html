@@ -124,6 +124,7 @@
     <button data-tab="analyses">분석 기록</button>
     <button data-tab="feedback">피드백</button>
     <button data-tab="users">사용자</button>
+    <button data-tab="audit">감사 로그</button>
     <button data-tab="inquiries">문의·신청</button>
   </div>
 
@@ -163,6 +164,17 @@
       <div class="tbl-wrap"><table id="usersTbl"></table></div>
     </div>
 
+    <!-- 감사 로그 (운영·보안 이벤트, append-only) -->
+    <div class="view" id="view-audit">
+      <div class="toolbar">
+        <select id="fAction"><option value="">액션 전체</option><option value="login_success">로그인</option><option value="logout">로그아웃</option><option value="role_change">역할 변경</option><option value="account_toggle">계정 활성·정지</option><option value="comment_create">댓글 작성</option></select>
+        <span class="spacer"></span>
+        <span class="count" id="lgCount"></span>
+        <button class="btn btn-ghost btn-sm" id="lgRefresh">새로고침</button>
+      </div>
+      <div class="tbl-wrap"><table id="auditTbl"></table></div>
+    </div>
+
     <!-- 문의 -->
     <div class="view" id="view-inquiries">
       <div class="tbl-wrap"><table id="inquiriesTbl"></table></div>
@@ -196,7 +208,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPA_URL = "https://adiqnrdgsmszmqvveoow.supabase.co";
 const SUPA_KEY = "sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_";
-const supabase = createClient(SUPA_URL, SUPA_KEY);
+// 관리자 세션을 홈페이지 세션과 완전 분리한다.
+// 별도 storageKey → 홈에서 로그인해도 /admin은 자동으로 열리지 않고, 관리자 로그인을 따로 해야 함.
+const supabase = createClient(SUPA_URL, SUPA_KEY, {
+  auth: {
+    storageKey: "cs-admin-auth",   // 홈(기본 sb-*-auth-token)과 다른 저장소
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,     // 관리자 페이지는 OAuth 리다이렉트 없음
+  },
+});
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -212,6 +233,7 @@ const STAT={completed:["완료","ok"],low_motion:["움직임적음","warn"],resh
 let ALL = [];   // demo_responses
 let INQ = [];   // inquiries
 let USERS = []; // profiles
+let AUDIT = []; // audit_logs
 
 function maskEmail(e){ if(!e) return ""; const [a,b]=String(e).split("@"); if(!b) return "***"; return a.slice(0,2)+"***@"+b; }
 function answersOf(r){ return r.answers||{}; }
@@ -240,6 +262,8 @@ async function boot(){
     $("whoami").textContent = user ? (user.email + (prof ? " · " + prof.role : "")) : "";
     // 최근 로그인 기록(본인 행 last_login_at만 갱신 — 권한변경 트리거에 걸리지 않음)
     supabase.from("profiles").update({ last_login_at: new Date().toISOString() }).eq("id", user.id).then(()=>{}, ()=>{});
+    // 감사 로그: 관리자 로그인 성공
+    supabase.rpc("log_audit", { p_action:"login_success", p_target_type:"admin" }).then(()=>{}, ()=>{});
     $("loginWrap").style.display="none";
     $("app").classList.add("on");
     await loadAll();
@@ -258,7 +282,10 @@ $("loginForm").addEventListener("submit", async e=>{
   if(!ok){ m.textContent="관리자 권한이 없는 계정입니다."; m.classList.add("show"); await supabase.auth.signOut(); btn.disabled=false; btn.textContent="로그인"; return; }
   await boot();
 });
-$("logoutBtn").addEventListener("click", async ()=>{ await supabase.auth.signOut(); location.reload(); });
+$("logoutBtn").addEventListener("click", async ()=>{
+  try{ await supabase.rpc("log_audit", { p_action:"logout", p_target_type:"admin" }); }catch(e){}
+  await supabase.auth.signOut(); location.reload();
+});
 
 /* ---------- 데이터 로드 ---------- */
 async function loadAll(){
@@ -269,7 +296,9 @@ async function loadAll(){
   INQ = iq||[];
   const { data:pf } = await supabase.from("profiles").select("*").order("created_at",{ascending:true});
   USERS = pf||[];
-  renderDash(); renderAnalyses(); renderFeedback(); renderUsers(); renderInquiries();
+  const { data:ad } = await supabase.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(500);
+  AUDIT = ad||[];
+  renderDash(); renderAnalyses(); renderFeedback(); renderUsers(); renderAudit(); renderInquiries();
 }
 
 /* ---------- 대시보드 ---------- */
@@ -333,6 +362,8 @@ function renderAnalyses(){
 }
 ["fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
 $("uRefresh").addEventListener("click", loadAll);
+$("lgRefresh").addEventListener("click", loadAll);
+$("fAction").addEventListener("change", renderAudit);
 
 /* ---------- 피드백 목록 ---------- */
 function renderFeedback(){
@@ -366,6 +397,30 @@ function renderUsers(){
     `</tr>`).join("");
   $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석"]) +
     (USERS.length?`<tbody>${body}</tbody>`:`<tbody><tr><td colspan="7"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
+}
+
+/* ---------- 감사 로그 (조회 전용, append-only) ---------- */
+const ACTION_LABEL={login_success:"로그인",logout:"로그아웃",role_change:"역할 변경",account_toggle:"계정 활성·정지",comment_create:"댓글 작성",analysis_view:"결과 조회",analysis_update:"결과 수정",data_delete:"삭제"};
+function actionCls(a){ return a==="role_change"?"bad":(a==="account_toggle"||a==="data_delete"?"warn":(a==="login_success"?"ok":"mut")); }
+function auditDetail(r){
+  const m=r.metadata||{};
+  if(r.action==="role_change") return `${esc(m.target_email||r.target_id||"")}: ${esc(m.from)} → ${esc(m.to)}`;
+  if(r.action==="account_toggle") return `${esc(m.target_email||r.target_id||"")}: ${m.is_active?"활성화":"정지"}`;
+  return esc(m.text||JSON.stringify(m===null?{}:m)).slice(0,160);
+}
+function renderAudit(){
+  const f=$("fAction").value;
+  const rows = f ? AUDIT.filter(r=>r.action===f) : AUDIT;
+  $("lgCount").textContent = rows.length+"건";
+  const body = rows.map(r=>
+    `<tr>`+
+    `<td>${fmtDt(r.created_at)}</td>`+
+    `<td><span class="pill ${actionCls(r.action)}">${esc(ACTION_LABEL[r.action]||r.action)}</span></td>`+
+    `<td>${esc(r.actor_email||"시스템/서버")}</td>`+
+    `<td class="wrap-cell">${auditDetail(r)}</td>`+
+    `</tr>`).join("");
+  $("auditTbl").innerHTML = tblHead(["일시","액션","수행자","상세"]) +
+    (rows.length?`<tbody>${body}</tbody>`:`<tbody><tr><td colspan="4"><div class="empty">기록이 없어요.</div></td></tr></tbody>`);
 }
 
 /* ---------- 문의 목록 ---------- */
