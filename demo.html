@@ -209,6 +209,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pv-meta span{font-size:12px;font-weight:700;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;}
   .pv-concern{margin-top:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:13.5px;color:var(--ink-soft);}
   .pv-concern b{color:var(--ink);}
+  /* 결과 상담 이메일(선택) */
+  .pv-consult{margin-top:16px;padding:16px 16px 14px;background:var(--tint,#eef7f2);border:1px solid var(--line);border-radius:14px;}
+  .pv-consult-q{font-size:14.5px;font-weight:700;color:var(--ink);}
+  .pv-consult-sub{font-size:12.8px;color:var(--ink-soft);margin:4px 0 10px;line-height:1.5;}
+  #demoConsultForm{display:flex;flex-direction:column;gap:8px;}
+  .pv-consult-inp{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;width:100%;box-sizing:border-box;}
+  .pv-consult-out{font-size:13px;line-height:1.5;}
+  .pv-consult-out.ok{color:var(--brand-deep,#0a7d57);}
+  .pv-consult-out.warn{color:#b7791f;}
   .pv-obs{margin-top:14px;display:flex;flex-direction:column;gap:9px;}
   .pv-item{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 13px;}
   .pv-item .tag{flex:none;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;margin-top:1px;}
@@ -539,6 +548,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <h1 id="pvTitle">우리 아이 식사 분석 결과</h1>
     <div id="previewBlock"></div>
 
+    <!-- 상담 이메일(선택): 결과 보고 전문가 상담을 원하면 -->
+    <div class="pv-consult" id="demoConsultBlock">
+      <div class="pv-consult-q">이 결과에 대해 <b>전문가 상담</b>을 받고 싶으세요?</div>
+      <p class="pv-consult-sub">이메일을 남겨주시면 작성하신 고민과 함께 확인해 답변드려요. (선택)</p>
+      <form id="demoConsultForm" novalidate>
+        <input class="pv-consult-inp" type="email" id="demoConsultEmail" placeholder="답변 받을 이메일 주소" autocomplete="email"/>
+        <button type="submit" class="btn-primary" id="demoConsultSend">상담 신청하기</button>
+        <div class="pv-consult-out" id="demoConsultOut" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
     <!-- 상세 결과는 로그인 후 -->
     <div class="detail-gate" id="detailGate">
       <button class="btn-primary" id="toDetail">상세 분석과 맞춤 가이드 확인하기 →</button>
@@ -628,6 +648,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // ── 로그인 모달(홈과 동일 UI) — '결과 보기' 단계에서만 요구 ──
   const authUI = await mountAuthUI().catch(function(e){ console.warn("auth UI mount 실패:", e); return null; });
+
+  // ── 결과 화면 상담 신청(선택) — 보호자 고민과 함께 send-inquiry로 관리자에게 메일 ──
+  (function(){
+    var f = document.getElementById("demoConsultForm");
+    if(!f) return;
+    f.addEventListener("submit", async function(e){
+      e.preventDefault();
+      var out = document.getElementById("demoConsultOut");
+      var btn = document.getElementById("demoConsultSend");
+      var email = (document.getElementById("demoConsultEmail").value || "").trim();
+      if(!/.+@.+\..+/.test(email)){ out.textContent = "이메일을 정확히 입력해 주세요."; out.className = "pv-consult-out warn"; return; }
+      var a = lastAnswers || {};
+      var concern = a.concern_text || a.concern_type || "(고민 미입력)";
+      var message = "데모 결과 상담 요청\n고민: " + concern + "\n분석ID: " + (lastRowId || "-");
+      out.textContent = "보내는 중…"; out.className = "pv-consult-out"; btn.disabled = true;
+      try{
+        var res = await supabase.functions.invoke("send-inquiry", { body:{ type:"inquiry", source:"demo-consult", email:email, message:message, meta:{ 고민:concern, 분석ID:(lastRowId||null) } } });
+        if(res && res.error) throw res.error;
+        out.textContent = "상담 신청이 접수됐어요. 입력하신 이메일로 답변드릴게요 🙌"; out.className = "pv-consult-out ok";
+        f.reset();
+      }catch(err){
+        out.textContent = "전송 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."; out.className = "pv-consult-out warn";
+      }finally{ btn.disabled = false; }
+    });
+  })();
   function openLogin(){ if(authUI && authUI.openLogin) authUI.openLogin(); }
   let pendingResult = null;   // 미로그인으로 보류된 '결과 표시' 동작 — 로그인 성공 시 실행
   async function gateResult(run){
