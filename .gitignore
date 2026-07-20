@@ -12,3 +12,6 @@ node_modules/
 
 # 로컬 실행용 런처(머신 고유 경로 · 배포 불필요)
 start-demo.bat
+
+.vercel
+.env*

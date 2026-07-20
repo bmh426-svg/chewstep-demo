@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-WDMGSF5S');</script>
+<!-- End Google Tag Manager -->
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Chewstep — 실시간 씹기 분석 화면</title>
@@ -145,6 +152,11 @@
   .backlink{background:none;border:none;color:var(--ink-soft);font:700 13.5px/1 var(--sans);cursor:pointer;padding:4px 0;margin-bottom:6px;}
   .backlink:hover{color:var(--brand-deep);}
   .capture-note{font-size:12.8px;color:var(--ink-soft);background:var(--brand-tint);border-radius:12px;padding:11px 13px;margin:14px 0 0;line-height:1.5;}
+  /* 전/후면 카메라 선택 */
+  .cam-choose{display:flex;gap:8px;margin:0 0 12px;}
+  .cam-opt{flex:1;font:700 13.5px/1 var(--sans);color:var(--ink-soft);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 10px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:border-color .15s,color .15s,background .15s;}
+  .cam-opt.is-on{border-color:var(--brand-deep);color:var(--brand-deep);background:var(--brand-tint);}
+  .cam-choose-label{font-size:12.8px;font-weight:700;color:var(--ink-soft);margin:2px 0 8px;}
   @keyframes screenIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
   /* 감사 화면 */
   .thanks{max-width:520px;margin:6vh auto 0;text-align:center;background:var(--surface);border:1px solid var(--line);
@@ -223,6 +235,10 @@
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WDMGSF5S"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 <!-- 로그인 없이 데모 진입 가능(업로드~분석~설문). 로그인은 '결과 보기' 단계에서 요구. -->
 <!-- file:// 로 열면 ES모듈·Supabase가 막혀 분석이 안 되므로, 그 경우에만 안내를 띄운다. -->
 <div id="csLoadError" style="display:none;position:fixed;inset:0;z-index:9999;background:#f6f8f7;color:#10201a;
@@ -319,12 +335,17 @@
       <p class="lede">부담 갖지 말고 평소 식사 모습을 담아 주세요. 아래 그림처럼 <b>아이 얼굴·입·숟가락</b>이 한 화면에 보이면 충분해요.</p>
       <img class="guide-img" src="./assets/img/shoot-guide.png"
            alt="촬영 가이드 — ① 휴대폰을 세워두기 ② 아이 얼굴·입·숟가락이 한 화면에 보이게(식판 전체는 안 보여도 OK) ③ 먹기 시작할 때 눌러 30초 정도 촬영" />
+      <div class="cam-choose-label">어떤 카메라로 찍을까요?</div>
+      <div class="cam-choose" role="group" aria-label="카메라 선택">
+        <button type="button" class="cam-opt is-on" data-cap="environment">📷 후면 카메라</button>
+        <button type="button" class="cam-opt" data-cap="user">🤳 전면(셀피)</button>
+      </div>
       <label class="drop" id="dropCapture">
         <div class="big">🔴</div>
         <div class="lead">촬영 시작하기</div>
-        <div class="sub">휴대폰이면 카메라가 바로 열려요 · 30초면 충분해요</div>
-        <input type="file" id="fileCapture" accept="video/*" capture="environment" />
+        <div class="sub">웹캠·카메라로 지금 바로 실시간 촬영 · 30초면 충분해요</div>
       </label>
+      <input type="file" id="fileCapture" accept="video/*" capture="environment" style="display:none" />
       <p class="capture-note">🍽 <b>음식이 뭔지는 다음 설문에서</b> 알려주시면 돼요 — 식판을 따로 예쁘게 담지 않아도, 영상엔 아이 먹는 모습만 있으면 괜찮아요.</p>
     </div>
 
@@ -363,6 +384,8 @@
           <canvas id="overlay"></canvas>
         </div>
         <div class="progress"><div class="fill" id="pfill"></div></div>
+        <button type="button" id="liveStop" class="btn-primary" style="display:none;width:100%;margin-top:10px;">■ 촬영 종료하고 결과 보기</button>
+        <p id="liveHint" class="note" style="display:none">🔴 실시간 촬영 중 — 30초쯤 담고 <b>촬영 종료</b>를 누르면 분석 결과로 넘어가요. 원본 영상은 저장되지 않아요.</p>
       </div>
 
       <div class="card">
@@ -394,7 +417,7 @@
   <section class="screen" id="screenSurvey">
     <span class="step-eyebrow">STEP 2 / 3 · 영상 정보</span>
     <h1>영상 속 식사 상황을 알려주세요</h1>
-    <p class="lede">정확한 분석을 위해 4가지만 확인할게요. 신뢰도는 <b>영상 자체</b>를 기준으로 계산되고, 아래 답변은 맥락을 보충해요.</p>
+    <p class="lede">정확한 분석을 위해 아래 질문에 답해 주세요. 신뢰도는 <b>영상 자체</b>를 기준으로 계산되고, 답변은 맥락을 보충해요.</p>
 
     <form class="survey" id="surveyForm">
       <div class="q">
@@ -454,6 +477,50 @@
       </div>
 
       <div class="q">
+        <div class="q-title"><span class="num">5</span>요즘 가장 큰 고민은 무엇인가요?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="concern_type" value="refuse"/><span>아예 안 먹어요</span></label>
+          <label class="opt"><input type="radio" name="concern_type" value="spit"/><span>자꾸 뱉어요</span></label>
+          <label class="opt"><input type="radio" name="concern_type" value="slow"/><span>너무 느리게 먹어요</span></label>
+          <label class="opt"><input type="radio" name="concern_type" value="small"/><span>먹는 양이 적어요</span></label>
+          <label class="opt"><input type="radio" name="concern_type" value="picky"/><span>특정 음식만 먹어요</span></label>
+          <label class="opt"><input type="radio" name="concern_type" value="other"/><span>기타</span></label>
+        </div>
+      </div>
+
+      <div class="q">
+        <div class="q-title"><span class="num">6</span>직전 식사나 수유는 언제였나요?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="last_meal_gap" value="within2"/><span>2시간 이내</span></label>
+          <label class="opt"><input type="radio" name="last_meal_gap" value="2to4"/><span>2~4시간</span></label>
+          <label class="opt"><input type="radio" name="last_meal_gap" value="over4"/><span>4시간 이상</span></label>
+          <label class="opt"><input type="radio" name="last_meal_gap" value="unknown"/><span>잘 모르겠어요</span></label>
+        </div>
+      </div>
+
+      <div class="q">
+        <div class="q-title"><span class="num">7</span>이 음식은 최근 몇 번 정도 제공했나요?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="exposure_count" value="first"/><span>오늘 처음</span></label>
+          <label class="opt"><input type="radio" name="exposure_count" value="2to5"/><span>2~5번</span></label>
+          <label class="opt"><input type="radio" name="exposure_count" value="6plus"/><span>6번 이상</span></label>
+          <label class="opt"><input type="radio" name="exposure_count" value="unknown"/><span>잘 모르겠어요</span></label>
+        </div>
+      </div>
+
+      <div class="q">
+        <div class="q-title" style="color:#b7791f">⚠ 최근 식사 중 이런 모습이 있었나요? <span style="font-weight:600;color:var(--ink-faint)">(해당 시 선택 · 복수 가능)</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="safety" value="choke"/><span>사레·기침이 잦아요</span></label>
+          <label class="opt"><input type="checkbox" name="safety" value="swallow"/><span>삼키기 힘들어 보여요</span></label>
+          <label class="opt"><input type="checkbox" name="safety" value="vomit"/><span>반복적으로 토해요</span></label>
+          <label class="opt"><input type="checkbox" name="safety" value="refuse_all"/><span>식사·수유를 모두 거부해요</span></label>
+          <label class="opt"><input type="checkbox" name="safety" value="weight"/><span>체중 감소가 걱정돼요</span></label>
+          <label class="opt"><input type="checkbox" name="safety" value="none"/><span>해당 없음</span></label>
+        </div>
+      </div>
+
+      <div class="q">
         <div class="q-title">아이의 식사에서 최근 가장 궁금하거나 걱정되는 점은 무엇인가요? <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
         <textarea id="concernText" class="ta" placeholder="예: 요즘 밥을 자꾸 뱉어서 걱정이에요. 잘 씹고 있는 건지 궁금해요."></textarea>
       </div>
@@ -483,14 +550,19 @@
   <!-- ===== 화면 5 · 상세 결과 (로그인 후) ===== -->
   <section class="screen" id="screenDetail">
     <span class="step-eyebrow">상세 분석 · 맞춤 가이드</span>
-    <div class="verdict" id="verdict"></div>
+    <!-- (안전) §5 · 신호 선택 시 최상단 덮어쓰기 -->
+    <div id="secSafetyTop"></div>
+    <!-- 1 · 보호자 고민 요약 -->
+    <div class="dsec" id="secConcern" style="display:none"></div>
+    <!-- 2 · 이번 영상에서 관찰된 모습 (+전후 비교) -->
     <div class="resultcard" id="resultCard"></div>
-
-    <!-- 설문을 반영한 해석 / 함께 고려할 점 -->
+    <!-- 3·4 · 가장 먼저 확인해볼 점 / 그렇게 본 이유 -->
     <div class="dsec" id="secInterpret" style="display:none"></div>
-    <!-- 다음 식사에서 해볼 행동 -->
+    <!-- 5·6 · 다음 식사에서 바꿀 한 가지 / 관찰할 변화 -->
     <div class="dsec" id="secActions" style="display:none"></div>
-    <!-- 전문가 상담이 필요한 신호 -->
+    <!-- 7 · 결과의 관찰 범위 -->
+    <div class="verdict" id="verdict"></div>
+    <!-- 8 · 안전 안내 -->
     <div class="dsec dsec-warn" id="secConsult" style="display:none"></div>
 
     <!-- 결과 후기 (도움 정도 + 가장 도움된 부분 + 자유서술) -->
@@ -509,6 +581,12 @@
         <label class="opt"><input type="radio" name="fb_useful" value="action"/><span>다음 식사에서 해볼 방법</span></label>
         <label class="opt"><input type="radio" name="fb_useful" value="consult"/><span>전문가 상담 기준</span></label>
         <label class="opt"><input type="radio" name="fb_useful" value="etc"/><span>기타</span></label>
+      </div>
+      <div class="fb-q sub">다음에도 또 사용해 보실 건가요?</div>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="fb_reuse" value="yes"/><span>네, 또 쓸래요</span></label>
+        <label class="opt"><input type="radio" name="fb_reuse" value="maybe"/><span>상황 보고요</span></label>
+        <label class="opt"><input type="radio" name="fb_reuse" value="no"/><span>아니요</span></label>
       </div>
       <div class="fb-q sub">결과에서 아쉬웠던 점이나 추가로 궁금한 내용을 자유롭게 적어 주세요.</div>
       <p style="font-size:12.8px;color:var(--ink-soft);margin:-4px 0 10px;line-height:1.55;">세상 모든 아이가 자신만의 속도로 <b style="color:var(--brand-deep)">‘먹짱’</b>이 될 수 있도록, 소중한 의견 부탁드려요 🙂</p>
@@ -541,6 +619,7 @@
   import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
   import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
   import { mountAuthUI } from "./assets/js/auth.js";
+  import { AudioChewDetector } from "./assets/js/audio-chew.js";
   const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
   const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
@@ -589,6 +668,11 @@
   let sumL = 0, sumR = 0, toCnt = 0, maxJaw = 0, firstT = null, lastT = 0;
   let lastSampleT = -1, running = false;
   let sumJo = 0, sumMc = 0, curFile = null;   // 평균 계산용 + 업로드 파일 메타
+  // ── 라이브 카메라 + 오디오 퓨전 상태 ──
+  let liveMode = false, liveStream = null, micStream = null, audioDet = null;
+  let startPerf = 0, currentFacing = "environment";
+  let chewAudio = 0, lastChewT = -1e9;          // 오디오 fallback 카운트 + 마지막 씹은 시각
+  const AUDIO_PRIME = 4.0;                        // 직전 이 시간(초) 내 씹기 이력 있을 때만 오디오 신뢰
   let lastCur = null, lastMetrics = null, lastPrev = null;  // 설문 단계로 넘길 분석 결과 보관
   let lastAnswers = null;                                   // 보호자 설문 응답(미리보기·상세·저장 공용)
   let lastRowId = null;                                     // 저장된 demo_responses 행 id(후기 업데이트용)
@@ -602,6 +686,7 @@
     JAW=[]; faces=0; frames=0; chew=0; state="closed"; openCnt=0;
     sumL=0; sumR=0; toCnt=0; maxJaw=0; firstT=null; lastT=0; lastSampleT=-1;
     sumJo=0; sumMc=0; sT=[]; sJo=[]; sJl=[]; sJr=[]; sTo=[];
+    chewAudio=0; lastChewT=-1e9;
     octx.clearRect(0,0,overlay.width,overlay.height);
     wctx.clearRect(0,0,wave.width,wave.height);
     $("verdict").className="verdict";
@@ -640,7 +725,7 @@
       if(jo>=OPEN) openCnt++;
       let chewed=false;
       if(state==="closed" && jo>=OPEN) state="open";
-      else if(state==="open" && jo<=CLOSE){ chew++; state="closed"; chewed=true; }
+      else if(state==="open" && jo<=CLOSE){ chew++; state="closed"; chewed=true; lastChewT=t; }
       drawFace(res.faceLandmarks && res.faceLandmarks[0], chewed);
       $("mJaw").textContent = jo.toFixed(2);
       // landmark 추출 결과 시계열 기록(얼굴 검출 프레임만, 상한까지)
@@ -650,6 +735,13 @@
       }
     } else {
       $("mJaw").textContent = "—";
+      // 오디오 퓨전(라이브+마이크 있을 때만). 얼굴 가림 구간을 오디오 리듬이 이어받는다.
+      // 파일 분석은 audioDet=null → 이 블록 no-op(기존 chew_count 완전 보존).
+      if(audioDet){
+        state = "closed";  // 얼굴 복귀 시 오카운트 방지
+        const a = audioDet.sample();
+        if(a.chewed && (t - lastChewT) <= AUDIO_PRIME){ chew++; chewAudio++; lastChewT=t; }
+      }
     }
     if(firstT===null) firstT=t; lastT=t;
     JAW.push(jo); // null 허용(얼굴 놓침)
@@ -719,6 +811,14 @@
 
   function finish(){
     if(!running) return; running=false;
+    // 라이브 촬영이었으면 카메라·마이크 정리 + UI 원복
+    if(liveMode){
+      stopLiveMedia(); liveMode=false;
+      const ls=$("liveStop"); if(ls) ls.style.display="none";
+      const lh=$("liveHint"); if(lh) lh.style.display="none";
+      const prog=$("pfill") && $("pfill").parentElement; if(prog) prog.style.display="";
+      try{ video.srcObject=null; }catch(e){}
+    }
     $("statusTxt").textContent = "분석 완료";
     const detect = frames? (faces/frames*100):0;
     const obs = Math.max(0, lastT-(firstT||0));
@@ -767,7 +867,9 @@
     if(cur.quality==="low_face") msg += ` 얼굴·입이 충분히 보이지 않아 결과가 제한적이에요. 밝은 곳에서 얼굴이 잘 보이게 다시 찍어 주세요.`;
     else if(cur.quality==="low_motion") msg += ` 씹는 움직임이 적게 관찰됐어요(재촬영이 아니라 관찰 결과예요).`;
     v.className = "verdict on " + cls;
-    v.innerHTML = `<b>분석 신뢰도: ${level}</b><br>${msg}`;
+    v.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--brand-deep,#0a7d57);letter-spacing:.02em;margin-bottom:6px;">7 · 결과의 관찰 범위</div>`+
+      `<b>분석 신뢰도: ${level}</b><br>${msg}`+
+      `<div style="margin-top:8px;font-size:12.5px;line-height:1.55;opacity:.85;">이 결과는 <b>우리 아이의 지난 기록과 비교한 변화 관찰</b>이에요 — 다른 아이와 비교하거나 정상·이상을 진단하지 않아요. 원본 영상은 저장하지 않아요.</div>`;
   }
 
   // ── 분석 결과(landmark 시계열 + 요약 지표)를 Supabase demo_responses에 저장 ──
@@ -784,10 +886,11 @@
     const r3 = v => Math.round(v*1000)/1000;
     const dur = (video.duration && isFinite(video.duration)) ? +video.duration.toFixed(2) : null;
     const metrics = {
-      algo: `hysteresis-open${OPEN}-close${CLOSE}-v2-relaxed`,
+      algo: `hysteresis-open${OPEN}-close${CLOSE}-v2-relaxed${chewAudio ? "+audiofallback" : ""}`,
       quality: cur.quality,
       samples: sT.length,
       chew_count: chew,
+      chew_audio_fallback: chewAudio,   // 🔎 얼굴 가림 구간에서 오디오로 이어받은 횟수(라이브 전용)
       chews_per_min: cur.cpm,
       detect_rate: Math.round(m.detect),
       left_pct: cur.leftPct,
@@ -811,9 +914,32 @@
       let rowId = null;
       try { rowId = crypto.randomUUID(); } catch(e) { rowId = null; }
       const uid = await currentUserId();
+      // 상태(성공/저품질/재촬영) + 사용자에게 나간 결과를 함께 저장 (관리자 품질검수용)
+      const statusVal = cur.quality==="low_face" ? "reshoot_low_face"
+                      : (cur.quality==="low_motion" ? "low_motion" : "completed");
+      const confVal = cur.quality==="high" ? "high"
+                    : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium");
+      const prevR = lastPrev;
+      const deltaPct = (prevR && prevR.cpm>0) ? Math.round((cur.cpm - prevR.cpm)/prevR.cpm*100) : null;
+      const coach = computeCoaching(cur, m, answers);
+      const resultObj = {
+        version: "demo-r2",
+        status: statusVal,
+        confidence: coach.confidence,
+        possibility: coach.possibility,
+        possibility_label: coach.label,
+        first_check: coach.firstCheck,
+        action: coach.action,
+        watch: coach.watch,
+        safety: coach.safetyOn ? coach.safety : null,
+        observation: { chews_per_min: cur.cpm, left_pct: cur.leftPct, detect_rate: cur.detect, quality: cur.quality },
+        vs_prev: prevR ? { chews_per_min_prev: prevR.cpm, delta_pct: deltaPct } : null
+      };
       const row = {
         id: rowId || undefined,
         source: "demo-app-v1",
+        status: statusVal,
+        result: resultObj,
         has_video: true,
         video_name: curFile ? String(curFile.name || "").slice(0, 200) : null,
         video_size: curFile ? curFile.size : null,
@@ -847,6 +973,51 @@
     if(cpm > 50) return "삼키기 전에 충분히 씹도록 다음 숟가락을 살짝 늦춰 주세요.";
     return "지금처럼 이어가고, 내일 비슷한 상황에서 한 번 더 찍어 변화를 비교해 보세요.";
   }
+  // ===== C단계 · 규칙 엔진 (결과설계 문서 §4~§6) — 이 표만 고치면 결과가 바뀝니다 =====
+  const RULES = {
+    // §4 가능성 점수: 입력 → {가능성:점수}  (가능성 키: interval/texture/expectation/repetition)
+    concern:  { refuse:{interval:2,repetition:1}, spit:{texture:2,repetition:1}, slow:{texture:1}, small:{interval:1,expectation:2}, picky:{repetition:2} },
+    mealGap:  { within2:{interval:2} },
+    texture:  { regular:{texture:1}, soft_solid:{texture:1}, mixed:{texture:1} },
+    exposure: { first:{repetition:2}, "2to5":{repetition:1} },
+    videoLowMotion: {texture:1},   // 영상 VM 짧게/적게 또는 VP 멈춤 김
+    priority: ['texture','interval','repetition','expectation'],   // 동점 우선순위
+    possibility: {
+      interval:    { label:"식사 간격·배고픔", firstCheck:"이번에는 <b>충분히 배고픈 상태였는지</b>를 먼저 확인해 보세요.", action:"다음 식사 전에는 간식·수유 간격을 조금 더 두고 아이의 반응을 살펴보세요.", watch:"첫 한입을 받아들이는지, 먹는 양이 달라지는지" },
+      texture:     { label:"질감·크기", firstCheck:"이번에는 <b>음식의 질감이나 크기</b>가 아이에게 부담스럽지 않았는지 먼저 확인해 보세요.", action:"같은 음식을 지금보다 더 부드럽고 작게 준비해 한두 조각만 제공해 보세요.", watch:"바로 뱉는 행동이 줄어드는지, 씹는 움직임이 조금 더 이어지는지" },
+      expectation: { label:"기대 섭취량", firstCheck:"<b>한 끼 양은 한 번의 식사만으로 판단하기 어려워요.</b> 며칠간의 흐름으로 보는 게 좋아요.", action:"처음 제공량을 조금 줄여 부담을 낮추고, 아이가 더 원할 때 추가로 주세요.", watch:"거부감이 줄어드는지, 스스로 더 먹으려 하는지" },
+      repetition:  { label:"익숙함·반복 노출", firstCheck:"이 음식이 <b>아직 익숙하지 않아서</b>일 수 있어요.", action:"익숙한 음식 옆에 이 음식을 소량 함께 두고, 만지거나 맛보게만 해보세요.", watch:"만지거나 입에 대보는 횟수가 느는지" },
+      unclear:     { label:"판단 제한", firstCheck:"이번 영상과 답변만으로는 한 가지 원인으로 좁히기 어려웠어요.", action:"비슷한 조건에서 한 번 더 찍어, 반복되는 모습인지 확인해 보세요.", watch:"같은 상황이 반복되는지" }
+    },
+    safetyLabels: { choke:"사레·기침", swallow:"삼킴 어려움", vomit:"반복 구토", refuse_all:"식사·수유 전면 거부", weight:"체중 감소 우려" }
+  };
+  // 입력(설문+영상) → 가장 먼저 볼 가능성 + 안전신호 + 행동. §5 안전은 결과 상단 덮어쓰기.
+  function computeCoaching(cur, metrics, answers){
+    const a = answers || {};
+    const safety = Array.isArray(a.safety) ? a.safety.filter(s=>s && s!=="none") : [];
+    const score = { interval:0, texture:0, expectation:0, repetition:0 };
+    const add = o => { if(o) for(const k in o) score[k] = (score[k]||0) + o[k]; };
+    add(RULES.concern[a.concern_type]);
+    add(RULES.mealGap[a.last_meal_gap]);
+    add(RULES.texture[a.food_texture]);
+    add(RULES.exposure[a.exposure_count]);
+    const longPause = metrics && metrics.pause_count!=null && metrics.samples && (metrics.pause_count/metrics.samples > 0.15);
+    if(cur.quality==="low_motion" || cur.cpm<25 || longPause) add(RULES.videoLowMotion);
+    let top=null, best=-1;
+    for(const key of RULES.priority){ if((score[key]||0) > best){ best = score[key]; top = key; } }
+    if(best<=0) top = "unclear";
+    const p = RULES.possibility[top] || RULES.possibility.unclear;
+    const confidence = cur.quality==="high" ? "high" : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium");
+    return { safety, safetyOn: safety.length>0, possibility: top, label:p.label, firstCheck:p.firstCheck, action:p.action, watch:p.watch, score, confidence };
+  }
+  // 안전 덮어쓰기 배너(§5)
+  function safetyBannerHtml(safety){
+    const tags = safety.map(s=>RULES.safetyLabels[s]||s).filter(Boolean).join(" · ");
+    return `<div class="pv-summary" style="border-left:4px solid #d9534f;background:#fdf1f1;">`+
+      `<b>이번에는 식사 습관을 조정하기보다, 전문가에게 현재 상황을 먼저 확인받는 것이 좋아요.</b><br>`+
+      `선택하신 <b>${escapeHtml(tags)}</b> 같은 신호는 짧은 영상만으로 판단하기 어렵습니다. 소아청소년과 또는 섭식·연하 전문가와 상담해 주세요.</div>`;
+  }
+
   // st: "up" | "down" | "same"  (동일은 회색·= 표시)
   function chipChange(nm, mn, change, range, st){
     const arrow = st==="up" ? "↑" : (st==="down" ? "↓" : "=");
@@ -929,19 +1100,14 @@
     rc.innerHTML =
       `<div class="rc-hero">${heroInner}`+
         `<div class="rc-chips">${chip1}${chip2}${chip3}</div>`+
-        `<div class="rc-next"><div class="t">오늘 한 걸음</div><p>${quickWin(q, cur.cpm)}</p></div>`+
-        `<div class="rc-cond">비슷한 조건(같은 시간대·음식·촬영 각도)에서 찍을수록 비교가 정확해요.</div>`+
-        `<div class="rc-trust">`+
-          `<div class="row">이 결과는 <b>우리 아이의 지난 기록과 비교한 변화 관찰</b>이에요. 다른 아이와 비교하거나 정상·이상을 <b>진단하지 않아요.</b></div>`+
-          `<div class="row">지표는 이 브라우저에 저장돼 다음 측정과 비교돼요. 원본 영상은 저장하지 않아요.</div>`+
-          `<div class="rc-badges"><span class="rc-badge">🎥 원본 영상 미저장</span><span class="rc-badge">이번 분석 영상 ${cur.detect}%</span></div>`+
-        `</div>`+
       `</div>`;
     rc.classList.add("on");
   }
 
   async function start(file){
     curFile = file || null;
+    liveMode = false; stopLiveMedia();          // 라이브 잔여 상태 정리(파일 분석은 오디오 미사용)
+    try{ video.srcObject = null; }catch(e){}
     if(window.csLog) window.csLog("demo_analyze_start", { size: file && file.size, type: file && file.type });
     await ensure();
     reset();
@@ -968,6 +1134,57 @@
     video.onended = finish;
   }
 
+  // ── 라이브 카메라 촬영(웹캠·모바일 공통) + 오디오 퓨전 ──
+  function stopLiveMedia(){
+    try{ audioDet && audioDet.close(); }catch(e){}
+    try{ micStream && micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    try{ liveStream && liveStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    audioDet=null; micStream=null; liveStream=null;
+  }
+
+  async function startLive(facing){
+    await ensure();
+    reset();
+    curFile = null; liveMode = true;
+    // ① 카메라(요청 방향 실패 시 아무 카메라나 — 노트북엔 후면 없음)
+    try{ liveStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: facing }, audio:false }); }
+    catch(e1){ liveStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
+    video.srcObject = liveStream; video.removeAttribute("src");
+    await video.play().catch(()=>{});
+    // ② 마이크는 best-effort(원음 보존). 거부/없어도 영상 단독으로 진행.
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }, video:false });
+      audioDet = new AudioChewDetector(); await audioDet.init(micStream);
+    }catch(eMic){ audioDet=null; micStream=null; }
+
+    showScreen("screenAnalyze");
+    const fit=()=>{ overlay.width=video.clientWidth; overlay.height=video.clientHeight; };
+    fit(); window.addEventListener("resize", fit);
+    // 라이브 UI: 진행바 숨기고 종료 버튼 노출
+    const prog = $("pfill") && $("pfill").parentElement; if(prog) prog.style.display="none";
+    $("liveStop").style.display=""; $("liveHint").style.display="";
+    $("statusTxt").textContent = "촬영 중" + (audioDet ? " · 🔊 오디오 퓨전" : " · 영상 단독");
+
+    running = true; startPerf = performance.now();
+    const useRVFC = typeof video.requestVideoFrameCallback==="function";
+    function liveLoop(){
+      if(!running) return;
+      const t = (performance.now()-startPerf)/1000;
+      if(t-lastSampleT/1000 >= SAMPLE_DT || lastSampleT<0){ sample(t); }
+      if(useRVFC) video.requestVideoFrameCallback(liveLoop); else setTimeout(liveLoop, 60);
+    }
+    if(useRVFC) video.requestVideoFrameCallback(liveLoop); else liveLoop();
+  }
+
+  // "촬영 시작하기" 클릭 → 라이브 카메라 우선, 불가하면 파일선택(폰 카메라/업로드)로 폴백
+  async function onCaptureClick(){
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      try{ await startLive(currentFacing); if(window.csLog) window.csLog("demo_live_start",{facing:currentFacing}); return; }
+      catch(e){ /* 권한 거부·장치 없음 → 파일 입력으로 폴백 */ }
+    }
+    $("fileCapture").click();
+  }
+
   // ── 단계별 화면 전환 ──
   function showScreen(id){
     document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -987,9 +1204,22 @@
   $("file").addEventListener("change", function(){
     const f=this.files && this.files[0]; if(f) handleFile(f);
   });
-  // 지금 바로 촬영하기(모바일=카메라 · 데스크톱=파일선택)
+  // 지금 바로 촬영하기 → 라이브 카메라 우선(불가 시 파일선택 폴백)
+  $("dropCapture").addEventListener("click", onCaptureClick);
+  // 파일선택 폴백 경로(모바일 카메라 캡처 또는 데스크톱 파일 선택)
   $("fileCapture").addEventListener("change", function(){
     const f=this.files && this.files[0]; if(f) handleFile(f);
+  });
+  // 라이브 촬영 종료 → 지표 확정 후 결과/설문 단계
+  $("liveStop").addEventListener("click", function(){ finish(); });
+  // 전/후면 카메라 선택 → 라이브 카메라 방향 + 파일 폴백 capture 힌트
+  document.querySelectorAll(".cam-opt").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".cam-opt").forEach(function(b){ b.classList.remove("is-on"); });
+      this.classList.add("is-on");
+      currentFacing = this.dataset.cap;
+      $("fileCapture").setAttribute("capture", this.dataset.cap);
+    });
   });
 
   // ── 업로드 단계 전환: 선택 → (촬영 가이드 | 파일 업로드) ──
@@ -1058,6 +1288,7 @@
     if(cdate==="custom"){ cdate = $("captureDateInput").value || "custom"; }
     const concern = ($("concernText").value || "").trim().slice(0, 1000) || null;
     const foodName = ($("foodName").value || "").trim().slice(0, 120) || null;
+    const safety = Array.from(f.querySelectorAll('input[name="safety"]:checked')).map(el=>el.value);
     return {
       capture_date: cdate,
       child_age_months: isNaN(age) ? null : age,
@@ -1065,6 +1296,10 @@
       food_name: foodName,
       video_segment: pick("video_segment"),
       vs_usual: pick("vs_usual"),
+      concern_type: pick("concern_type"),
+      last_meal_gap: pick("last_meal_gap"),
+      exposure_count: pick("exposure_count"),
+      safety: safety.length ? safety : null,
       concern_text: concern
     };
   }
@@ -1142,7 +1377,9 @@
     }
     meta.push(`분석에 쓴 영상 ${cur.detect}%`);
     const obs = pvObservations(cur);
+    const coach = computeCoaching(cur, lastMetrics, answers);
     pv.innerHTML =
+      (coach.safetyOn ? safetyBannerHtml(coach.safety) : "")+
       `<div class="pv-summary">${personalSummary(cur, answers)}</div>`+
       `<div class="pv-meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div>`+
       `<div class="pv-obs">${obs.map(o=>pvItem(o.t,o.h,o.d)).join("")}</div>`;
@@ -1165,23 +1402,49 @@
         lines.push("일반·고형식을 드셨는데 씹는 움직임이 적게 관찰됐어요. 음식의 <b>크기나 단단함</b>이 지금 씹기 수준보다 조금 어려웠을 가능성도 함께 살펴볼 수 있어요.");
     }
     if(!lines.length) lines.push("설문 응답이 많지 않아, 이번 결과는 영상에서 관찰된 <b>씹기 활동</b>을 중심으로 정리했어요.");
-    box.innerHTML = `<h4>설문을 반영한 해석</h4><ul>${lines.map(l=>`<li>${l}</li>`).join("")}</ul>`+
+    const coach = computeCoaching(cur, lastMetrics, answers);
+    box.innerHTML = `<h4>가장 먼저 확인해볼 점</h4><ul><li>${coach.firstCheck}</li></ul>`+
+      `<h4 style="margin-top:16px">그렇게 본 이유</h4><ul>${lines.map(l=>`<li>${l}</li>`).join("")}</ul>`+
       `<p class="disc">하나의 영상만으로 원인을 확정할 수는 없어요. 여러 번의 식사를 함께 보면 더 분명해져요.</p>`;
     box.style.display = "";
   }
   function renderActions(cur, answers){
     const box = $("secActions");
-    const acts = [ quickWin(cur.quality, cur.cpm) ];
-    if(answers){
-      if(answers.food_texture==="regular") acts.push("같은 음식을 조금 더 잘게 잘라, 한입 크기를 줄여 제공해 보세요.");
-      else if(answers.food_texture==="soft_solid") acts.push("아이가 삼킨 것을 확인한 뒤 다음 한 입을 주며 속도를 맞춰 보세요.");
-    }
-    acts.push("같은 조건(비슷한 시간대·음식·촬영 각도)에서 한 번 더 찍어 변화를 비교해 보세요.");
-    box.innerHTML = `<h4>다음 식사에서 이렇게 해보세요</h4><ul>${acts.slice(0,3).map(a=>`<li>${a}</li>`).join("")}</ul>`;
+    const coach = computeCoaching(cur, lastMetrics, answers);
+    const acts = [
+      coach.action,
+      `이 변화를 살펴보세요 — <b>${coach.watch}</b>.`,
+      "같은 조건(비슷한 시간대·음식·촬영 각도)에서 한 번 더 찍으면, 이 변화가 어떻게 달라졌는지 <b>지난 기록과 비교</b>해드려요."
+    ];
+    box.innerHTML = `<h4>다음 식사에서 바꿀 한 가지</h4><ul>${acts.map(a=>`<li>${a}</li>`).join("")}</ul>`;
     box.style.display = "";
+  }
+  // 1 · 보호자 고민 요약
+  function renderConcern(answers){
+    const box = $("secConcern"); const a = answers || {};
+    const CT = { refuse:"아예 안 먹어요", spit:"자꾸 뱉어요", slow:"너무 느리게 먹어요", small:"먹는 양이 적어요", picky:"특정 음식만 먹어요", other:"기타" };
+    const c = a.concern_text ? `“${escapeHtml(a.concern_text)}”` : (CT[a.concern_type] ? `“${CT[a.concern_type]}”` : null);
+    if(!c){ box.style.display="none"; box.innerHTML=""; return; }
+    box.innerHTML = `<h4>보호자님이 알려주신 고민</h4><p>${c} — 이 점을 중심으로 이번 영상을 살펴봤어요.</p>`;
+    box.style.display = "";
+  }
+  // 안전 신호 최상단 덮어쓰기(§5)
+  function renderSafetyTop(cur, answers){
+    const box = $("secSafetyTop"); const coach = computeCoaching(cur, lastMetrics, answers);
+    if(coach.safetyOn){ box.innerHTML = safetyBannerHtml(coach.safety); box.style.display=""; }
+    else { box.innerHTML = ""; box.style.display="none"; }
   }
   function renderConsult(){
     const box = $("secConsult");
+    const coach = computeCoaching(lastCur, lastMetrics, lastAnswers);
+    if(coach.safetyOn){
+      const tags = coach.safety.map(s=>RULES.safetyLabels[s]||s).join(" · ");
+      box.innerHTML = `<h4>먼저 전문가 확인이 필요할 수 있어요</h4>`+
+        `<p>보호자님이 선택하신 <b>${escapeHtml(tags)}</b> 신호는 짧은 영상만으로 판단하기 어려워요. 이번에는 식사 습관 조정보다 <b>전문가 확인을 먼저</b> 권해드려요.</p>`+
+        `<p class="disc">소아청소년과 또는 섭식·연하 전문가와 상의해 보세요. 이 분석은 진단을 대신하지 않아요.</p>`;
+      box.style.display = "";
+      return;
+    }
     const sig = [
       "대부분의 식사에서 반복적으로 기침하거나 사레가 드는 경우",
       "음식을 거의 삼키지 못하고 지속적으로 뱉는 경우",
@@ -1206,11 +1469,13 @@
 
   // '상세 분석과 맞춤 가이드 확인하기' → 로그인 필수 → 상세 결과 표시 + 저장(로그인 상태로 저장해 후기 UPDATE 가능)
   async function goDetail(){
-    renderConfidence(lastCur, lastMetrics, lastAnswers);
-    renderCard(lastCur, lastPrev, lastCur.quality);
-    renderInterpret(lastCur, lastAnswers);
-    renderActions(lastCur, lastAnswers);
-    renderConsult();
+    renderSafetyTop(lastCur, lastAnswers);   // 안전(최상단)
+    renderConcern(lastAnswers);              // 1 고민
+    renderCard(lastCur, lastPrev, lastCur.quality);  // 2 관찰된 모습
+    renderInterpret(lastCur, lastAnswers);   // 3·4 먼저확인·이유
+    renderActions(lastCur, lastAnswers);     // 5·6 행동·관찰할 변화
+    renderConfidence(lastCur, lastMetrics, lastAnswers); // 7 관찰 범위
+    renderConsult();                         // 8 안전 안내
     if(!lastRowId){ try{ await saveResult(lastCur, lastMetrics, lastAnswers); }catch(e){} }
     if(window.csLog) window.csLog("demo_detail_view", {});
     showScreen("screenDetail");
@@ -1223,9 +1488,10 @@
     const fb = {
       helpful: pick("fb_helpful"),
       most_useful: pick("fb_useful"),
+      reuse_intent: pick("fb_reuse"),
       feedback_text: ($("fbText").value || "").trim().slice(0, 1000) || null
     };
-    if(!fb.helpful && !fb.most_useful && !fb.feedback_text) return;   // 아무 입력 없으면 무시
+    if(!fb.helpful && !fb.most_useful && !fb.reuse_intent && !fb.feedback_text) return;   // 아무 입력 없으면 무시
 
     // 감사 화면으로 즉시 전환(저장/메일은 백그라운드에서 best-effort로 계속)
     showScreen("screenThanks");
@@ -1234,12 +1500,14 @@
     try{
       const HELP={much:"매우 도움이 됐어요",some:"조금 도움이 됐어요",unsure:"잘 모르겠어요",none:"도움이 되지 않았어요"};
       const USE={observation:"영상에서 관찰된 내용",interpret:"설문을 반영한 해석",action:"다음 식사에서 해볼 방법",consult:"전문가 상담 기준",etc:"기타"};
+      const REUSE={yes:"네, 또 쓸래요",maybe:"상황 보고요",no:"아니요"};
       supabase.functions.invoke("send-inquiry", { body: {
         type:"feedback", source:"demo-feedback",
         message: fb.feedback_text || "(자유서술 없음)",
         meta: {
           "도움 정도": HELP[fb.helpful] || fb.helpful || "",
           "가장 도움된 부분": USE[fb.most_useful] || fb.most_useful || "",
+          "재사용 의향": REUSE[fb.reuse_intent] || fb.reuse_intent || "",
           "응답 id": lastRowId || "(익명)"
         }
       }}).catch(function(){});
@@ -1258,6 +1526,10 @@
   // ── 다른 영상 분석 → 처음(업로드) 화면으로 ──
   function resetAll(){
     running=false; try{video.pause();}catch(e){}
+    liveMode=false; stopLiveMedia(); try{ video.srcObject=null; }catch(e){}   // 라이브 카메라·마이크 해제
+    const ls=$("liveStop"); if(ls) ls.style.display="none";
+    const lh=$("liveHint"); if(lh) lh.style.display="none";
+    const prog=$("pfill") && $("pfill").parentElement; if(prog) prog.style.display="";
     try{ video.removeAttribute("src"); video.load(); }catch(e){}
     $("file").value=""; $("loading").textContent="";
     lastRowId=null; lastAnswers=null;
