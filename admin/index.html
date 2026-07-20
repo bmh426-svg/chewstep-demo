@@ -123,6 +123,7 @@
     <button data-tab="dash" class="active">대시보드</button>
     <button data-tab="analyses">분석 기록</button>
     <button data-tab="feedback">피드백</button>
+    <button data-tab="users">사용자</button>
     <button data-tab="inquiries">문의·신청</button>
   </div>
 
@@ -150,6 +151,16 @@
     <!-- 피드백 -->
     <div class="view" id="view-feedback">
       <div class="tbl-wrap"><table id="feedbackTbl"></table></div>
+    </div>
+
+    <!-- 사용자 -->
+    <div class="view" id="view-users">
+      <div class="toolbar">
+        <span class="count" id="uCount"></span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="uRefresh">새로고침</button>
+      </div>
+      <div class="tbl-wrap"><table id="usersTbl"></table></div>
     </div>
 
     <!-- 문의 -->
@@ -200,6 +211,7 @@ const STAT={completed:["완료","ok"],low_motion:["움직임적음","warn"],resh
 
 let ALL = [];   // demo_responses
 let INQ = [];   // inquiries
+let USERS = []; // profiles
 
 function maskEmail(e){ if(!e) return ""; const [a,b]=String(e).split("@"); if(!b) return "***"; return a.slice(0,2)+"***@"+b; }
 function answersOf(r){ return r.answers||{}; }
@@ -208,13 +220,13 @@ function fbOf(r){ return r.feedback||{}; }
 function concernOf(r){ const a=answersOf(r); return a.concern_type || a.concern_text || "-"; }
 function hasFb(r){ const f=fbOf(r); return !!(f.helpful||f.most_useful||f.reuse_intent||f.feedback_text||f.comment||f.result_similarity); }
 
-/* ---------- 인증 ---------- */
-const ADMIN_EMAIL = "algo426@naver.com";   // 이 계정만 관리자 페이지 접근 허용
+/* ---------- 인증 (role 기반) ----------
+   이메일 하드코딩 폐기. profiles.role in (admin, super_admin) 인지만 확인한다.
+   화면 숨김은 UX일 뿐, 실제 보안은 Supabase RLS(admin_read_all_*)가 담당. */
+let ME = null;   // 내 profiles 행
 async function checkAdmin(){
   const { data:{ session } } = await supabase.auth.getSession();
   if(!session) return false;
-  const { data:{ user } } = await supabase.auth.getUser();
-  if(!user || (user.email||"").toLowerCase() !== ADMIN_EMAIL) return false;   // 이메일 화이트리스트
   const { data, error } = await supabase.rpc("is_admin");
   if(error){ console.warn(error); return false; }
   return data === true;
@@ -223,7 +235,11 @@ async function boot(){
   const ok = await checkAdmin();
   if(ok){
     const { data:{ user } } = await supabase.auth.getUser();
-    $("whoami").textContent = user ? user.email : "";
+    const { data:prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    ME = prof;
+    $("whoami").textContent = user ? (user.email + (prof ? " · " + prof.role : "")) : "";
+    // 최근 로그인 기록(본인 행 last_login_at만 갱신 — 권한변경 트리거에 걸리지 않음)
+    supabase.from("profiles").update({ last_login_at: new Date().toISOString() }).eq("id", user.id).then(()=>{}, ()=>{});
     $("loginWrap").style.display="none";
     $("app").classList.add("on");
     await loadAll();
@@ -251,7 +267,9 @@ async function loadAll(){
   ALL = dr||[];
   const { data:iq } = await supabase.from("inquiries").select("*").order("created_at",{ascending:false}).limit(500);
   INQ = iq||[];
-  renderDash(); renderAnalyses(); renderFeedback(); renderInquiries();
+  const { data:pf } = await supabase.from("profiles").select("*").order("created_at",{ascending:true});
+  USERS = pf||[];
+  renderDash(); renderAnalyses(); renderFeedback(); renderUsers(); renderInquiries();
 }
 
 /* ---------- 대시보드 ---------- */
@@ -314,6 +332,7 @@ function renderAnalyses(){
   bindRows("analysesTbl");
 }
 ["fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
+$("uRefresh").addEventListener("click", loadAll);
 
 /* ---------- 피드백 목록 ---------- */
 function renderFeedback(){
@@ -327,6 +346,26 @@ function renderFeedback(){
         `<td class="wrap-cell">${esc(f.feedback_text||f.comment||"-")}</td></tr>`;
     }).join("")+"</tbody>"):`<tbody><tr><td colspan="6"><div class="empty">아직 피드백이 없어요.</div></td></tr></tbody>`);
   bindRows("feedbackTbl");
+}
+
+/* ---------- 사용자 목록 (오늘: 조회 전용) ---------- */
+const ROLE_LABEL={user:"보호자",staff:"어린이집",admin:"관리자",super_admin:"최고관리자"};
+function roleCls(r){ return (r==="admin"||r==="super_admin")?"ok":(r==="staff"?"warn":"mut"); }
+function renderUsers(){
+  const cnt={}; ALL.forEach(r=>{ if(r.user_id) cnt[r.user_id]=(cnt[r.user_id]||0)+1; });
+  $("uCount").textContent = USERS.length+"명";
+  const body = USERS.map(u=>
+    `<tr>`+
+    `<td>${esc(u.email||"-")}</td>`+
+    `<td>${esc(u.display_name||"-")}</td>`+
+    `<td><span class="pill ${roleCls(u.role)}">${esc(ROLE_LABEL[u.role]||u.role||"-")}</span></td>`+
+    `<td>${u.created_at?fmtDt(u.created_at):"-"}</td>`+
+    `<td>${u.last_login_at?fmtDt(u.last_login_at):'<span class="muted">-</span>'}</td>`+
+    `<td>${u.is_active?'<span class="pill ok">활성</span>':'<span class="pill bad">정지</span>'}</td>`+
+    `<td>${cnt[u.id]||0}</td>`+
+    `</tr>`).join("");
+  $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석"]) +
+    (USERS.length?`<tbody>${body}</tbody>`:`<tbody><tr><td colspan="7"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
 }
 
 /* ---------- 문의 목록 ---------- */
