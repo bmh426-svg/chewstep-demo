@@ -8,6 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%AB%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/assets/css/site.css" />
 <style>
+  html, body { overflow-x:hidden; }
   body { background:var(--bg-soft); }
   .demo-bar { background:var(--brand-tint); border-bottom:1px solid #bfe6d5; color:var(--brand-deep); font-size:12.5px; font-weight:700; text-align:center; padding:8px 16px; }
   .topbar { background:#fff; border-bottom:1px solid var(--line); height:60px; position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; padding:0 22px; }
@@ -31,7 +32,7 @@
   .kpi .k { font-size:12.5px; color:var(--ink-soft); font-weight:700; }
   .kpi .v { font-size:28px; font-weight:800; color:var(--ink); margin-top:6px; letter-spacing:-.02em; }
   .kpi .v small { font-size:14px; color:var(--ink-soft); font-weight:700; }
-  .panel { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow-sm); margin-bottom:22px; overflow:hidden; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow-sm); margin-bottom:22px; overflow-x:auto; }
   .panel .ph { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .panel .ph h3 { font-size:15.5px; color:var(--ink); font-weight:800; }
   table { width:100%; border-collapse:collapse; font-size:13.5px; }
