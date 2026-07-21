@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>우리 아이 리포트 · Chewstep</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%84%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/assets/css/site.css" />
+<style>
+  body { background:var(--bg-soft); }
+  .rtop { background:#fff; border-bottom:1px solid var(--line); height:58px; position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+  .rtop .brand { display:flex; align-items:center; gap:9px; font-weight:800; color:var(--ink); font-size:16px; text-decoration:none; }
+  .rtop .brand .logo { width:28px;height:28px;border-radius:8px;background:linear-gradient(145deg,var(--brand),var(--brand-deep));display:grid;place-items:center;color:#fff;font-size:14px; }
+  .rtop .out { font-size:13px; color:var(--ink-soft); text-decoration:none; border:1px solid var(--line); padding:7px 12px; border-radius:9px; }
+  .rwrap { max-width:640px; margin:0 auto; padding:24px 18px 70px; }
+
+  .state { text-align:center; color:var(--ink-soft); padding:60px 20px; }
+  .state .em { font-size:34px; }
+  .state h2 { color:var(--ink); font-size:19px; margin:14px 0 8px; }
+  .state .btn { margin-top:18px; }
+
+  .rhead { background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:var(--shadow-sm); margin-bottom:16px; }
+  .rhead .who { display:flex; align-items:center; gap:12px; }
+  .rhead .av { width:46px;height:46px;border-radius:13px;background:linear-gradient(145deg,var(--brand),var(--brand-deep));color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px;flex:none; }
+  .rhead .who b { display:block; color:var(--ink); font-size:18px; letter-spacing:-.01em; }
+  .rhead .who span { font-size:12.5px; color:var(--ink-soft); }
+  .rhead .period { margin-top:14px; font-size:12.5px; color:var(--ink-soft); background:var(--bg-soft); border:1px solid var(--line); border-radius:10px; padding:9px 12px; }
+
+  .finding { background:#fff; border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:var(--shadow-sm); margin-bottom:12px; }
+  .finding .src { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; border:1px solid; margin-bottom:10px; }
+  .finding .src::before { content:""; width:7px;height:7px;border-radius:50%; }
+  .src-engine { color:var(--future); background:var(--future-tint); border-color:var(--future-line); }
+  .src-engine::before { background:var(--future); }
+  .src-teacher { color:var(--brand-deep); background:var(--brand-tint); border-color:#bfe6d5; }
+  .src-teacher::before { background:var(--brand); }
+  .src-guardian { color:var(--ink-2); background:var(--bg-soft); border-color:var(--line); }
+  .src-guardian::before { background:var(--ink-soft); }
+  .src-chewstep { color:#6b5518; background:var(--amber-tint); border-color:#f0e2bf; }
+  .src-chewstep::before { background:var(--amber-dot); }
+  .finding h3 { color:var(--ink); font-size:15.5px; margin-bottom:5px; }
+  .finding p { font-size:14.5px; color:var(--ink-2); line-height:1.6; }
+  .rnote { font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.6; margin-top:18px; }
+  .loading { text-align:center; color:var(--ink-soft); padding:70px 20px; }
+</style>
+</head>
+<body>
+<div class="rtop">
+  <a class="brand" href="/"><span class="logo">🥣</span> Chewstep</a>
+  <a class="out" id="logout" href="#">로그아웃</a>
+</div>
+
+<div class="rwrap">
+  <div class="loading" id="loading">불러오는 중…</div>
+  <div id="content" style="display:none;"></div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const sb = createClient("https://qwfskemfsrkmlrdttvqy.supabase.co","sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH");
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const SRC = {
+    engine:{cls:"src-engine",label:"엔진 측정"}, teacher:{cls:"src-teacher",label:"교사 관찰"},
+    guardian:{cls:"src-guardian",label:"보호자 입력"}, chewstep_reviewer:{cls:"src-chewstep",label:"코칭 제안"}
+  };
+  function ageMonths(bd){ if(!bd) return ""; const b=new Date(bd), n=new Date(2026,6,21);
+    let m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); return m>0? (" · 만 "+Math.floor(m/12)+"세"):""; }
+  function show(html){ $("loading").style.display="none"; const c=$("content"); c.style.display="block"; c.innerHTML=html; }
+  function state(em,title,desc,btn){ show(`<div class="state"><div class="em">${em}</div><h2>${esc(title)}</h2><p>${esc(desc)}</p>${btn||""}</div>`); }
+
+  // 로그아웃
+  $("logout").addEventListener("click", async (e)=>{ e.preventDefault(); await sb.auth.signOut(); location.replace("/login.html"); });
+
+  // 1) 인증 게이트
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { location.replace("/login.html?next=/report.html"); }
+  else {
+    try {
+      // 2) 내 아이(연결된 child_guardians → children). RLS로 본인 것만 반환.
+      const { data:links, error:e1 } = await sb.from("child_guardians")
+        .select("child_id, children(display_name, birth_date)");
+      if (e1) throw e1;
+      if (!links || links.length===0) {
+        state("🔗","아직 연결된 아이가 없어요","어린이집에서 받은 초대 코드로 우리 아이를 연결해 주세요.",
+          '<a class="btn btn-primary" href="/redeem.html">초대 코드 입력하기 →</a>');
+      } else {
+        const link = links[0];
+        const child = link.children || {};
+        // 3) 발행된 최신 리포트
+        const { data:reps, error:e2 } = await sb.from("reports")
+          .select("id, published_at, report_type").eq("child_id", link.child_id)
+          .eq("status","published").order("published_at",{ascending:false}).limit(1);
+        if (e2) throw e2;
+        const nm = esc(child.display_name || "우리 아이");
+        if (!reps || reps.length===0) {
+          state("🍽️", nm+" 리포트 준비 중", "아직 발행된 리포트가 없어요. 관찰이 쌓이면 이곳에 리포트가 도착합니다.");
+        } else {
+          const rep = reps[0];
+          const { data:fs, error:e3 } = await sb.from("report_findings")
+            .select("finding_type, source_type, title, content, display_order")
+            .eq("report_id", rep.id).order("display_order");
+          if (e3) throw e3;
+          const when = rep.published_at ? new Date(rep.published_at).toLocaleDateString("ko-KR") : "";
+          let html = `<div class="rhead"><div class="who"><div class="av">${nm.slice(0,1)}</div>`
+            + `<div><b>${nm} 식사 리포트</b><span>${esc(rep.report_type||"리포트")}${ageMonths(child.birth_date)}</span></div></div>`
+            + (when? `<div class="period">📅 발행일 ${when}</div>`:``) + `</div>`;
+          (fs||[]).forEach(f=>{
+            const s = SRC[f.source_type] || {cls:"src-guardian",label:f.source_type||"기타"};
+            html += `<div class="finding"><span class="src ${s.cls}">${s.label}</span>`
+              + `<h3>${esc(f.title)}</h3><p>${esc(f.content)}</p></div>`;
+          });
+          html += `<p class="rnote">측정·관찰·해석의 출처를 구분해 보여드립니다. 해석은 단정이 아닌 추정이며, 다음 기록에서 계속 관찰합니다.<br>· Chewstep은 의료 진단이 아닙니다 ·</p>`;
+          show(html);
+        }
+      }
+    } catch (err) {
+      state("⚠️","리포트를 불러오지 못했어요", (err && err.message) ? err.message : "잠시 후 다시 시도해 주세요.");
+    }
+  }
+</script>
+</body>
+</html>

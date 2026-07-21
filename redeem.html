@@ -72,7 +72,7 @@
   const params = new URLSearchParams(location.search);
   const ORG = params.get("org") || "";
   const PRECODE = params.get("code") || "";
-  const REPORT = "/weekly-report.html";  // 연결 후 이동할 리포트
+  const REPORT = "/report.html";  // 연결 후 이동할 실데이터 리포트(인증)
 
   const msg = document.getElementById("lmsg");
   function showMsg(html, ok) { msg.className = "lmsg show" + (ok ? " ok" : ""); msg.innerHTML = html; }

@@ -107,7 +107,7 @@
           <div class="role">PARENT · 기관 등록 보호자</div>
           <div class="scr">우리 아이 리포트</div>
           <div class="src"><span class="mono">child_guardians</span>로 원아와 연결된 보호자.</div>
-          <span class="route">/app/report</span>
+          <span class="route">/report.html</span>
         </div>
         <div class="dest p2">
           <div class="role">TEACHER · 교사</div>
@@ -153,7 +153,7 @@
         <tr><td><b>운영자</b> (CHEWSTEP)</td><td><code>chewstep_staff.status='active'</code></td><td>운영 콘솔(단일세션)</td><td><code>/console</code></td><td><span class="badge b-have">신설</span> console/ · B2B 세션 공유</td></tr>
         <tr><td><b>원장</b></td><td><code>organization_members.role='director'</code></td><td>기관 관리자</td><td><code>/director</code></td><td><span class="badge b-have">방금 제작</span> director/index.html (샘플)</td></tr>
         <tr><td><b>교사</b></td><td><code>organization_members.role='teacher'</code> (+ classroom_members)</td><td>우리반</td><td><code>/teacher</code></td><td><span class="badge b-have">방금 제작</span> teacher/index.html (샘플)</td></tr>
-        <tr><td><b>기관 보호자</b></td><td><code>child_guardians</code> 존재</td><td>우리 아이 리포트</td><td><code>/app/report</code></td><td><span class="badge b-have">템플릿 있음</span> weekly-report.html</td></tr>
+        <tr><td><b>기관 보호자</b></td><td><code>child_guardians</code> 존재</td><td>우리 아이 리포트</td><td><code>/report.html</code></td><td><span class="badge b-have">제작</span> report.html · 실데이터·RLS·게이트</td></tr>
         <tr><td><b>일반 부모</b> (기본값)</td><td>위 어디에도 없으면</td><td>내 아이 화면</td><td><code>/app</code></td><td><span class="badge b-have">있음</span> demo.html</td></tr>
       </tbody>
     </table>
@@ -183,7 +183,7 @@
   <span class="c">-- 4) 기관 등록 보호자</span>
   <span class="k">if</span> current_guardian_id() <span class="k">is not null and exists</span>(
        <span class="k">select</span> 1 <span class="k">from</span> child_guardians <span class="k">where</span> guardian_id=current_guardian_id()) <span class="k">then</span>
-    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'guardian'</span>,<span class="s2">'route'</span>,<span class="s2">'/app/report'</span>); <span class="k">end if</span>;
+    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'guardian'</span>,<span class="s2">'route'</span>,<span class="s2">'/report.html'</span>); <span class="k">end if</span>;
   <span class="c">-- 5) 일반 부모(기본)</span>
   <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'parent'</span>,<span class="s2">'route'</span>,<span class="s2">'/app'</span>);
 <span class="k">end</span> $$;</pre>
