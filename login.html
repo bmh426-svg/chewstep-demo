@@ -28,6 +28,7 @@
   .lcard .btn { width:100%; justify-content:center; margin-top:6px; }
   .lmsg { margin-top:14px; font-size:13px; padding:12px 14px; border-radius:10px; background:var(--amber-tint); color:#6b5518; border:1px solid #f0e2bf; display:none; line-height:1.55; }
   .lmsg.show { display:block; }
+  .lmsg.ok { background:var(--brand-tint); color:var(--brand-deep); border-color:#bfe6d5; }
   .divider { display:flex; align-items:center; gap:12px; margin:22px 0 8px; color:var(--ink-soft); font-size:12px; }
   .divider::before, .divider::after { content:""; flex:1; height:1px; background:var(--line); }
 
@@ -76,9 +77,9 @@
 
   <!-- 역할별 화면 미리보기 (데모) -->
   <div class="preview">
-    <div class="pcap">역할별 화면 미리보기 · 데모</div>
-    <h2>로그인하면 이 중 하나로 이동합니다</h2>
-    <p class="d">실제 로그인 연결(계정 통합) 전이라, 각 역할의 목적지 화면을 아래에서 바로 열어볼 수 있습니다.</p>
+    <div class="pcap">역할별 화면 미리보기</div>
+    <h2>로그인하면 이 중 하나로 자동 이동합니다</h2>
+    <p class="d">로그인 성공 시 역할(role)에 따라 아래 화면 중 하나로 자동 이동합니다. 계정 없이 각 화면을 미리 보려면 아래 바로가기를 이용하세요.</p>
     <div class="rlist">
       <a class="rrow" href="/demo.html">
         <span class="ic" style="background:var(--brand-tint);">👪</span>
@@ -106,32 +107,58 @@
   <a class="backhome" href="/">← Chewstep 홈으로</a>
 </div>
 
-<script>
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  // 계정 일원화 = B2B 운영 프로젝트
+  const SB_URL = "https://qwfskemfsrkmlrdttvqy.supabase.co";
+  const SB_KEY = "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH"; // 공개 anon 키(노출 무방)
+  const sb = createClient(SB_URL, SB_KEY);
+
   // ?next= 딥링크 보관 (같은 도메인 경로만 허용 — open-redirect 방지)
   function safeNext() {
     var raw = new URLSearchParams(location.search).get("next") || "";
     try { raw = decodeURIComponent(raw); } catch (e) {}
-    // 반드시 "/"로 시작하고 "//"(프로토콜상대) 는 거부
-    if (/^\/(?!\/)/.test(raw)) return raw;
-    return "";
+    return /^\/(?!\/)/.test(raw) ? raw : "";
   }
-  var NEXT = safeNext();
+  const NEXT = safeNext();
   if (NEXT) {
     document.getElementById("nextChip").style.display = "flex";
     document.getElementById("nextText").textContent = "로그인 후 이동: " + NEXT;
   }
 
-  // 로그인 후 역할 라우팅 (설계):
-  //   1) get_my_landing() RPC 로 { role, route } 수신
-  //   2) location.replace(NEXT || route)
-  // 실제 인증은 계정 통합(단일 Supabase 프로젝트) 결정 후 연결.
-  document.getElementById("loginForm").addEventListener("submit", function (e) {
+  const msg = document.getElementById("lmsg");
+  function showMsg(html, ok) { msg.className = "lmsg show" + (ok ? " ok" : ""); msg.innerHTML = html; }
+
+  // 로그인 후: get_my_landing() RPC 로 역할·경로 수신 → NEXT || route 로 이동
+  async function routeByRole() {
+    const { data, error } = await sb.rpc("get_my_landing");
+    if (error) { showMsg("역할 확인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>"); return; }
+    const route = (data && data.route) || "/demo.html";
+    location.replace(NEXT || route);
+  }
+
+  // 이미 로그인된 세션이면 바로 라우팅 (초대 딥링크 매끄럽게)
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) { showMsg("이미 로그인되어 있어요. 이동 중…", true); routeByRole(); }
+  })();
+
+  document.getElementById("loginForm").addEventListener("submit", async function (e) {
     e.preventDefault();
-    var m = document.getElementById("lmsg");
-    m.classList.add("show");
-    m.innerHTML = "실제 로그인 연결은 <b>계정 통합(단일 Supabase 프로젝트)</b> 결정 후 활성화됩니다. " +
-                  "지금은 아래 <b>역할별 미리보기</b>로 각 화면을 확인하세요." +
-                  (NEXT ? "<br>이 요청의 이동 경로: <code>" + NEXT + "</code>" : "");
+    const email = document.getElementById("email").value.trim();
+    const pw = document.getElementById("pw").value;
+    if (!email || !pw) { showMsg("이메일과 비밀번호를 입력해 주세요."); return; }
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true; showMsg("로그인 중…", true);
+    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+    if (error) {
+      btn.disabled = false;
+      showMsg("로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>");
+      return;
+    }
+    showMsg("로그인 성공 — 이동 중…", true);
+    routeByRole();
   });
 </script>
 </body>

@@ -194,7 +194,7 @@
   <h2><span class="num">6</span>확정이 필요한 것</h2>
   <div class="panel">
     <ul class="clean">
-      <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>계정을 어느 프로젝트 하나로 통합할지</b> — 지금 Supabase가 3개(B2C운영·B2B스테이징·B2B운영)로 나뉨. “accounts 하나”를 지키려면 <b>로그인 소스를 한 프로젝트로 통합</b>해야 함(권장: B2B 운영으로 일원화, B2C 계정 이관).</li>
+      <li><span class="badge b-have" style="margin-right:6px;">완료</span> <b>계정 = B2B 운영으로 일원화</b> 결정. <span class="mono">get_my_landing()</span> RPC를 B2B 운영에 배포하고 <span class="mono">login.html</span>을 실제 인증에 연결(로그인→역할판정→이동, 딥링크·open-redirect 방지 e2e 통과). <b>남은 것:</b> B2C 데모 계정 이관 범위, 신규가입(보호자 초대 redeem) 플로우.</li>
       <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>미구현 화면</b> — 교사(우리반)·원장(기관 관리자) 대시보드는 신규 제작 필요. 어디부터 만들지.</li>
       <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>딥링크 파라미터 형식</b> — <span class="mono">?next=</span> 경로 방식 vs 리포트 토큰(<span class="mono">?token=</span>) 방식. 문자 링크 보안·만료 정책 포함.</li>
     </ul>
