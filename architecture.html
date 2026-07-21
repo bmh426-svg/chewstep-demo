@@ -123,7 +123,7 @@
         </div>
       </div>
     </div>
-    <p style="margin-top:18px;font-size:13px;color:var(--ink-soft);">※ CHEWSTEP 운영자(<span class="mono">chewstep_staff</span>)는 최상위로 판정 → 내부 운영 콘솔(<span class="mono">/admin</span>, 기존)로 이동. 판정 순서상 가장 먼저 확인합니다.</p>
+    <p style="margin-top:18px;font-size:13px;color:var(--ink-soft);">※ CHEWSTEP 운영자(<span class="mono">chewstep_staff</span>)는 최상위로 판정 → 단일세션 공유 운영 콘솔(<span class="mono">/console</span>)로 이동. 판정 순서상 가장 먼저 확인합니다. (기존 <span class="mono">/admin</span>은 B2C 데모 데이터용 별도 콘솔로 분리 유지)</p>
   </div>
 
   <!-- 3. 기관 보호자 초대 딥링크 -->
@@ -150,7 +150,7 @@
     <table>
       <thead><tr><th>역할</th><th>판정 소스 (SSOT)</th><th>이동 화면</th><th>라우트</th><th>현황</th></tr></thead>
       <tbody>
-        <tr><td><b>운영자</b> (CHEWSTEP)</td><td><code>chewstep_staff.status='active'</code></td><td>내부 운영 콘솔</td><td><code>/admin</code></td><td><span class="badge b-have">있음</span> admin/index.html</td></tr>
+        <tr><td><b>운영자</b> (CHEWSTEP)</td><td><code>chewstep_staff.status='active'</code></td><td>운영 콘솔(단일세션)</td><td><code>/console</code></td><td><span class="badge b-have">신설</span> console/ · B2B 세션 공유</td></tr>
         <tr><td><b>원장</b></td><td><code>organization_members.role='director'</code></td><td>기관 관리자</td><td><code>/director</code></td><td><span class="badge b-have">방금 제작</span> director/index.html (샘플)</td></tr>
         <tr><td><b>교사</b></td><td><code>organization_members.role='teacher'</code> (+ classroom_members)</td><td>우리반</td><td><code>/teacher</code></td><td><span class="badge b-have">방금 제작</span> teacher/index.html (샘플)</td></tr>
         <tr><td><b>기관 보호자</b></td><td><code>child_guardians</code> 존재</td><td>우리 아이 리포트</td><td><code>/app/report</code></td><td><span class="badge b-have">템플릿 있음</span> weekly-report.html</td></tr>
@@ -173,7 +173,7 @@
   <span class="c">-- 1) 운영자</span>
   <span class="k">if exists</span>(<span class="k">select</span> 1 <span class="k">from</span> chewstep_staff s <span class="k">join</span> profiles p <span class="k">on</span> p.id=s.profile_id
             <span class="k">where</span> p.auth_user_id=uid <span class="k">and</span> s.status=<span class="s2">'active'</span>) <span class="k">then</span>
-    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'staff'</span>,<span class="s2">'route'</span>,<span class="s2">'/admin'</span>); <span class="k">end if</span>;
+    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'staff'</span>,<span class="s2">'route'</span>,<span class="s2">'/console'</span>); <span class="k">end if</span>;
   <span class="c">-- 2) 원장 / 3) 교사  (organization_members.role)</span>
   <span class="k">select</span> m.role <span class="k">into</span> r <span class="k">from</span> organization_members m <span class="k">join</span> profiles p <span class="k">on</span> p.id=m.profile_id
     <span class="k">where</span> p.auth_user_id=uid <span class="k">and</span> m.status=<span class="s2">'active'</span>

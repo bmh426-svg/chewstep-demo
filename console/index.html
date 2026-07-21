@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow" />
+<title>Chewstep — 운영 콘솔 (운영 DB 연결)</title>
+<style>
+  :root{
+    --ink:#0b0d10; --ink-2:#3a4048; --ink-soft:#6b7280; --line:#e7e9ee; --bg:#ffffff; --panel:#ffffff;
+    --brand:#0e9f6e; --brand-deep:#0a7d57; --brand-tint:#e9f7f1;
+    --amber:#b7791f; --amber-tint:#fdf6e7; --future:#5b6bd8; --future-tint:#eef0fc;
+    --radius:16px; --shadow-md:0 10px 30px rgba(16,24,40,.08),0 2px 8px rgba(16,24,40,.05);
+    --font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI","Malgun Gothic","Noto Sans KR",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink-2);letter-spacing:-.01em}
+  header{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;z-index:5}
+  .logo{font-weight:800;color:var(--ink)} .logo small{font-weight:400;color:var(--ink-soft);font-size:12px;margin-left:6px}
+  .rolechip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--future-tint);color:var(--future)}
+  .live{font-size:11px;color:var(--brand-deep);border:1px solid var(--brand);padding:2px 8px;border-radius:6px}
+  .sp{margin-left:auto} .btn{font:inherit;font-size:13px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);cursor:pointer}
+  .btn.pri{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+  .login{max-width:380px;margin:48px auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:30px 26px;box-shadow:var(--shadow-md)}
+  .login h2{margin:.3em 0 .1em;color:var(--ink)} label{display:block;font-size:12px;color:var(--ink-soft);margin:12px 0 5px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:14px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)} .kpi .n{font-size:24px;font-weight:800;color:var(--brand-deep)} .kpi .l{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:14px;overflow:hidden}
+  .card h3{margin:0;padding:12px 16px;font-size:14px;color:var(--ink);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .card h3 .cnt{font-size:12px;color:var(--ink-soft);font-weight:400}
+  .tblwrap{overflow-x:auto} table{width:100%;border-collapse:collapse;font-size:12.5px} th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+  th{color:var(--ink-soft);font-weight:600;background:#fafbfc} tr:last-child td{border-bottom:0}
+  .empty{padding:16px;color:var(--ink-soft);font-size:13px} .err{color:#c0392b;font-size:12px;padding:12px 16px}
+  .badge{font-size:11px;padding:1px 7px;border-radius:6px} .b-eng{background:var(--future-tint);color:var(--future)} .b-tea{background:var(--brand-tint);color:var(--brand-deep)} .b-warn{background:var(--amber-tint);color:var(--amber)}
+  .note{font-size:12px;color:var(--ink-soft);background:var(--brand-tint);padding:10px 14px;border-radius:10px;margin-bottom:16px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Chewstep <small>슈퍼관리자</small></div>
+  <span class="rolechip">CHEWSTEP 운영</span>
+  <span class="live">● 운영 DB 실연결</span>
+  <div class="sp"></div>
+  <button class="btn hide" id="reloadBtn" onclick="loadAll()">새로고침</button>
+  <button class="btn hide" id="outBtn" onclick="signOut()">로그아웃</button>
+</header>
+
+<div class="wrap">
+  <!-- 로그인 -->
+  <div class="login" id="loginCard">
+    <div class="logo">Chewstep <small>운영자</small></div>
+    <h2>슈퍼관리자 로그인</h2>
+    <p style="font-size:13px;color:var(--ink-soft);margin:.2em 0 4px">운영 DB(chewstep-b2b-prod)에 직접 연결됩니다.</p>
+    <label>이메일</label><input id="em" value="admin@chewstep.com">
+    <label>비밀번호</label><input id="pw" type="password" value="ChewAdmin!234">
+    <button class="btn pri" style="width:100%;margin-top:16px;padding:12px" onclick="signIn()">로그인</button>
+    <div id="loginMsg" class="err"></div>
+    <p style="font-size:11px;color:var(--ink-soft);margin-top:12px">⚠ 데모 계정입니다. 실제 운영 전 비밀번호를 변경하세요. 접근은 감사 로그(activity_logs)에 기록됩니다.</p>
+  </div>
+
+  <!-- 콘솔 -->
+  <div id="console" class="hide">
+    <div class="note">📡 아래 표는 <b>운영 Supabase에서 실시간 조회</b>한 데이터입니다. RLS 상 슈퍼관리자만 전 범위를 봅니다. ([DEMO] 표시 = 샘플)</div>
+    <div class="kpis" id="kpis"></div>
+    <div id="sections"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const URL_ = "https://qwfskemfsrkmlrdttvqy.supabase.co";
+  const ANON = "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH";
+  const db = window.supabase.createClient(URL_, ANON);
+
+  const SECTIONS = [
+    { t:"organizations", title:"어린이집", cols:"name,director_name,contract_status,pilot_started_at,created_at", kpi:"어린이집" },
+    { t:"classrooms", title:"반", cols:"name,age_group,academic_year,status" },
+    { t:"children", title:"원아", cols:"display_name,birth_date,status,created_at", kpi:"원아" },
+    { t:"guardians", title:"보호자", cols:"id,name,email,created_at" },
+    { t:"child_guardians", title:"아이–보호자 연결", cols:"child_id,guardian_id,is_primary,can_receive_report" },
+    { t:"capture_schedules", title:"촬영 시간표", cols:"title,meal_type,start_date,end_date,status", kpi:"시간표" },
+    { t:"meal_sessions", title:"식사 세션", cols:"meal_date,meal_type,menu_text,status" },
+    { t:"reports", title:"리포트", cols:"id,child_id,status,published_at", kpi:"리포트" },
+    { t:"report_findings", title:"리포트 항목(출처 구분)", cols:"source_type,finding_type,title,content" },
+    { t:"retention_policies", title:"보관·파기 정책", cols:"policy_name,delivery_type,asset_type,retention_days,legal_review_status" },
+    { t:"activity_logs", title:"감사 로그", cols:"action,target_type,created_at", kpi:"감사로그", order:"created_at" },
+  ];
+
+  async function signIn(){
+    document.getElementById("loginMsg").textContent = "";
+    const email = em.value.trim(), password = pw.value;
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if(error){ document.getElementById("loginMsg").textContent = "로그인 실패: " + error.message; return; }
+    showConsole(true); loadAll();
+  }
+  async function signOut(){ await db.auth.signOut(); showConsole(false); }
+  function showConsole(on){
+    document.getElementById("loginCard").classList.toggle("hide", on);
+    document.getElementById("console").classList.toggle("hide", !on);
+    document.getElementById("reloadBtn").classList.toggle("hide", !on);
+    document.getElementById("outBtn").classList.toggle("hide", !on);
+  }
+
+  function esc(v){ if(v==null) return '<span style="color:#bbb">—</span>';
+    return String(v).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function badge(col,val){
+    if(col==='source_type'){ const m={engine:'b-eng',teacher:'b-tea',guardian:'b-tea',chewstep_reviewer:'b-eng'}; return `<span class="badge ${m[val]||''}">${esc(val)}</span>`; }
+    if(col==='legal_review_status') return `<span class="badge ${val==='reviewed'?'b-tea':'b-warn'}">${esc(val)}</span>`;
+    if(col==='status'||col==='contract_status') return `<span class="badge b-tea">${esc(val)}</span>`;
+    return esc(val);
+  }
+  function renderTable(rows, cols){
+    if(!rows||!rows.length) return '<div class="empty">데이터 없음</div>';
+    const cs = cols.split(',');
+    const head = cs.map(c=>`<th>${c}</th>`).join('');
+    const body = rows.map(r=>'<tr>'+cs.map(c=>`<td>${badge(c,r[c])}</td>`).join('')+'</tr>').join('');
+    return `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  async function loadAll(){
+    const secEl = document.getElementById("sections"); secEl.innerHTML = "불러오는 중…";
+    const kpi = {}; let html = "";
+    for(const s of SECTIONS){
+      let q = db.from(s.t).select(s.cols).limit(100);
+      if(s.order) q = db.from(s.t).select(s.cols).order(s.order,{ascending:false}).limit(100);
+      const { data, error } = await q;
+      const cnt = error? '!' : (data?data.length:0);
+      if(s.kpi) kpi[s.kpi] = cnt;
+      html += `<div class="card"><h3>${s.title} <span class="cnt">· ${s.t} (${cnt})</span></h3>`
+        + (error? `<div class="err">조회 오류: ${esc(error.message)}</div>` : renderTable(data, s.cols)) + `</div>`;
+    }
+    secEl.innerHTML = html;
+    document.getElementById("kpis").innerHTML = Object.entries(kpi)
+      .map(([l,n])=>`<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  }
+
+  // 이미 로그인 세션이 있으면 바로 콘솔
+  // 단일 로그인 세션 공유: 세션 있으면 바로 콘솔, 없으면 통합 로그인으로 이동
+  db.auth.getSession().then(({data})=>{ if(data.session){ showConsole(true); loadAll(); } else { location.replace("/login.html?next=/console/"); } });
+</script>
+</body>
+</html>
