@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>아이 연결 · Chewstep</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%97%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/assets/css/site.css" />
+<style>
+  body { background:
+      radial-gradient(60% 55% at 85% 8%,rgba(14,159,110,.06),transparent 70%),var(--bg-soft); min-height:100dvh; }
+  .lwrap { max-width:440px; margin:0 auto; padding:32px 24px 60px; }
+  .lbrand { display:flex; justify-content:center; margin:20px 0 26px; }
+  .lbrand a { display:flex; align-items:center; gap:10px; font-weight:800; color:var(--ink); font-size:19px; text-decoration:none; }
+  .lbrand .logo { width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,var(--brand),var(--brand-deep));display:grid;place-items:center;color:#fff; }
+  .lcard { background:#fff; border:1px solid var(--line); border-radius:22px; padding:30px 28px; box-shadow:var(--shadow-lg); }
+  .lcard .step { font-size:12px; font-weight:800; color:var(--brand-deep); letter-spacing:.03em; margin-bottom:6px; }
+  .lcard h1 { color:var(--ink); font-size:23px; letter-spacing:-.02em; margin-bottom:8px; }
+  .lcard .sub { color:var(--ink-soft); font-size:14px; margin-bottom:22px; line-height:1.55; }
+  .orgchip { display:flex; align-items:center; gap:10px; background:var(--brand-tint); border:1px solid #bfe6d5; border-radius:12px; padding:12px 14px; margin-bottom:18px; }
+  .orgchip .ic { width:34px;height:34px;border-radius:9px;background:#fff;display:grid;place-items:center;font-size:18px;flex:none; }
+  .orgchip b { display:block; color:var(--ink); font-size:14px; }
+  .orgchip span { font-size:12px; color:var(--ink-soft); }
+  .field label { display:block; font-size:13px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+  .field input { width:100%; box-sizing:border-box; font-family:var(--font); font-size:16px; letter-spacing:.06em; color:var(--ink);
+    border:1px solid #d9e0dc; border-radius:12px; padding:13px 14px; text-transform:uppercase; }
+  .field input:focus { border-color:var(--brand); outline:none; }
+  .lcard .btn { width:100%; justify-content:center; margin-top:16px; }
+  .lmsg { margin-top:14px; font-size:13px; padding:12px 14px; border-radius:10px; display:none; line-height:1.55;
+    background:var(--amber-tint); color:#6b5518; border:1px solid #f0e2bf; }
+  .lmsg.show { display:block; }
+  .lmsg.ok { background:var(--brand-tint); color:var(--brand-deep); border-color:#bfe6d5; }
+  .backhome { display:block; text-align:center; margin-top:22px; font-size:13px; color:var(--ink-soft); text-decoration:none; }
+  .hint { font-size:12px; color:var(--ink-soft); margin-top:10px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="lwrap">
+  <div class="lbrand"><a href="/"><span class="logo">🥣</span> Chewstep</a></div>
+
+  <div class="lcard">
+    <div class="step">아이 연결</div>
+    <h1>초대 코드를 입력해 주세요</h1>
+    <p class="sub">어린이집에서 받은 코드를 입력하면 우리 아이의 식사 리포트가 연결됩니다.</p>
+
+    <div class="orgchip" id="orgChip" style="display:none;">
+      <span class="ic">🏫</span>
+      <div><b id="orgName">어린이집</b><span>이 기관의 초대입니다</span></div>
+    </div>
+
+    <form id="redeemForm" novalidate>
+      <div class="field">
+        <label for="code">초대 코드</label>
+        <input type="text" id="code" placeholder="예) CHEWTEST-D2" autocomplete="one-time-code" />
+      </div>
+      <button type="submit" class="btn btn-primary" id="redeemBtn">아이 연결하기 <span class="arrow">→</span></button>
+      <div class="lmsg" id="lmsg"></div>
+    </form>
+    <p class="hint">코드는 어린이집에서 보내드린 문자에 있어요.</p>
+  </div>
+
+  <a class="backhome" href="/">← Chewstep 홈으로</a>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const SB_URL = "https://qwfskemfsrkmlrdttvqy.supabase.co";
+  const SB_KEY = "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH";
+  const sb = createClient(SB_URL, SB_KEY);
+
+  const params = new URLSearchParams(location.search);
+  const ORG = params.get("org") || "";
+  const PRECODE = params.get("code") || "";
+  const REPORT = "/weekly-report.html";  // 연결 후 이동할 리포트
+
+  const msg = document.getElementById("lmsg");
+  function showMsg(html, ok) { msg.className = "lmsg show" + (ok ? " ok" : ""); msg.innerHTML = html; }
+
+  // 로그인 필수 — 세션 없으면 통합 로그인으로(돌아올 경로 유지)
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    location.replace("/login.html?next=" + encodeURIComponent(location.pathname + location.search));
+  }
+
+  // org 표시(초대 링크에 org 있을 때). 이름은 RLS로 막힐 수 있어 조회 실패는 무시.
+  if (ORG) {
+    document.getElementById("orgChip").style.display = "flex";
+    sb.from("organizations").select("name").eq("id", ORG).maybeSingle()
+      .then(({ data }) => { if (data && data.name) document.getElementById("orgName").textContent = data.name.replace("[DEMO] ",""); });
+  }
+  if (PRECODE) document.getElementById("code").value = PRECODE;
+
+  const ERR = {
+    CODE_INVALID: "코드가 올바르지 않아요. 문자에 온 코드를 다시 확인해 주세요.",
+    CODE_EXPIRED: "만료된 코드예요. 어린이집에 새 코드를 요청해 주세요.",
+    CODE_USED: "이미 사용된 코드예요. 어린이집에 문의해 주세요.",
+    CODE_NOT_USABLE: "사용할 수 없는 코드예요. 어린이집에 문의해 주세요.",
+    CHILD_NOT_ENROLLED: "재원 정보가 확인되지 않아요. 어린이집에 문의해 주세요.",
+    AUTH_REQUIRED: "로그인이 필요해요. 다시 로그인해 주세요."
+  };
+
+  async function redeem(code) {
+    if (!ORG) { showMsg("초대 링크로 다시 접속해 주세요. (기관 정보가 없습니다)"); return; }
+    showMsg("아이를 연결하는 중…", true);
+    const { error } = await sb.rpc("redeem_child_access_code", { p_org: ORG, p_code: code });
+    if (error) {
+      const key = Object.keys(ERR).find(k => (error.message || "").includes(k));
+      document.getElementById("redeemBtn").disabled = false;
+      showMsg(key ? ERR[key] : ("연결에 실패했어요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>"));
+      return;
+    }
+    showMsg("연결 완료! 우리 아이 리포트로 이동합니다 🎉", true);
+    setTimeout(() => location.replace(REPORT), 900);
+  }
+
+  document.getElementById("redeemForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const code = document.getElementById("code").value.trim();
+    if (!code) { showMsg("초대 코드를 입력해 주세요."); return; }
+    document.getElementById("redeemBtn").disabled = true;
+    redeem(code);
+  });
+
+  // 초대 링크에 코드까지 있으면 자동 연결
+  if (session && ORG && PRECODE) {
+    document.getElementById("redeemBtn").disabled = true;
+    redeem(PRECODE);
+  }
+</script>
+</body>
+</html>

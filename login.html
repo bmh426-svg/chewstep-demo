@@ -70,8 +70,12 @@
         <label for="pw">비밀번호</label>
         <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password" />
       </div>
-      <button type="submit" class="btn btn-primary">로그인 <span class="arrow">→</span></button>
+      <button type="submit" class="btn btn-primary" id="submitBtn">로그인 <span class="arrow">→</span></button>
       <div class="lmsg" id="lmsg"></div>
+      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--ink-soft);">
+        <span id="toggleText">처음이신가요?</span>
+        <a href="#" id="modeToggle" style="color:var(--brand-deep);font-weight:700;text-decoration:none;">가입하기</a>
+      </div>
     </form>
   </div>
 
@@ -144,16 +148,52 @@
     if (session) { showMsg("이미 로그인되어 있어요. 이동 중…", true); routeByRole(); }
   })();
 
+  // 로그인/가입 모드 전환
+  let mode = "login";
+  const submitBtn = document.getElementById("submitBtn");
+  const toggleText = document.getElementById("toggleText");
+  const modeToggle = document.getElementById("modeToggle");
+  modeToggle.addEventListener("click", function (e) {
+    e.preventDefault();
+    mode = (mode === "login") ? "signup" : "login";
+    if (mode === "signup") {
+      submitBtn.innerHTML = "가입하고 시작하기 <span class='arrow'>→</span>";
+      toggleText.textContent = "이미 계정이 있으신가요?";
+      modeToggle.textContent = "로그인";
+    } else {
+      submitBtn.innerHTML = "로그인 <span class='arrow'>→</span>";
+      toggleText.textContent = "처음이신가요?";
+      modeToggle.textContent = "가입하기";
+    }
+    msg.className = "lmsg";
+  });
+
   document.getElementById("loginForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     const email = document.getElementById("email").value.trim();
     const pw = document.getElementById("pw").value;
     if (!email || !pw) { showMsg("이메일과 비밀번호를 입력해 주세요."); return; }
-    const btn = e.target.querySelector('button[type="submit"]');
-    btn.disabled = true; showMsg("로그인 중…", true);
+    submitBtn.disabled = true;
+
+    if (mode === "signup") {
+      showMsg("가입 중…", true);
+      const { data, error } = await sb.auth.signUp({ email, password: pw });
+      if (error) {
+        submitBtn.disabled = false;
+        showMsg("가입에 실패했어요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>");
+        return;
+      }
+      if (data.session) { showMsg("가입 완료 — 이동 중…", true); routeByRole(); return; }
+      // 이메일 확인이 필요한 설정인 경우
+      submitBtn.disabled = false;
+      showMsg("가입 확인 메일을 보냈어요. 메일의 링크로 인증 후 다시 로그인해 주세요.");
+      return;
+    }
+
+    showMsg("로그인 중…", true);
     const { error } = await sb.auth.signInWithPassword({ email, password: pw });
     if (error) {
-      btn.disabled = false;
+      submitBtn.disabled = false;
       showMsg("로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>");
       return;
     }
