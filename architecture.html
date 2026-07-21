@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Chewstep 단일 로그인 · 역할 라우팅 설계</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/assets/css/site.css" />
+<style>
+  body { background:var(--bg-soft); }
+  .doc { max-width:1080px; margin:0 auto; padding:48px 24px 80px; }
+  .doc h1 { color:var(--ink); font-size:clamp(26px,3.4vw,38px); letter-spacing:-.03em; margin-bottom:8px; }
+  .doc .tagline { color:var(--ink-soft); font-size:16px; margin-bottom:8px; }
+  .doc .meta { color:var(--ink-soft); font-size:13px; margin-bottom:36px; }
+  .doc h2 { color:var(--ink); font-size:22px; letter-spacing:-.02em; margin:44px 0 16px; padding-top:20px; border-top:1px solid var(--line); }
+  .doc h2 .num { color:var(--brand-deep); font-weight:800; margin-right:8px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:18px; padding:26px; box-shadow:var(--shadow-sm); }
+
+  /* 단일 로그인 퍼널 다이어그램 */
+  .funnel { display:flex; flex-direction:column; align-items:center; gap:0; }
+  .node { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 22px; font-weight:700; color:var(--ink); box-shadow:var(--shadow-sm); text-align:center; }
+  .node.brand { background:linear-gradient(145deg,var(--brand),var(--brand-deep)); color:#fff; border:none; font-size:17px; }
+  .node.decide { background:var(--amber-tint); border-color:#f0e2bf; color:#6b5518; }
+  .node .s { display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-top:3px; }
+  .node.brand .s { color:rgba(255,255,255,.85); }
+  .arrow-down { width:2px; height:24px; background:var(--line); }
+  .arrow-down::after { content:"▼"; color:var(--line); font-size:10px; position:relative; left:-4px; top:16px; }
+
+  .dests { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:26px; width:100%; }
+  .dest { border-radius:16px; padding:20px 18px; border:1px solid var(--line); background:#fff; }
+  .dest .role { font-size:12px; font-weight:800; letter-spacing:.02em; margin-bottom:6px; }
+  .dest .scr { color:var(--ink); font-size:16px; font-weight:800; letter-spacing:-.01em; margin-bottom:8px; }
+  .dest .src { font-size:12px; color:var(--ink-soft); line-height:1.5; }
+  .dest .route { display:inline-block; margin-top:10px; font-size:11.5px; font-weight:700; font-family:ui-monospace,Menlo,Consolas,monospace;
+    color:var(--brand-deep); background:var(--brand-tint); padding:3px 9px; border-radius:8px; }
+  .dest.p1 { background:linear-gradient(180deg,var(--brand-tint),#fff 70%); border-color:#bfe6d5; }
+  .dest.p1 .role { color:var(--brand-deep); }
+  .dest.p2 .role { color:var(--future); } .dest.p2 .route { color:var(--future); background:var(--future-tint); }
+  .dest.p3 .role { color:var(--future); } .dest.p3 .route { color:var(--future); background:var(--future-tint); }
+  .dest.p4 { background:linear-gradient(180deg,var(--brand-tint),#fff 70%); border-color:#bfe6d5; }
+  .dest.p4 .role { color:var(--brand-deep); }
+
+  /* 초대 딥링크 흐름 */
+  .flow-row { display:flex; align-items:stretch; gap:0; flex-wrap:wrap; }
+  .fstep { flex:1; min-width:150px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; position:relative; }
+  .fstep b { display:block; color:var(--ink); font-size:14px; margin-bottom:4px; }
+  .fstep span { font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+  .fstep .k { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px; color:var(--future); }
+  .farrow { display:flex; align-items:center; color:var(--brand); font-weight:900; padding:0 8px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--ink); font-weight:800; background:var(--bg-soft); font-size:12.5px; }
+  td code, .mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; background:var(--bg-soft); padding:1px 6px; border-radius:6px; }
+  .badge { display:inline-block; font-size:11px; font-weight:800; padding:2px 9px; border-radius:999px; }
+  .b-have { color:var(--brand-deep); background:var(--brand-tint); }
+  .b-new { color:#6b5518; background:var(--amber-tint); }
+  .b-dec { color:var(--future); background:var(--future-tint); }
+
+  pre { background:#0b0d10; color:#e7e9ee; border-radius:14px; padding:18px 20px; overflow-x:auto; font-size:12.5px; line-height:1.6; }
+  pre .c { color:#7f8b98; } pre .k { color:#7fd1a8; } pre .s2 { color:#e0a53b; }
+  ul.clean { list-style:none; display:grid; gap:10px; }
+  ul.clean li { display:flex; gap:10px; font-size:14.5px; color:var(--ink-2); }
+  ul.clean li::before { content:"→"; color:var(--brand-deep); font-weight:900; flex:none; }
+  .callout { border-left:4px solid var(--amber-dot); background:var(--amber-tint); border-radius:0 12px 12px 0; padding:16px 18px; color:#6b5518; font-size:14px; line-height:1.6; }
+  .callout b { color:#4d3d0f; }
+  a.homelink { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-soft); text-decoration:none; margin-bottom:24px; }
+  @media (max-width:760px){ .dests { grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px){ .dests { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="doc">
+  <a class="homelink" href="/">← Chewstep 홈</a>
+  <h1>단일 로그인 · 역할 라우팅 설계</h1>
+  <p class="tagline">로그인은 하나. 로그인 후 <b>역할(Role)</b>에 따라 자동으로 각자의 화면으로 이동합니다.</p>
+  <p class="meta">내부 설계 문서 · noindex · 2026-07-21 · 기존 B2B 스키마(organization_members / child_guardians / chewstep_staff) 위에 설계</p>
+
+  <!-- 1. 핵심 원칙 -->
+  <h2><span class="num">1</span>핵심 원칙</h2>
+  <div class="panel">
+    <ul class="clean">
+      <li><b>계정은 하나의 accounts 테이블</b> — Supabase <span class="mono">auth.users</span> + <span class="mono">profiles</span>. 부모·교사·원장·기관보호자 모두 같은 계정 체계.</li>
+      <li><b>로그인도 하나</b> — <span class="mono">chewstep.ai</span> 우측 상단 “로그인” 하나. 사용자는 부모 사이트/기관 사이트를 구분할 필요가 없습니다.</li>
+      <li><b>역할이 화면을 결정</b> — 로그인 후 role을 확인해 자동 이동. 결국 <b>화면만 다릅니다.</b></li>
+      <li><b>역할 권위는 membership 테이블에만</b> — 한 사람이 여러 역할일 수 있어(교사이면서 학부모) 단일 enum 금지. <span class="mono">profiles.user_type</span>은 “기본 진입화면 힌트”로만 사용(ERD 결정 C1).</li>
+    </ul>
+  </div>
+
+  <!-- 2. 단일 로그인 → 역할 라우팅 -->
+  <h2><span class="num">2</span>로그인 → role 확인 → 자동 이동</h2>
+  <div class="panel">
+    <div class="funnel">
+      <div class="node brand">chewstep.ai · 로그인<span class="s">우측 상단 버튼 하나</span></div>
+      <div class="arrow-down"></div>
+      <div class="node decide">role 확인 <span class="s">get_my_landing() — chewstep_staff → 원장/교사 → 기관보호자 → 일반부모 순으로 판정</span></div>
+
+      <div class="dests">
+        <div class="dest p1">
+          <div class="role">PARENT · 일반 부모</div>
+          <div class="scr">내 아이 화면</div>
+          <div class="src">기관 연결 없는 B2C 보호자. 집에서 촬영·분석.</div>
+          <span class="route">/app</span>
+        </div>
+        <div class="dest p4">
+          <div class="role">PARENT · 기관 등록 보호자</div>
+          <div class="scr">우리 아이 리포트</div>
+          <div class="src"><span class="mono">child_guardians</span>로 원아와 연결된 보호자.</div>
+          <span class="route">/app/report</span>
+        </div>
+        <div class="dest p2">
+          <div class="role">TEACHER · 교사</div>
+          <div class="scr">우리반</div>
+          <div class="src"><span class="mono">organization_members.role=teacher</span> · 담당 반만.</div>
+          <span class="route">/teacher</span>
+        </div>
+        <div class="dest p3">
+          <div class="role">ADMIN · 원장</div>
+          <div class="scr">기관 관리자</div>
+          <div class="src"><span class="mono">organization_members.role=director</span> · 자기 원만.</div>
+          <span class="route">/director</span>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:18px;font-size:13px;color:var(--ink-soft);">※ CHEWSTEP 운영자(<span class="mono">chewstep_staff</span>)는 최상위로 판정 → 내부 운영 콘솔(<span class="mono">/admin</span>, 기존)로 이동. 판정 순서상 가장 먼저 확인합니다.</p>
+  </div>
+
+  <!-- 3. 기관 보호자 초대 딥링크 -->
+  <h2><span class="num">3</span>기관 등록 보호자 — 초대 딥링크 흐름</h2>
+  <div class="panel">
+    <p style="font-size:14.5px;color:var(--ink-2);margin-bottom:18px;">보호자는 “기관 사이트인지 부모 사이트인지” 전혀 신경 쓰지 않습니다. 문자의 링크만 누르면 로그인 후 <b>자기 아이 리포트가 바로 열립니다.</b></p>
+    <div class="flow-row">
+      <div class="fstep"><b>① 초대 문자(SMS)</b><span>“Chewstep 식사 리포트가 도착했습니다. [리포트 보기]”</span></div>
+      <div class="farrow">→</div>
+      <div class="fstep"><b>② 링크 클릭</b><span class="k">chewstep.ai/login?next=/app/report/서연</span></div>
+      <div class="farrow">→</div>
+      <div class="fstep"><b>③ 로그인</b><span>같은 로그인 하나. 처음이면 가입.</span></div>
+      <div class="farrow">→</div>
+      <div class="fstep"><b>④ 자동 이동</b><span>role=기관보호자 확인 → <b>서연이 리포트</b>가 바로 열림</span></div>
+    </div>
+    <div class="callout" style="margin-top:18px;">
+      <b>딥링크 규칙:</b> 로그인 페이지는 <span class="mono">?next=</span> 파라미터를 보관했다가 로그인 성공 후 그 경로로 이동합니다. <span class="mono">next</span>가 없으면 role 기본 화면으로 이동. (같은 도메인 경로만 허용 — open-redirect 방지)
+    </div>
+  </div>
+
+  <!-- 4. 하나의 accounts 모델 -->
+  <h2><span class="num">4</span>하나의 accounts — 역할은 어디서 오나</h2>
+  <div class="panel" style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>역할</th><th>판정 소스 (SSOT)</th><th>이동 화면</th><th>라우트</th><th>현황</th></tr></thead>
+      <tbody>
+        <tr><td><b>운영자</b> (CHEWSTEP)</td><td><code>chewstep_staff.status='active'</code></td><td>내부 운영 콘솔</td><td><code>/admin</code></td><td><span class="badge b-have">있음</span> admin/index.html</td></tr>
+        <tr><td><b>원장</b></td><td><code>organization_members.role='director'</code></td><td>기관 관리자</td><td><code>/director</code></td><td><span class="badge b-have">방금 제작</span> director/index.html (샘플)</td></tr>
+        <tr><td><b>교사</b></td><td><code>organization_members.role='teacher'</code> (+ classroom_members)</td><td>우리반</td><td><code>/teacher</code></td><td><span class="badge b-have">방금 제작</span> teacher/index.html (샘플)</td></tr>
+        <tr><td><b>기관 보호자</b></td><td><code>child_guardians</code> 존재</td><td>우리 아이 리포트</td><td><code>/app/report</code></td><td><span class="badge b-have">템플릿 있음</span> weekly-report.html</td></tr>
+        <tr><td><b>일반 부모</b> (기본값)</td><td>위 어디에도 없으면</td><td>내 아이 화면</td><td><code>/app</code></td><td><span class="badge b-have">있음</span> demo.html</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:14px;font-size:13px;color:var(--ink-soft);">판정은 <b>위에서 아래 순서</b>로 확인하고 처음 맞는 역할로 이동합니다(가장 높은 권한 우선). 한 계정이 여러 역할이면, 기본은 최상위 화면 + 화면 내에서 역할 전환 메뉴 제공.</p>
+  </div>
+
+  <!-- 5. 리졸버 -->
+  <h2><span class="num">5</span>역할 리졸버 — <span class="mono" style="font-size:.7em">get_my_landing()</span> RPC 권장</h2>
+  <div class="panel">
+    <p style="font-size:14.5px;color:var(--ink-2);margin-bottom:14px;">브라우저에서 여러 테이블을 직접 조회하면 RLS·성능·노출이 복잡해집니다. 로그인 사용자의 역할·이동경로를 <b>한 번에 돌려주는 SECURITY DEFINER RPC</b>를 두는 것이 SaaS 표준입니다.</p>
+    <pre><span class="c">-- 로그인한 사용자(auth.uid())의 역할과 기본 이동 경로를 반환</span>
+<span class="k">create function</span> get_my_landing() <span class="k">returns</span> jsonb
+<span class="k">language</span> plpgsql <span class="k">security definer</span> <span class="k">set</span> search_path=public <span class="k">as</span> $$
+<span class="k">declare</span> uid uuid := auth.uid(); r text; route text;
+<span class="k">begin</span>
+  <span class="k">if</span> uid <span class="k">is null then return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'anon'</span>,<span class="s2">'route'</span>,<span class="s2">'/login'</span>); <span class="k">end if</span>;
+  <span class="c">-- 1) 운영자</span>
+  <span class="k">if exists</span>(<span class="k">select</span> 1 <span class="k">from</span> chewstep_staff s <span class="k">join</span> profiles p <span class="k">on</span> p.id=s.profile_id
+            <span class="k">where</span> p.auth_user_id=uid <span class="k">and</span> s.status=<span class="s2">'active'</span>) <span class="k">then</span>
+    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'staff'</span>,<span class="s2">'route'</span>,<span class="s2">'/admin'</span>); <span class="k">end if</span>;
+  <span class="c">-- 2) 원장 / 3) 교사  (organization_members.role)</span>
+  <span class="k">select</span> m.role <span class="k">into</span> r <span class="k">from</span> organization_members m <span class="k">join</span> profiles p <span class="k">on</span> p.id=m.profile_id
+    <span class="k">where</span> p.auth_user_id=uid <span class="k">and</span> m.status=<span class="s2">'active'</span>
+    <span class="k">order by</span> (m.role=<span class="s2">'director'</span>) <span class="k">desc</span> <span class="k">limit</span> 1;
+  <span class="k">if</span> r=<span class="s2">'director'</span> <span class="k">then return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'director'</span>,<span class="s2">'route'</span>,<span class="s2">'/director'</span>); <span class="k">end if</span>;
+  <span class="k">if</span> r=<span class="s2">'teacher'</span>  <span class="k">then return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'teacher'</span>,<span class="s2">'route'</span>,<span class="s2">'/teacher'</span>); <span class="k">end if</span>;
+  <span class="c">-- 4) 기관 등록 보호자</span>
+  <span class="k">if</span> current_guardian_id() <span class="k">is not null and exists</span>(
+       <span class="k">select</span> 1 <span class="k">from</span> child_guardians <span class="k">where</span> guardian_id=current_guardian_id()) <span class="k">then</span>
+    <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'guardian'</span>,<span class="s2">'route'</span>,<span class="s2">'/app/report'</span>); <span class="k">end if</span>;
+  <span class="c">-- 5) 일반 부모(기본)</span>
+  <span class="k">return</span> jsonb_build_object(<span class="s2">'role'</span>,<span class="s2">'parent'</span>,<span class="s2">'route'</span>,<span class="s2">'/app'</span>);
+<span class="k">end</span> $$;</pre>
+    <p style="margin-top:12px;font-size:13px;color:var(--ink-soft);">프론트: 로그인 성공 → <span class="mono">rpc('get_my_landing')</span> 호출 → <span class="mono">next ?? route</span>로 <span class="mono">location.replace()</span>. 헬퍼 <span class="mono">current_guardian_id()</span>는 이미 존재. <b>컬럼명(profiles.auth_user_id 등)은 실제 스키마로 확정 후 배포.</b></p>
+  </div>
+
+  <!-- 6. 결정 필요 -->
+  <h2><span class="num">6</span>확정이 필요한 것</h2>
+  <div class="panel">
+    <ul class="clean">
+      <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>계정을 어느 프로젝트 하나로 통합할지</b> — 지금 Supabase가 3개(B2C운영·B2B스테이징·B2B운영)로 나뉨. “accounts 하나”를 지키려면 <b>로그인 소스를 한 프로젝트로 통합</b>해야 함(권장: B2B 운영으로 일원화, B2C 계정 이관).</li>
+      <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>미구현 화면</b> — 교사(우리반)·원장(기관 관리자) 대시보드는 신규 제작 필요. 어디부터 만들지.</li>
+      <li><span class="badge b-dec" style="margin-right:6px;">결정</span> <b>딥링크 파라미터 형식</b> — <span class="mono">?next=</span> 경로 방식 vs 리포트 토큰(<span class="mono">?token=</span>) 방식. 문자 링크 보안·만료 정책 포함.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>주간 식사 리포트 · Chewstep</title>
+<!--
+  ============================================================================
+  Chewstep B2B — 보호자용 주간 리포트 (정적 데모 템플릿 v0.1)
+  기준 문서: B2B/주간리포트구성.md  (최종 추천 순서 그대로)
+  데이터 모델: B2B/chewstep-b2b-migration-v0.2.sql (reports / report_findings /
+              report_media / report_deliveries)
+
+  ★ 설계 원칙(문서 + evidence-based-docs 메모리):
+    - 정직 명명: 측정(engine) / 관찰(teacher) / 해석(chewstep) / 보호자입력(guardian)
+      을 섞지 않고 각 카드에 [출처 배지]로 노출한다.
+    - 확정 표현 금지: "콩 향 때문에 거부" (X) → "…일 가능성이 있어요" (O)
+    - 점수·또래평균 앞세우지 않음. 관찰 → 의미 → 가정 행동 순.
+
+  각 <section>의 주석 = 2단계에서 연결할 데이터 출처(섹션↔쿼리 매핑 밑그림).
+  지금은 전부 하드코딩된 데모 콘텐츠(주간리포트구성.md 예시 카피 사용).
+  ============================================================================
+-->
+<style>
+  :root{
+    --bg:#f6f8f7; --surface:#fff; --ink:#10201a; --ink-soft:#5a6b64; --ink-faint:#8a9a93;
+    --line:#e4eae7; --grid:#eef2f0;
+    --brand:#0e9f6e; --brand-deep:#0a7d57; --brand-tint:#e7f5ee;
+    --good:#0e9f6e; --warn:#d99a2b; --bad:#d9534f;
+    --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;word-break:keep-all;}
+  .wrap{max-width:480px;margin:0 auto;padding:0 16px 60px;}
+
+  /* ── 상단 헤더 ── */
+  header.rpt{padding:26px 4px 18px;}
+  .rpt .kicker{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--brand-deep);background:var(--brand-tint);padding:5px 11px;border-radius:999px;}
+  .rpt .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);}
+  .rpt .sample{margin-left:7px;font-size:11px;font-weight:800;color:var(--ink-faint);background:var(--grid);border:1px solid var(--line);padding:4px 9px;border-radius:999px;vertical-align:middle;}
+  .rpt h1{font-size:23px;margin:14px 0 4px;letter-spacing:-.01em;}
+  .rpt .sub{color:var(--ink-soft);font-size:13.5px;}
+  .rpt .who{margin-top:12px;display:flex;align-items:center;gap:10px;}
+  .rpt .who .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(150deg,var(--brand),var(--brand-deep));color:#fff;display:grid;place-items:center;font-weight:800;font-size:17px;}
+  .rpt .who .nm{font-weight:800;font-size:15px;}
+  .rpt .who .mt{font-size:12.5px;color:var(--ink-faint);}
+
+  /* ── 섹션 공통 ── */
+  section{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 17px;margin:14px 0;box-shadow:0 1px 2px rgba(16,32,26,.04),0 6px 20px rgba(16,32,26,.05);}
+  .sec-num{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--brand-tint);color:var(--brand-deep);font-weight:900;font-size:13px;flex:none;}
+  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .sec-head h2{font-size:16.5px;margin:0;letter-spacing:-.01em;}
+  section > p{font-size:14px;color:var(--ink-soft);margin:8px 0;}
+
+  /* ── 출처 배지(정직 명명 핵심) ── */
+  .src{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.02em;}
+  .src::before{content:"";width:6px;height:6px;border-radius:50%;}
+  .src.engine{background:#eaf1fb;color:#2b5fa8;} .src.engine::before{background:#2b5fa8;}
+  .src.teacher{background:var(--brand-tint);color:var(--brand-deep);} .src.teacher::before{background:var(--brand);}
+  .src.chewstep{background:#f3ecfb;color:#7a4fb0;} .src.chewstep::before{background:#7a4fb0;}
+  .src.guardian{background:#fdf0e3;color:#b7791f;} .src.guardian::before{background:#d99a2b;}
+
+  /* ── 1. 한눈 요약 ── */
+  .summary-lead{background:var(--brand-tint);border:1px solid #cfe9dc;border-radius:13px;padding:13px 14px;font-size:14px;color:#1c4636;line-height:1.65;margin:4px 0 14px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .stat{background:var(--grid);border-radius:12px;padding:12px 13px;}
+  .stat .v{font-size:22px;font-weight:900;color:var(--brand-deep);line-height:1;}
+  .stat .l{font-size:12px;color:var(--ink-soft);margin-top:5px;}
+  .stat.wide{grid-column:1/-1;display:flex;align-items:baseline;gap:9px;}
+  .stat.wide .v{font-size:19px;}
+
+  /* ── 영상(하이라이트) ── */
+  .clip{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(150deg,#12241d,#0a7d57);aspect-ratio:9/12;display:grid;place-items:center;}
+  .clip .play{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;}
+  .clip .play::before{content:"";border-left:16px solid var(--brand-deep);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px;}
+  .clip .dur{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;}
+  .clip .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 13px 12px;background:linear-gradient(0deg,rgba(0,0,0,.78),transparent);color:#fff;font-size:13px;font-weight:600;line-height:1.5;}
+  .clip .cap b{display:block;font-size:11px;font-weight:800;color:#8ff0c6;margin-bottom:3px;letter-spacing:.03em;}
+  .clip-note{font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.5;}
+
+  /* ── 인용/관찰 문장 ── */
+  .quote{border-left:3px solid var(--brand);background:#fafcfb;border-radius:0 10px 10px 0;padding:11px 13px;font-size:13.5px;color:var(--ink);margin:10px 0;line-height:1.65;}
+
+  /* ── 지표 행(씹기/식감) ── */
+  .meter{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--grid);}
+  .meter:last-child{border-bottom:none;}
+  .meter .ml{font-size:13.5px;color:var(--ink);font-weight:600;}
+  .meter .mv{font-size:12.5px;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .mv.ok{background:var(--brand-tint);color:var(--brand-deep);}
+  .mv.mid{background:#fdf0e3;color:#b7791f;}
+  .mv.low{background:var(--grid);color:var(--ink-soft);}
+
+  /* ── 식재료 카드 ── */
+  .food{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:13px;margin-top:10px;}
+  .food.good{background:var(--brand-tint);border:1px solid #cfe9dc;}
+  .food.try{background:#fdf6ec;border:1px solid #f0e2bf;}
+  .food .ico{font-size:22px;flex:none;}
+  .food .fn{font-weight:800;font-size:14.5px;}
+  .food .fd{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.6;}
+
+  /* ── 지난주 대비 ── */
+  .trend{display:flex;align-items:center;gap:11px;background:var(--grid);border-radius:12px;padding:11px 13px;margin-top:9px;}
+  .trend .dir{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;font-weight:900;font-size:15px;background:var(--brand-tint);color:var(--brand-deep);}
+  .trend .dir.flat{background:#eef1f4;color:var(--ink-soft);}
+  .trend .tt{font-size:13.5px;}
+
+  /* ── 퀴즈 ── */
+  .quiz{background:linear-gradient(160deg,#fdf6ec,#fff 85%);border:1px solid #f0e2bf;border-radius:14px;padding:15px;}
+  .quiz .q{font-weight:800;font-size:14.5px;margin-bottom:11px;}
+  .quiz .opts{display:flex;gap:8px;}
+  .quiz .opt{flex:1;text-align:center;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:12px 6px;font-size:13px;font-weight:700;color:var(--ink-soft);}
+  .play-list{list-style:none;padding:0;margin:13px 0 0;display:grid;gap:7px;}
+  .play-list li{display:flex;gap:9px;align-items:center;font-size:13px;color:var(--ink-soft);}
+  .play-list li::before{content:"✓";color:var(--brand);font-weight:900;flex:none;}
+
+  /* ── 레시피 ── */
+  .recipe .rtitle{font-weight:800;font-size:15px;color:var(--brand-deep);}
+  .recipe .why{background:var(--brand-tint);border-radius:11px;padding:11px 13px;font-size:13px;color:#1c4636;margin:9px 0 12px;line-height:1.6;}
+  .recipe .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px;}
+  .recipe .chip{font-size:11.5px;font-weight:700;color:var(--ink-soft);background:var(--grid);border:1px solid var(--line);padding:4px 10px;border-radius:999px;}
+  .recipe ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink-soft);line-height:1.75;}
+  .safety{margin-top:11px;font-size:12px;color:#b7791f;background:#fdf6ec;border:1px solid #f0e2bf;border-radius:10px;padding:9px 11px;line-height:1.55;}
+
+  /* ── 다음주 포인트 ── */
+  .next-list{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:9px;}
+  .next-list li{display:flex;gap:10px;align-items:flex-start;background:var(--grid);border-radius:11px;padding:11px 13px;font-size:13.5px;line-height:1.55;}
+  .next-list li .arw{color:var(--brand);font-weight:900;flex:none;}
+
+  /* ── 푸터 ── */
+  footer.rpt{text-align:center;padding:22px 10px;color:var(--ink-faint);font-size:11.5px;line-height:1.7;}
+  footer.rpt .logo{font-weight:900;color:var(--brand-deep);font-size:14px;letter-spacing:-.01em;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ═══════════ 헤더 : reports + children + organizations ═══════════ -->
+  <header class="rpt">
+    <span class="kicker"><span class="dot"></span>주간 식사 리포트</span>
+    <span class="sample">샘플 예시</span>
+    <h1>이번 주 우리 아이의 식사</h1>
+    <div class="sub">2026년 7월 14일 – 7월 18일 · 햇살어린이집</div>
+    <div class="who">
+      <div class="av">서</div>
+      <div>
+        <div class="nm">서아 <span style="font-weight:600;color:var(--ink-faint);font-size:12.5px;">· 만 2세</span></div>
+        <div class="mt">관찰 식사 3회 기록 · 담임 김하늘 선생님</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ 1. 이번 주 한눈 요약 ═══════════
+       데이터: 주간 meal_sessions 집계(관찰 횟수) + report_findings 요약 문장(source=teacher)
+                + 메뉴 카운트(메뉴별 반응 테이블, 2단계에 신설 예정) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">1</span><h2>이번 주 한눈 요약</h2></div>
+    <div class="summary-lead">
+      이번 주에는 부드러운 음식뿐 아니라 시금치처럼 섬유질이 있는 반찬도 천천히 씹어 먹었어요.
+      두부조림은 입에 넣어보았지만 삼키지 않고 뱉는 모습이 반복됐어요.
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><div class="v">3<span style="font-size:13px;">회</span></div><div class="l">관찰한 식사</div></div>
+      <div class="stat"><div class="v">12<span style="font-size:13px;">개</span></div><div class="l">경험한 메뉴</div></div>
+      <div class="stat"><div class="v">7<span style="font-size:13px;">개</span></div><div class="l">편하게 먹은 메뉴</div></div>
+      <div class="stat"><div class="v">3<span style="font-size:13px;">개</span></div><div class="l">도전해본 메뉴</div></div>
+      <div class="stat wide"><div class="v">2개</div><div class="l">다음 기록에서 더 살펴볼 추가 관찰 메뉴</div></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 2. 보호자 고민에 대한 관찰 결과 (리포트의 중심) ═══════════
+       데이터: children 등록시 보호자 입력(source=guardian) ↔ 주간 관찰 매칭(source=teacher/engine)
+       ※ 2단계 선행과제: 아동 등록 폼에 "식사 고민" 입력 필드 확인/추가 필요 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">2</span><h2>보호자 고민을 중심으로 살펴봤어요</h2></div>
+    <div class="quote" style="border-color:#d99a2b;background:#fdf9f2;">
+      <div style="margin-bottom:8px;"><span class="src guardian">보호자 입력</span></div>
+      <span style="font-size:14.5px;">“고기를 자꾸 씹다가 뱉어요.”</span>
+    </div>
+    <p style="color:var(--ink);">
+      이번 주 고기 메뉴는 <b>닭볶음</b>과 <b>소고기불고기</b>였어요.
+      닭고기는 작게 잘린 부분을 일부 삼켰지만, 불고기는 오래 씹은 뒤 뱉는 모습이 관찰됐어요.
+      고기 전체를 거부한다기보다 <b>크기나 질감에 따라 반응이 달라지는 모습</b>입니다.
+    </p>
+    <div style="margin-top:8px;"><span class="src teacher">교사 관찰</span> <span class="src engine">엔진 측정</span></div>
+  </section>
+
+  <!-- ═══════════ 3. 5초 밥상 하이라이트 ═══════════
+       데이터: report_media (media_role=highlight_clip, visible_to_guardian=true)
+                → Edge Function(edge-get-report-media-url.ts)로 짧은 만료 signed URL 발급 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">3</span><h2>오늘의 밥상 하이라이트</h2></div>
+    <div class="clip">
+      <div class="dur">0:05</div>
+      <div class="play"></div>
+      <div class="cap"><b>이번 주 하이라이트</b>시금치나물을 천천히 씹어 삼켰어요.</div>
+    </div>
+    <p class="clip-note">
+      ※ 의미 있는 장면(새 음식 첫 시도·천천히 씹고 삼킴·스스로 숟가락 사용 등)만 골라 담습니다.
+      다른 아이의 얼굴·음성은 노출되지 않도록 편집됩니다.
+    </p>
+  </section>
+
+  <!-- ═══════════ 4. 씹기 및 식감 관찰 ═══════════
+       데이터: 엔진 지표(video_metrics, source=engine, finding_type=measurement)
+                + 교사 관찰(teacher_observations, source=teacher, finding_type=observation)
+       ※ '발달 점수'/또래평균 미표기 — 아이 자신의 지난 기록과만 비교(문서 지침) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">4</span><h2>씹기 &amp; 식감 관찰</h2></div>
+    <div class="quote">
+      <b style="color:var(--brand-deep);">이번 주 씹기 활동: 안정적으로 관찰됐어요</b><br>
+      부드러운 반찬과 섬유질이 있는 나물에서 반복적인 턱 움직임이 관찰됐어요.
+    </div>
+    <div style="margin:6px 0 4px;"><span class="src engine">엔진 측정</span> <span class="src teacher">교사 관찰</span></div>
+    <div class="meter"><span class="ml">씹기 움직임</span><span class="mv ok">충분히 관찰됨</span></div>
+    <div class="meter"><span class="ml">음식 처리 시간</span><span class="mv mid">다소 긴 편</span></div>
+    <div class="meter"><span class="ml">식감별 반응 (부드러움·아삭함)</span><span class="mv ok">안정적</span></div>
+    <div class="meter"><span class="ml">식감별 반응 (질김·퍽퍽함)</span><span class="mv mid">추가 관찰 필요</span></div>
+    <div class="meter"><span class="ml">지난주 대비</span><span class="mv ok">더 활발함</span></div>
+  </section>
+
+  <!-- ═══════════ 5. 이번 주 편하게 먹은 식재료 ═══════════
+       데이터: 메뉴별 반응 집계(source=teacher/engine). 낙인화 금지 → '편하게 먹은'
+       ※ "N회 씹어 완밥"은 실제 확인된 경우에만(씹기횟수와 완밥은 별개 데이터) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">5</span><h2>👏 편하게 먹은 식재료</h2></div>
+    <div class="food good">
+      <span class="ico">🥬</span>
+      <div>
+        <div class="fn">시금치나물</div>
+        <div class="fd">섬유질이 있는 식감인데도 여러 번 씹어 삼키는 모습이 관찰됐어요.</div>
+        <div style="margin-top:7px;"><span class="src teacher">교사 관찰</span></div>
+      </div>
+    </div>
+    <div class="food good">
+      <span class="ico">🍚</span>
+      <div>
+        <div class="fn">진밥 · 계란찜</div>
+        <div class="fd">부담 없이 반복해서 잘 먹었어요.</div>
+        <div style="margin-top:7px;"><span class="src teacher">교사 관찰</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 6. 이번 주 더 친해질 식재료 ═══════════
+       데이터: source=teacher(관찰) + source=chewstep_reviewer(해석, 추측 마커 필수)
+       ※ 확정 금지: "향 때문에 거부"(X) → "…익숙하지 않았을 가능성"(O) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">6</span><h2>🎯 더 친해질 식재료</h2></div>
+    <div class="food try">
+      <span class="ico">🧊</span>
+      <div>
+        <div class="fn">두부조림</div>
+        <div class="fd">입에 넣어보았지만 뱉거나 더 먹지 않는 모습이 있었어요.</div>
+        <div style="margin-top:7px;"><span class="src teacher">교사 관찰</span></div>
+      </div>
+    </div>
+    <div class="quote" style="border-color:#7a4fb0;background:#faf7fd;margin-top:12px;">
+      <div style="margin-bottom:8px;"><span class="src chewstep">Chewstep 해석 · 추정</span></div>
+      부드러운 식감이 어려워서라기보다 두부의 맛이나 향, 조리 형태에 아직 익숙하지 않았을
+      <b>가능성이 있어요</b>. 다음 기록에서도 반응을 살펴볼게요.
+    </div>
+  </section>
+
+  <!-- ═══════════ 7. 지난주 대비 변화 ═══════════
+       데이터: 지난주 report_findings vs 이번주 (아이 자신의 기록 비교) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">7</span><h2>지난주 대비 변화</h2></div>
+    <div class="trend"><span class="dir">↑</span><span class="tt">섬유질 반찬(나물류) 씹는 횟수가 <b>더 활발해졌어요</b>.</span></div>
+    <div class="trend"><span class="dir flat">=</span><span class="tt">고기류 반응은 <b>지난주와 비슷</b>했어요.</span></div>
+    <p style="font-size:12px;color:var(--ink-faint);margin-top:11px;">
+      또래 평균 비교는 충분한 동일 조건 데이터가 쌓인 뒤 제공합니다. 지금은 아이 자신의 지난 기록과 비교해요.
+    </p>
+  </section>
+
+  <!-- ═══════════ 8. 주말 식감 놀이 / 퀴즈 ═══════════
+       데이터: 룰/템플릿 기반(source=chewstep_reviewer, finding_type=recommendation) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">8</span><h2>주말 식감 퀴즈</h2></div>
+    <div class="quiz">
+      <div class="q">두부는 손으로 눌렀을 때 어떤 느낌일까요?</div>
+      <div class="opts">
+        <div class="opt">① 말랑말랑</div>
+        <div class="opt">② 바삭바삭</div>
+        <div class="opt">③ 딱딱</div>
+      </div>
+    </div>
+    <ul class="play-list">
+      <li>두부를 손가락으로 눌러보기</li>
+      <li>생두부와 구운 두부 비교하기</li>
+      <li>어떤 모양인지 이야기하기</li>
+      <li>부모가 맛있게 먹는 모습 보여주기</li>
+    </ul>
+    <p style="font-size:12px;color:var(--ink-faint);margin-top:10px;">정답을 맞히는 것보다, 만지고 냄새 맡고 관찰하는 것이 목적이에요. 먹지 않아도 활동 완료입니다.</p>
+  </section>
+
+  <!-- ═══════════ 9. 가정 연계 레시피 ═══════════
+       데이터: 이번 주 관찰(두부 시도)과 연결된 추천(source=chewstep_reviewer, recommendation) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">9</span><h2>가정 연계 레시피</h2></div>
+    <div class="recipe">
+      <div class="rtitle">두부 유부초밥 만들기</div>
+      <div class="why">
+        어린이집에서 두부조림을 많이 먹지는 않았지만 입에 넣어보는 시도는 있었어요.
+        익숙한 밥과 함께 제공해 두부를 부담 없이 다시 경험해보세요.
+      </div>
+      <div class="meta">
+        <span class="chip">재료 3–5개</span>
+        <span class="chip">10–15분</span>
+        <span class="chip">아이 참여 가능</span>
+      </div>
+      <ul>
+        <li>아이에게 <b>두부 으깨기</b>를 맡겨보세요.</li>
+        <li>완성한 음식을 먹지 않더라도 두부를 만지고 냄새 맡아본 것 자체가 새 음식과 친해지는 경험입니다.</li>
+      </ul>
+      <div class="safety">⚠ 유부초밥은 제품에 따라 간·당이 높을 수 있어요. 연령에 맞는 재료와 조리법으로 조정해 주세요.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 10. 다음 주 관찰 포인트 ═══════════
+       데이터: 이번 주 findings에서 도출한 다음 관찰 항목(source=chewstep_reviewer)
+       → 다음 주 리포트의 관찰 기준으로 이어짐(반복 사용 이유) -->
+  <section>
+    <div class="sec-head"><span class="sec-num">10</span><h2>다음 주에는 이것을 살펴볼게요</h2></div>
+    <ul class="next-list">
+      <li><span class="arw">→</span> 두부가 다른 조리 형태로 나왔을 때 반응이 달라지는지</li>
+      <li><span class="arw">→</span> 고기 크기가 작을 때 삼키기가 편해지는지</li>
+      <li><span class="arw">→</span> 아삭한 채소에서도 충분한 씹기 움직임이 나타나는지</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════ 푸터 ═══════════ -->
+  <footer class="rpt">
+    <div class="legend">
+      <span class="src engine">엔진 측정</span>
+      <span class="src teacher">교사 관찰</span>
+      <span class="src chewstep">Chewstep 해석</span>
+      <span class="src guardian">보호자 입력</span>
+    </div>
+    <p>이 리포트는 측정·관찰·해석의 출처를 구분해 보여드립니다.<br>해석 항목은 단정이 아닌 추정이며, 다음 기록에서 계속 관찰합니다.</p>
+    <div class="logo">Chewstep</div>
+  </footer>
+
+</div>
+</body>
+</html>
