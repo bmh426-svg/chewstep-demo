@@ -1,5 +1,11 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /console
+Disallow: /director
+Disallow: /teacher
+Disallow: /notice-write.html
+Disallow: /report.html
+Disallow: /redeem.html
 
 Sitemap: https://chewstep.com/sitemap.xml
