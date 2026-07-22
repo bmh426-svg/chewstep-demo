@@ -85,7 +85,8 @@
   .mobile-menu { display:none; }
 
   @media (max-width:860px) {
-    .nav-menu, .nav-cta .btn-primary { display:none; }
+    /* 모바일: 헤더 우측은 햄버거만(나머지 링크·버튼·로그인UI는 모바일 메뉴로) */
+    .nav-menu, .nav-cta > a, .nav-cta > .btn, .nav-cta #authArea { display:none; }
     .hamburger { display:flex; }
     .mobile-menu { display:block; position:fixed; inset:var(--nav-h) 0 auto 0; background:#fff; border-bottom:1px solid var(--line);
       transform:translateY(-120%); transition:transform .28s cubic-bezier(.2,.7,.3,1); z-index:99; box-shadow:var(--shadow-md); }
@@ -340,3 +341,8 @@
   .login-banner:hover { filter:brightness(1.04); }
   .login-banner:hover .arrow { transform:translateX(3px); }
   @media (max-width:480px){ .login-banner{ font-size:13px; padding:11px 14px; } }
+
+  /* ===== 플로팅 문의 버튼 스택 (1:1 + 카카오 통일) ===== */
+  .fab-stack { position:fixed; right:22px; bottom:22px; z-index:90; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+  .fab-stack .mail-fab, .fab-stack .kakao-fab { position:static; right:auto; bottom:auto; }
+  @media (max-width:480px){ .fab-stack { right:16px; bottom:16px; } }
