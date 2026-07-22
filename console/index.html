@@ -184,9 +184,15 @@
       .map(([l,n])=>`<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
   }
 
-  // 이미 로그인 세션이 있으면 바로 콘솔
-  // 단일 로그인 세션 공유: 세션 있으면 바로 콘솔, 없으면 통합 로그인으로 이동
-  db.auth.getSession().then(({data})=>{ if(data.session){ showConsole(true); loadAll(); } else { location.replace("/login.html?next=/console/"); } });
+  // 단일 로그인 세션 공유 + 역할 게이트: CHEWSTEP 운영(staff)만 콘솔 접근.
+  // 기관 보호자·교사·원장은 각자 화면으로 되돌린다(get_my_landing.route).
+  db.auth.getSession().then(async ({data})=>{
+    if(!data.session){ location.replace("/login.html?next=/console/"); return; }
+    let landing = null;
+    try{ const r = await db.rpc("get_my_landing"); landing = r.data; }catch(e){}
+    if(!landing || landing.role!=="staff"){ location.replace((landing && landing.route) || "/"); return; }
+    showConsole(true); loadAll();
+  });
 </script>
 </body>
 </html>
