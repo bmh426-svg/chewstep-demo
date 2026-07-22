@@ -526,7 +526,11 @@ async function openDetail(id){
     `</div></div>`;
   // journey 타임라인
   body += `<div class="sec"><h3>여정 타임라인</h3><ul class="timeline" id="tl"><li class="muted">불러오는 중…</li></ul></div>`;
+  // 삭제(더미·테스트 정리)
+  body += `<div class="sec"><button id="delRecord" style="width:100%;padding:12px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">🗑 이 기록 삭제</button>`+
+    `<div class="muted" style="font-size:12px;margin-top:6px;line-height:1.5">더미·테스트 기록을 정리할 때 사용하세요. <b>되돌릴 수 없습니다.</b></div></div>`;
   $("drawerBody").innerHTML = body;
+  const delBtn = $("delRecord"); if(delBtn) delBtn.onclick = () => deleteRecord(r.id);
   openDrawer();
   // journey_events 조회
   let q = supabase.from("journey_events").select("created_at,event_type,page,path,meta").order("created_at",{ascending:true}).limit(100);
@@ -539,6 +543,16 @@ async function openDetail(id){
 }
 function openDrawer(){ $("drawerBg").classList.add("on"); $("drawer").classList.add("on"); }
 function closeDrawer(){ $("drawerBg").classList.remove("on"); $("drawer").classList.remove("on"); }
+// 분석 기록 삭제(관리자 전용 RLS: admin_delete_demo). 더미·테스트 정리용.
+async function deleteRecord(id){
+  if(!confirm("이 분석 기록을 삭제할까요?\n되돌릴 수 없습니다.")) return;
+  const { error } = await supabase.from("demo_responses").delete().eq("id", id);
+  if(error){ alert("삭제 실패: " + error.message); return; }
+  try{ await supabase.rpc("log_audit", { p_action:"data_delete", p_target_type:"demo_response" }); }catch(e){}
+  ALL = ALL.filter(x => String(x.id) !== String(id));
+  closeDrawer();
+  renderDash(); renderAnalyses(); renderFeedback(); renderUsers();
+}
 $("drawerX").addEventListener("click",closeDrawer);
 $("drawerBg").addEventListener("click",closeDrawer);
 
