@@ -318,6 +318,47 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </form>
   </section>
 
+  <!-- ===== 화면 0.5 · 아이 선택/등록 ===== -->
+  <section class="screen" id="screenChild">
+    <span class="step-eyebrow">STEP 0 · 우리 아이</span>
+    <h1>어떤 아이의 식사인가요?</h1>
+    <p class="lede">아이를 등록하면 다음에 또 분석할 때 <b>같은 아이의 변화(추이)</b>를 이어서 보여드려요.</p>
+
+    <!-- 기존 아이 목록(있을 때) -->
+    <div id="childList" class="survey" style="display:none;margin-bottom:14px;"></div>
+
+    <!-- 새 아이 등록 폼 -->
+    <form class="survey" id="childForm">
+      <div class="q">
+        <div class="q-title"><span class="num">1</span>아이 이름(또는 애칭)</div>
+        <input type="text" id="childName" class="date-inp" maxlength="20" style="width:100%;max-width:340px;" placeholder="예: 서아, 우리 둘째" />
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">2</span>월령(개월)</div>
+        <input type="number" id="childAge" class="date-inp" min="1" max="120" inputmode="numeric" style="max-width:160px;" placeholder="예: 14" />
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">3</span>가장 큰 식사 고민 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="child_concern" value="잘 안 먹어요"/><span>잘 안 먹어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="자꾸 뱉어요"/><span>자꾸 뱉어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="너무 느리게 먹어요"/><span>너무 느리게 먹어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="특정 음식만 먹어요"/><span>특정 음식만 먹어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="잘 씹고 있는지 궁금해요"/><span>잘 씹는지 궁금해요</span></label>
+        </div>
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">4</span>알레르기 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
+        <input type="text" id="childAllergy" class="date-inp" maxlength="100" style="width:100%;max-width:340px;" placeholder="예: 계란, 우유 (없으면 비워두세요)" />
+      </div>
+      <div class="survey-actions">
+        <button type="submit" class="btn-primary" id="childSave">이 아이로 시작하기 →</button>
+        <button type="button" class="btn-ghost" id="childCancelNew" style="display:none;">← 기존 아이 선택으로</button>
+      </div>
+      <p class="survey-note">아이 정보는 결과 개인화·변화 비교에만 쓰여요. 언제든 수정할 수 있고, <b>원본 영상은 저장하지 않습니다.</b></p>
+    </form>
+  </section>
+
   <!-- ===== 화면 1 · 업로드 / 촬영 ===== -->
   <section class="screen" id="screenUpload">
     <span class="kicker"><span class="dot"></span> Chewstep · 실시간 분석</span>
@@ -1019,7 +1060,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         video_metrics: metrics,
         video_series: series,
         answers: hasAns ? answers : null,
-        age_band: ageBand(months)
+        age_band: ageBand(months),
+        child_id: (currentChild && currentChild.id) ? currentChild.id : null
       };
       const { error } = await supabase.from("demo_responses").insert(row);
       if (error) {
@@ -1194,9 +1236,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!uid) return;
     let rows = null;
     try{
-      const res = await supabase.from("demo_responses")
-        .select("created_at, video_metrics, result")
-        .eq("user_id", uid).order("created_at", { ascending:true }).limit(60);
+      let q = supabase.from("demo_responses")
+        .select("created_at, video_metrics, result, child_id")
+        .eq("user_id", uid);
+      if(currentChild && currentChild.id) q = q.eq("child_id", currentChild.id);   // 아이별 추이
+      const res = await q.order("created_at", { ascending:true }).limit(60);
       rows = res.data;
     }catch(e){ return; }
     if(!rows) return;
@@ -1219,11 +1263,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       dots += "<circle cx='"+X(i).toFixed(1)+"' cy='"+Y(v).toFixed(1)+"' r='2.6' fill='"+(i===n-1?"#0a7d57":"#9fc9b8")+"'/>"; });
     const first = pts[0], last = pts[n-1], delta = first>0 ? Math.round((last-first)/first*100) : 0;
     const dir = delta>2 ? "↑ 늘었어요" : (delta<-2 ? "↓ 줄었어요" : "= 비슷해요");
-    box.innerHTML = "<h4>변화 추이 · 씹기 활동(분당)</h4>"+
+    const who = (currentChild && currentChild.name) ? escapeHtml(currentChild.name)+"의 " : "";
+    box.innerHTML = "<h4>"+who+"변화 추이 · 씹기 활동(분당)</h4>"+
       "<div style='overflow-x:auto'><svg width='"+W+"' height='"+H+"' viewBox='0 0 "+W+" "+H+"' style='max-width:100%;height:auto'>"+
         "<path d='"+d.trim()+"' fill='none' stroke='#0e9f6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>"+dots+"</svg></div>"+
       "<p style='font-size:13.5px;color:var(--ink-2);margin-top:6px'>총 <b>"+n+"회</b> 기록 · 첫 기록 <b>"+first+"</b> → 최근 <b>"+last+"</b> ("+(delta>=0?"+":"")+delta+"% "+dir+")</p>"+
-      "<p style='font-size:12px;color:var(--ink-soft);margin-top:4px'>같은 계정의 지난 기록과 비교한 변화예요. 다른 아이와 비교하거나 진단하지 않아요.</p>";
+      "<p style='font-size:12px;color:var(--ink-soft);margin-top:4px'>같은 아이의 지난 기록과 비교한 변화예요. 다른 아이와 비교하거나 진단하지 않아요.</p>";
     box.style.display = "";
   }
 
@@ -1380,7 +1425,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(running){ running=false; try{ video.pause(); }catch(e){} }   // 분석 중이면 멈춤
       showUploadPhase("choice"); target = "screenUpload";
     } else if(id==="screenUpload"){ target = "screenSurvey"; }
-    else if(id==="screenSurvey"){ target = "screenIntro"; }
+    else if(id==="screenSurvey"){ target = "screenChild"; }
+    else if(id==="screenChild"){ target = "screenIntro"; }
     if(target){
       showScreen(target);
       try{ history.pushState({csDemo:1}, ""); }catch(e){}             // 다음 뒤로가기 대비
@@ -1464,19 +1510,83 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // 시작하기: submit이 아니라 click으로 처리(모듈 로드 전 네이티브 폼 제출 방지 — 로그인 게이트 레이스 차단)
   $("introStart").addEventListener("click", function(e){
     e.preventDefault();
-    // 데모 시작 전 로그인 필수 → 통과하면 업로드 '전에' 월령/고민/체크리스트(설문)부터 받는다.
+    // 데모 시작 전 로그인 필수 → 통과하면 '아이 선택/등록'부터.
     gateResult(function(){
-      try{ $("surveyForm").reset(); }catch(e){}
-      // 인트로에서 고른 월령·고민을 설문에 미리 채움(중복 입력 방지)
+      // 인트로에서 고른 월령·고민을 아이 등록 폼에 미리 채움
       const a = parseInt($("introAge").value, 10);
-      if(!isNaN(a)) $("ageMonths").value = a;
+      if(!isNaN(a)) $("childAge").value = a;
       const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
-      if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
-      showScreen("screenSurvey");
+      if(c){ const r = $("childForm").querySelector('input[name="child_concern"][value="'+c.value+'"]'); if(r) r.checked = true; }
+      showScreen("screenChild");
       armDemoBack();   // 이후 브라우저 뒤로가기는 데모 안에서 단계 복귀
+      loadChildren();
       try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
     });
   });
+
+  // ── 아이 선택/등록 ──
+  let currentChild = null, myChildren = [];
+  function ageMonthsOf(ch){
+    if(!ch) return null;
+    if(ch.birth_date){ const b=new Date(ch.birth_date), n=new Date(); let m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); if(n.getDate()<b.getDate()) m--; return Math.max(0,m); }
+    return (ch.age_months!=null)? ch.age_months : null;
+  }
+  async function loadChildren(){
+    myChildren = [];
+    try{ const uid = await currentUserId(); if(uid){ const r = await supabase.from("children").select("*").eq("user_id", uid).order("created_at",{ascending:true}); myChildren = r.data || []; } }catch(e){}
+    renderChildList();
+  }
+  function renderChildList(){
+    const list = $("childList"), form = $("childForm");
+    if(myChildren.length){
+      list.style.display = "";
+      list.innerHTML = "<div class='q-title' style='margin-bottom:8px'>등록된 아이</div>" +
+        myChildren.map(function(ch){ const m=ageMonthsOf(ch);
+          return "<button type='button' class='opt' data-cid='"+esc2(ch.id)+"' style='width:100%;text-align:left;margin-bottom:8px;cursor:pointer'>"+
+            "<b>"+escapeHtml(ch.name||"우리 아이")+"</b>"+(m!=null?" · "+m+"개월":"")+(ch.concern?" · "+escapeHtml(ch.concern):"")+"</button>"; }).join("") +
+        "<button type='button' class='btn-ghost' id='childAddNew' style='margin-top:4px'>+ 새 아이 등록</button>";
+      form.style.display = "none";
+      list.querySelectorAll("[data-cid]").forEach(function(b){ b.addEventListener("click", function(){ const ch=myChildren.find(function(x){return String(x.id)===b.getAttribute("data-cid");}); selectChild(ch); }); });
+      const add = $("childAddNew"); if(add) add.addEventListener("click", function(){ list.style.display="none"; form.style.display=""; $("childCancelNew").style.display=""; try{$("childName").focus();}catch(e){} });
+    } else {
+      list.style.display = "none"; list.innerHTML = "";
+      form.style.display = ""; $("childCancelNew").style.display = "none";
+    }
+  }
+  function esc2(s){ return String(s).replace(/'/g,"&#39;"); }
+  function childMsg(t){ const m=$("childMsg"); if(m){ m.textContent=t; m.style.display=""; } }
+  $("childCancelNew").addEventListener("click", function(){ childMsg(""); $("childMsg").style.display="none"; renderChildList(); });
+  $("childForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+    const name = ($("childName").value||"").trim();
+    const age = parseInt($("childAge").value, 10);
+    if(!name){ childMsg("아이 이름(또는 애칭)을 입력해 주세요."); return; }
+    if(isNaN(age) || age<1){ childMsg("월령(개월)을 숫자로 입력해 주세요."); return; }
+    const cc = $("childForm").querySelector('input[name="child_concern"]:checked');
+    const concern = cc ? cc.value : null;
+    const allergy = ($("childAllergy").value||"").trim() || null;
+    const bd = new Date(); bd.setMonth(bd.getMonth()-age); const birth_date = bd.toISOString().slice(0,10);
+    const btn = $("childSave"); btn.disabled = true;
+    try{
+      const uid = await currentUserId();
+      let id=null; try{ id = crypto.randomUUID(); }catch(e){}
+      const row = { id: id||undefined, user_id: uid, name: name, birth_date: birth_date, concern: concern, allergies: allergy };
+      const { data, error } = await supabase.from("children").insert(row).select().maybeSingle();
+      btn.disabled = false;
+      if(error){ childMsg("저장 실패: "+error.message); return; }
+      if(window.csLog) window.csLog("demo_child_registered", { age: age });
+      selectChild(data || Object.assign({ age_months: age }, row));
+    }catch(err){ btn.disabled = false; childMsg("문제가 생겼어요. 다시 시도해 주세요."); }
+  });
+  function selectChild(ch){
+    currentChild = ch || null;
+    try{ $("surveyForm").reset(); }catch(e){}
+    const m = ageMonthsOf(ch); if(m!=null) $("ageMonths").value = m;
+    if(ch && ch.concern && !($("concernText").value||"").trim()) $("concernText").value = ch.concern;
+    if(window.csLog) window.csLog("demo_child_selected", { child_id: (ch&&ch.id)||null });
+    showScreen("screenSurvey");
+    try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
+  }
 
   // 드래그앤드롭
   const drop = $("drop");
