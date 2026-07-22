@@ -636,6 +636,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   const $ = id => document.getElementById(id);
   const OPEN = 0.15, CLOSE = 0.06;
+  // 아이폰 고효율(HEVC/.mov) 업로드본은 브라우저가 프레임·소리를 못 읽는 경우가 있음 → 정확한 안내
+  const IOS_MOV_HINT = "이 영상은 브라우저가 잘 읽지 못했어요 — 아이폰 ‘고효율(HEVC/.mov)’ 영상일 수 있어요. <b>‘지금 바로 촬영’</b>을 쓰거나, 아이폰 <b>설정 → 카메라 → 포맷 → ‘높은 호환성’</b>으로 바꿔 다시 찍어 주세요.";
 
   // ── 로그인 모달(홈과 동일 UI) — '결과 보기' 단계에서만 요구 ──
   const authUI = await mountAuthUI().catch(function(e){ console.warn("auth UI mount 실패:", e); return null; });
@@ -704,6 +706,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let sumL = 0, sumR = 0, toCnt = 0, maxJaw = 0, firstT = null, lastT = 0;
   let lastSampleT = -1, running = false;
   let sumJo = 0, sumMc = 0, curFile = null;   // 평균 계산용 + 업로드 파일 메타
+  let lastWasFile = false;                    // 마지막 분석이 파일 업로드였는지(라이브 아님) — iOS .mov 안내용
   // ── 라이브 카메라 + 오디오 퓨전 상태 ──
   let liveMode = false, liveStream = null, micStream = null, audioDet = null;
   let startPerf = 0, currentFacing = "environment";
@@ -878,8 +881,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     else if(detect>=65 && obs>=20){ q="high"; }
     else { q="medium"; }
 
+    // 업로드 영상인데 영상 프레임도(얼굴0) 소리도(0) 아무것도 못 읽음 → 아이폰 .mov/HEVC일 가능성
+    const uploadUnreadable = lastWasFile && faces===0 && (audioChew||0)===0;
     const cur = { date:new Date().toLocaleDateString('ko-KR'), cpm:+cpmFinal.toFixed(1),
-                  chew:chewFinal, detect:Math.round(detect), leftPct, quality:q, chewAudio:audioChew };
+                  chew:chewFinal, detect:Math.round(detect), leftPct, quality:q, chewAudio:audioChew, uploadUnreadable:uploadUnreadable };
     // 분석 결과를 보관(설문 후 결과 렌더/저장에 사용)
     lastCur = cur;
     lastMetrics = { detect, obs, cpm:cpmFinal, leftPct };
@@ -910,6 +915,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(cur.quality==="low_face") msg += ` 얼굴·입이 화면에 보인 구간이 적어 <b>영상 기반 지표는 신뢰가 낮아요(검출 ${pct}%)</b>. 그래서 이번 결과는 보호자님이 알려주신 <b>고민과 체크리스트</b>를 바탕으로 안내했어요. 더 정확히 보시려면 얼굴·입이 화면에 담기도록 20~30초 정도 다시 찍어 주세요(정면이 아니어도 괜찮아요).`;
     else if(cur.quality==="audio") msg += ` 얼굴이 충분히 보이지 않았지만 <b>씹는 소리</b>로 약 <b>${cur.chew}회</b>를 감지해 소리 기준으로 안내했어요(참고용). 좌우 균형처럼 영상에서만 얻는 지표는 이번엔 제외했어요.`;
     else if(cur.quality==="low_motion") msg += ` 씹는 움직임이 적게 관찰됐어요(재촬영이 아니라 관찰 결과예요).`;
+    if(cur.uploadUnreadable) msg += ` <b>📱 ${IOS_MOV_HINT}</b>`;
     v.className = "verdict on " + cls;
     v.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--brand-deep,#0a7d57);letter-spacing:.02em;margin-bottom:6px;">7 · 결과의 관찰 범위</div>`+
       `<b>분석 신뢰도: ${level}</b><br>${msg}`+
@@ -1194,6 +1200,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   async function start(file){
     curFile = file || null;
+    lastWasFile = true;
     liveMode = false; stopLiveMedia();          // 라이브 잔여 상태 정리(파일도 아래서 영상 트랙 오디오를 연결)
     try{ video.srcObject = null; }catch(e){}
     if(window.csLog) window.csLog("demo_analyze_start", { size: file && file.size, type: file && file.type });
@@ -1255,7 +1262,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   async function startLive(facing){
     await ensure();
     reset();
-    curFile = null; liveMode = true;
+    curFile = null; liveMode = true; lastWasFile = false;
     // ① 카메라(요청 방향 실패 시 아무 카메라나 — 노트북엔 후면 없음)
     try{ liveStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: facing }, audio:false }); }
     catch(e1){ liveStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
@@ -1486,7 +1493,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const balanced = (cur.leftPct>=40 && cur.leftPct<=60);
     // 검출 낮음 — 영상 지표 대신 검출 낮음 안내 + 고민 기반(상세는 해석 섹션)
     if(cur.quality==="low_face"){
-      obs.push({t:"watch", h:`검출률이 낮았어요 (${cur.detect}%)`, d:"영상에서 얼굴·입이 충분히 보이지 않아 씹기 횟수 같은 영상 지표는 이번엔 신뢰가 낮아 제외했어요. 아래 안내는 알려주신 고민과 체크리스트를 바탕으로 준비했어요."});
+      if(cur.uploadUnreadable){
+        obs.push({t:"watch", h:"📱 이 영상을 못 읽었어요 (아이폰 .mov/HEVC)", d:IOS_MOV_HINT});
+      } else {
+        obs.push({t:"watch", h:`검출률이 낮았어요 (${cur.detect}%)`, d:"영상에서 얼굴·입이 충분히 보이지 않아 씹기 횟수 같은 영상 지표는 이번엔 신뢰가 낮아 제외했어요. 아래 안내는 알려주신 고민과 체크리스트를 바탕으로 준비했어요."});
+      }
       obs.push({t:"hold", h:"다음엔 이렇게 찍어요", d:"밝은 곳에서 폰을 아이 정면 약 30cm에 두고 입·턱이 가려지지 않게 20~30초 찍으면 영상 지표까지 함께 볼 수 있어요."});
       obs.push({t:"hold", h:"원본 영상은 저장하지 않아요", d:"영상은 브라우저 안에서만 분석되고, 서버에는 움직임 지표만 남아요."});
       return obs;
