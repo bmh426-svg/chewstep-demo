@@ -303,9 +303,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
       </div>
       <div class="survey-actions">
-        <button type="button" class="btn-primary" id="introStart">로그인하고 시작하기 · 영상 올리러 가기 →</button>
+        <button type="button" class="btn-primary" id="introStart">시작하기 · 우리 아이 정보 입력 →</button>
       </div>
-      <p class="survey-note">시작하려면 <b>로그인이 필요해요</b> — 분석 기록을 보호자님 계정에 안전하게 보관하고, 다음 기록과 비교해 드리기 위해서예요. 입력 정보는 결과 보충·서비스 개선에만 쓰이고 <b>원본 영상은 저장하지 않습니다.</b></p>
+      <p class="survey-note">로그인 후 진행돼요 — 분석 기록을 계정에 안전하게 보관하고 다음 기록과 비교해 드리기 위해서예요. 입력 정보는 결과 보충·서비스 개선에만 쓰이고 <b>원본 영상은 저장하지 않습니다.</b></p>
     </form>
   </section>
 
@@ -682,6 +682,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const r = pendingResult; pendingResult = null; r();
     }
   });
+  // 개인용 데모는 '로그인 먼저' — 페이지가 열리면 미로그인 시 로그인 화면(모달)부터 띄운다.
+  // 로그인/닫기 후에는 인트로 화면이 보이고, '시작하기'로 설문→영상 순으로 진행.
+  (async function(){
+    try{ const uid = await currentUserId(); if(!uid) openLogin(); }catch(e){}
+  })();
 
   let fl = null;
   async function ensure(){
