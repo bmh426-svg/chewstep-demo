@@ -126,6 +126,7 @@
     <button data-tab="users">사용자</button>
     <button data-tab="audit">감사 로그</button>
     <button data-tab="inquiries">문의·신청</button>
+    <button data-tab="errors">🚨 에러 로그</button>
   </div>
 
   <div class="wrap">
@@ -178,6 +179,17 @@
     <!-- 문의 -->
     <div class="view" id="view-inquiries">
       <div class="tbl-wrap"><table id="inquiriesTbl"></table></div>
+    </div>
+
+    <!-- 에러 로그 (홈페이지·업로드·분석 에러 한눈에) -->
+    <div class="view" id="view-errors">
+      <div class="toolbar">
+        <span class="count">홈페이지 JS 오류 · 영상 업로드/분석 실패를 한곳에서 봅니다</span>
+        <span class="spacer"></span>
+        <span class="count" id="errCount"></span>
+        <button class="btn btn-ghost btn-sm" id="errRefresh">새로고침</button>
+      </div>
+      <div class="tbl-wrap"><table id="errorsTbl"></table></div>
     </div>
   </div>
 </div>
@@ -494,6 +506,27 @@ function closeDrawer(){ $("drawerBg").classList.remove("on"); $("drawer").classL
 $("drawerX").addEventListener("click",closeDrawer);
 $("drawerBg").addEventListener("click",closeDrawer);
 
+/* ---------- 에러 로그 (홈페이지·업로드·분석 에러 통합) ---------- */
+async function loadErrors(){
+  const el=$("errorsTbl"); el.innerHTML='<tbody><tr><td class="muted" style="padding:16px">불러오는 중…</td></tr></tbody>';
+  const { data, error } = await supabase.from("journey_events")
+    .select("created_at,event_type,page,path,meta")
+    .or("event_type.ilike.*error*,event_type.ilike.*fail*,event_type.ilike.*reject*,event_type.ilike.*stall*")
+    .order("created_at",{ascending:false}).limit(200);
+  const cnt=$("errCount"); if(cnt) cnt.textContent=(data?data.length:0)+"건";
+  if(error){ el.innerHTML='<tbody><tr><td class="muted" style="padding:16px">조회 오류: '+esc(error.message)+'</td></tr></tbody>'; return; }
+  if(!data||!data.length){ el.innerHTML='<tbody><tr><td class="muted" style="padding:16px">기록된 에러가 없습니다. 👍</td></tr></tbody>'; return; }
+  const label={demo_video_decode_fail:"영상 디코딩 실패",demo_analyze_stall:"분석 멈춤",demo_file_rejected:"파일 형식 거부",demo_save_error:"저장 실패",demo_feedback_error:"후기 저장 실패",client_error:"홈페이지 JS 오류"};
+  const head='<thead><tr><th>시각</th><th>유형</th><th>페이지</th><th>상세</th></tr></thead>';
+  const rows=data.map(e=>{
+    const m=e.meta? esc(JSON.stringify(e.meta)).slice(0,180):'';
+    const lb=label[e.event_type]||e.event_type;
+    return `<tr><td class="t" style="white-space:nowrap">${fmtT(e.created_at)}</td><td><b>${esc(lb)}</b><div class="muted" style="font-size:11px">${esc(e.event_type)}</div></td><td class="muted">${esc(e.page||e.path||'')}</td><td class="muted">${m}</td></tr>`;
+  }).join("");
+  el.innerHTML=head+'<tbody>'+rows+'</tbody>';
+}
+var _errRefresh=document.getElementById("errRefresh"); if(_errRefresh) _errRefresh.addEventListener("click", loadErrors);
+
 /* ---------- 탭 ---------- */
 document.querySelectorAll(".tabs button").forEach(b=>{
   b.addEventListener("click",()=>{
@@ -501,6 +534,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     b.classList.add("active");
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
     $("view-"+b.dataset.tab).classList.add("on");
+    if(b.dataset.tab==="errors") loadErrors();
   });
 });
 
