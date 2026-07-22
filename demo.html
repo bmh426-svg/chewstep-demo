@@ -479,110 +479,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <p class="lede">영상을 올리기 전에 아래 질문에 답해 주세요. 신뢰도는 <b>영상 자체</b>를 기준으로 계산되고, 이 답변은 결과 해석의 맥락을 보충해요.</p>
 
     <form class="survey" id="surveyForm">
-      <div class="q">
-        <div class="q-title">촬영일</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="capture_date" value="today" checked/><span>오늘</span></label>
-          <label class="opt"><input type="radio" name="capture_date" value="custom"/><span>변경</span></label>
-          <label class="opt"><input type="radio" name="capture_date" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-        <input type="date" id="captureDateInput" class="date-inp" style="display:none" />
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">1</span>촬영 당시 아이는 몇 개월이었나요?</div>
-        <div class="agebox">
-          <input type="number" id="ageMonths" min="1" max="120" inputmode="numeric" placeholder="예: 14" />
-          <span class="unit">개월</span>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">2</span>영상 속 음식의 질감은 어떤가요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="food_texture" value="thin"/><span>묽은 음식</span></label>
-          <label class="opt"><input type="radio" name="food_texture" value="mashed"/><span>으깬·부드러운 음식</span></label>
-          <label class="opt"><input type="radio" name="food_texture" value="soft_solid"/><span>부드러운 고형식</span></label>
-          <label class="opt"><input type="radio" name="food_texture" value="regular"/><span>일반식</span></label>
-          <label class="opt"><input type="radio" name="food_texture" value="mixed"/><span>여러 질감</span></label>
-          <label class="opt"><input type="radio" name="food_texture" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-        <input type="text" id="foodName" class="date-inp" maxlength="120"
-               style="margin-top:10px;width:100%;max-width:340px;"
-               placeholder="어떤 음식이었나요? 예: 소고기죽, 진밥 (선택)" />
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">3</span>영상은 식사의 어느 부분인가요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="video_segment" value="full"/><span>전체</span></label>
-          <label class="opt"><input type="radio" name="video_segment" value="start"/><span>시작</span></label>
-          <label class="opt"><input type="radio" name="video_segment" value="middle"/><span>중간</span></label>
-          <label class="opt"><input type="radio" name="video_segment" value="end"/><span>끝</span></label>
-          <label class="opt"><input type="radio" name="video_segment" value="clip"/><span>짧은 일부</span></label>
-          <label class="opt"><input type="radio" name="video_segment" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">4</span>평소 식사 모습과 비슷한가요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="vs_usual" value="similar"/><span>평소와 비슷</span></label>
-          <label class="opt"><input type="radio" name="vs_usual" value="better"/><span>평소보다 잘 먹음</span></label>
-          <label class="opt"><input type="radio" name="vs_usual" value="worse"/><span>평소보다 못 먹음</span></label>
-          <label class="opt"><input type="radio" name="vs_usual" value="special"/><span>특별한 상황</span></label>
-          <label class="opt"><input type="radio" name="vs_usual" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">5</span>요즘 가장 큰 고민은 무엇인가요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="concern_type" value="refuse"/><span>아예 안 먹어요</span></label>
-          <label class="opt"><input type="radio" name="concern_type" value="spit"/><span>자꾸 뱉어요</span></label>
-          <label class="opt"><input type="radio" name="concern_type" value="slow"/><span>너무 느리게 먹어요</span></label>
-          <label class="opt"><input type="radio" name="concern_type" value="small"/><span>먹는 양이 적어요</span></label>
-          <label class="opt"><input type="radio" name="concern_type" value="picky"/><span>특정 음식만 먹어요</span></label>
-          <label class="opt"><input type="radio" name="concern_type" value="other"/><span>기타</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">6</span>직전 식사나 수유는 언제였나요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="last_meal_gap" value="within2"/><span>2시간 이내</span></label>
-          <label class="opt"><input type="radio" name="last_meal_gap" value="2to4"/><span>2~4시간</span></label>
-          <label class="opt"><input type="radio" name="last_meal_gap" value="over4"/><span>4시간 이상</span></label>
-          <label class="opt"><input type="radio" name="last_meal_gap" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title"><span class="num">7</span>이 음식은 최근 몇 번 정도 제공했나요?</div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="exposure_count" value="first"/><span>오늘 처음</span></label>
-          <label class="opt"><input type="radio" name="exposure_count" value="2to5"/><span>2~5번</span></label>
-          <label class="opt"><input type="radio" name="exposure_count" value="6plus"/><span>6번 이상</span></label>
-          <label class="opt"><input type="radio" name="exposure_count" value="unknown"/><span>잘 모르겠어요</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title" style="color:#b7791f">⚠ 최근 식사 중 이런 모습이 있었나요? <span style="font-weight:600;color:var(--ink-faint)">(해당 시 선택 · 복수 가능)</span></div>
-        <div class="opts">
-          <label class="opt"><input type="checkbox" name="safety" value="choke"/><span>사레·기침이 잦아요</span></label>
-          <label class="opt"><input type="checkbox" name="safety" value="swallow"/><span>삼키기 힘들어 보여요</span></label>
-          <label class="opt"><input type="checkbox" name="safety" value="vomit"/><span>반복적으로 토해요</span></label>
-          <label class="opt"><input type="checkbox" name="safety" value="refuse_all"/><span>식사·수유를 모두 거부해요</span></label>
-          <label class="opt"><input type="checkbox" name="safety" value="weight"/><span>체중 감소가 걱정돼요</span></label>
-          <label class="opt"><input type="checkbox" name="safety" value="none"/><span>해당 없음</span></label>
-        </div>
-      </div>
-
-      <div class="q">
-        <div class="q-title">아이의 식사에서 최근 가장 궁금하거나 걱정되는 점은 무엇인가요? <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
-        <textarea id="concernText" class="ta" placeholder="예: 요즘 밥을 자꾸 뱉어서 걱정이에요. 잘 씹고 있는 건지 궁금해요."></textarea>
-      </div>
+      <div id="surveyMount"></div>
 
       <div class="survey-actions">
         <button type="submit" class="btn-primary" id="surveySubmit">다음 · 영상 올리기 →</button>
@@ -682,6 +579,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
   import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
   import { mountAuthUI } from "./assets/js/auth.js";
+  import { renderSurvey, collectSurveyAnswers } from "./assets/js/survey-render.js";
   import { AudioChewDetector } from "./assets/js/audio-chew.js";
   const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
   const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
@@ -1040,7 +938,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         first_check: coach.firstCheck,
         action: coach.action,
         watch: coach.watch,
-        safety: coach.safetyOn ? coach.safety : null,
+        safety: coach.safetyOn ? ((coach.safety && coach.safety.length) ? coach.safety : true) : null,
         observation: { chews_per_min: cur.cpm, left_pct: cur.leftPct, detect_rate: cur.detect, quality: cur.quality },
         vs_prev: prevR ? { chews_per_min_prev: prevR.cpm, delta_pct: deltaPct } : null
       };
@@ -1104,7 +1002,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // 입력(설문+영상) → 가장 먼저 볼 가능성 + 안전신호 + 행동. §5 안전은 결과 상단 덮어쓰기.
   function computeCoaching(cur, metrics, answers){
     const a = answers || {};
+    // v3: safety_alert(boolean) 우선. legacy safety 배열도 지원.
     const safety = Array.isArray(a.safety) ? a.safety.filter(s=>s && s!=="none") : [];
+    const safetyOn = !!a.safety_alert || safety.length>0;
     const score = { interval:0, texture:0, expectation:0, repetition:0 };
     const add = o => { if(o) for(const k in o) score[k] = (score[k]||0) + o[k]; };
     add(RULES.concern[a.concern_type]);
@@ -1118,14 +1018,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(best<=0) top = "unclear";
     const p = RULES.possibility[top] || RULES.possibility.unclear;
     const confidence = cur.quality==="high" ? "high" : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium");
-    return { safety, safetyOn: safety.length>0, possibility: top, label:p.label, firstCheck:p.firstCheck, action:p.action, watch:p.watch, score, confidence };
+    return { safety, safetyOn, possibility: top, label:p.label, firstCheck:p.firstCheck, action:p.action, watch:p.watch, score, confidence };
   }
-  // 안전 덮어쓰기 배너(§5)
+  // 안전 덮어쓰기 배너(§5) — legacy 코드 배열이 있으면 태그로, 없으면(safety_alert) 일반 안내
   function safetyBannerHtml(safety){
-    const tags = safety.map(s=>RULES.safetyLabels[s]||s).filter(Boolean).join(" · ");
+    const list = Array.isArray(safety) ? safety.filter(Boolean) : [];
+    const tags = list.map(s=>RULES.safetyLabels[s]||s).filter(Boolean).join(" · ");
     return `<div class="pv-summary" style="border-left:4px solid #d9534f;background:#fdf1f1;">`+
       `<b>이번에는 식사 습관을 조정하기보다, 전문가에게 현재 상황을 먼저 확인받는 것이 좋아요.</b><br>`+
-      `선택하신 <b>${escapeHtml(tags)}</b> 같은 신호는 짧은 영상만으로 판단하기 어렵습니다. 소아청소년과 또는 섭식·연하 전문가와 상담해 주세요.</div>`;
+      (tags ? `선택하신 <b>${escapeHtml(tags)}</b> 같은 신호는 ` : `안전 확인 문항에서 <b>주의가 필요한 응답</b>이 있어, 이런 신호는 `)+
+      `짧은 영상만으로 판단하기 어렵습니다. 소아청소년과 또는 섭식·연하 전문가와 상담해 주세요.</div>`;
   }
 
   // st: "up" | "down" | "same"  (동일은 회색·= 표시)
@@ -1580,9 +1482,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
   function selectChild(ch){
     currentChild = ch || null;
-    try{ $("surveyForm").reset(); }catch(e){}
-    const m = ageMonthsOf(ch); if(m!=null) $("ageMonths").value = m;
-    if(ch && ch.concern && !($("concernText").value||"").trim()) $("concernText").value = ch.concern;
+    renderSurvey($("surveyMount"), { ageMonths: ageMonthsOf(ch) });   // v3 스키마(웹·앱 공용) 설문 렌더
     if(window.csLog) window.csLog("demo_child_selected", { child_id: (ch&&ch.id)||null });
     showScreen("screenSurvey");
     try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
@@ -1607,36 +1507,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     showScreen("screenSurvey");
   }
 
-  // 촬영일 '변경' 선택 시 날짜 입력 표시
-  $("surveyForm").addEventListener("change", e=>{
-    if(e.target && e.target.name==="capture_date"){
-      $("captureDateInput").style.display = (e.target.value==="custom") ? "inline-block" : "none";
-    }
-  });
-
-  function collectAnswers(){
-    const f = $("surveyForm");
-    const pick = n => { const el = f.querySelector('input[name="'+n+'"]:checked'); return el ? el.value : null; };
-    const age = parseInt($("ageMonths").value, 10);
-    let cdate = pick("capture_date");
-    if(cdate==="custom"){ cdate = $("captureDateInput").value || "custom"; }
-    const concern = ($("concernText").value || "").trim().slice(0, 1000) || null;
-    const foodName = ($("foodName").value || "").trim().slice(0, 120) || null;
-    const safety = Array.from(f.querySelectorAll('input[name="safety"]:checked')).map(el=>el.value);
-    return {
-      capture_date: cdate,
-      child_age_months: isNaN(age) ? null : age,
-      food_texture: pick("food_texture"),
-      food_name: foodName,
-      video_segment: pick("video_segment"),
-      vs_usual: pick("vs_usual"),
-      concern_type: pick("concern_type"),
-      last_meal_gap: pick("last_meal_gap"),
-      exposure_count: pick("exposure_count"),
-      safety: safety.length ? safety : null,
-      concern_text: concern
-    };
-  }
+  // 설문 응답 수집 — survey-v3 스키마 구조(ANSWERS_SHAPE) 그대로 반환(앱과 통합)
+  function collectAnswers(){ return collectSurveyAnswers(); }
 
   // ── 설문 라벨(사람이 읽는 문구) ──
   const TEX_LABEL = { thin:"묽은 음식", mashed:"으깬·부드러운 음식", soft_solid:"부드러운 고형식", regular:"일반식", mixed:"여러 질감" };
@@ -1796,9 +1668,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const box = $("secConsult");
     const coach = computeCoaching(lastCur, lastMetrics, lastAnswers);
     if(coach.safetyOn){
-      const tags = coach.safety.map(s=>RULES.safetyLabels[s]||s).join(" · ");
+      const tags = (coach.safety||[]).map(s=>RULES.safetyLabels[s]||s).filter(Boolean).join(" · ");
       box.innerHTML = `<h4>먼저 전문가 확인이 필요할 수 있어요</h4>`+
-        `<p>보호자님이 선택하신 <b>${escapeHtml(tags)}</b> 신호는 짧은 영상만으로 판단하기 어려워요. 이번에는 식사 습관 조정보다 <b>전문가 확인을 먼저</b> 권해드려요.</p>`+
+        `<p>${tags ? `보호자님이 선택하신 <b>${escapeHtml(tags)}</b> 신호는 ` : `안전 확인 문항에서 <b>주의가 필요한 응답</b>이 있어, 이런 신호는 `}짧은 영상만으로 판단하기 어려워요. 이번에는 식사 습관 조정보다 <b>전문가 확인을 먼저</b> 권해드려요.</p>`+
         `<p class="disc">소아청소년과 또는 섭식·연하 전문가와 상의해 보세요. 이 분석은 진단을 대신하지 않아요.</p>`;
       box.style.display = "";
       return;
@@ -1899,7 +1771,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     $("file").value=""; $("loading").textContent="";
     lastRowId=null; lastAnswers=null;
     try{ $("surveyForm").reset(); }catch(e){}
-    $("captureDateInput").style.display="none";
     try{ document.querySelectorAll('#fbBlock input[type="radio"]').forEach(r=>r.checked=false); }catch(e){}
     $("fbText").value=""; $("fbThanks").style.display="none";
     $("secInterpret").style.display="none"; $("secActions").style.display="none"; $("secConsult").style.display="none";
