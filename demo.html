@@ -1159,6 +1159,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     $("statusTxt").textContent="분석 중…";
     video.src = URL.createObjectURL(file);
     await new Promise(r=>{ video.onloadeddata=r; video.onerror=r; setTimeout(r,8000); });
+    // 브라우저가 영상을 못 여는 경우(iOS의 일부 HEVC/.mov, 코덱 미지원 등) → 명확히 안내 + 로그
+    if(!video.videoWidth || !video.videoHeight){
+      running=false;
+      try{ URL.revokeObjectURL(video.src); }catch(e){}
+      if(window.csLog) window.csLog("demo_video_decode_fail", { type:file&&file.type, name:file&&file.name, size:file&&file.size });
+      $("loading").textContent="이 영상은 브라우저에서 열리지 않아요 😢 mp4로 변환해 올리거나 ‘지금 바로 촬영’으로 다시 시도해 주세요.";
+      showUploadPhase("choice"); showScreen("screenUpload");
+      return;
+    }
     // 오버레이 캔버스를 표시 크기에 맞춤
     const fit=()=>{ overlay.width=video.clientWidth; overlay.height=video.clientHeight; };
     fit(); window.addEventListener("resize",fit);
@@ -1238,9 +1247,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // ── 파일 받기(클릭 선택 / 드래그앤드롭 공통) ──
+  function isVideoFile(f){
+    if(!f) return false;
+    if(f.type && f.type.indexOf("video/")===0) return true;
+    // iOS 등에서 MIME이 비거나 비표준(quicktime 등)일 때 확장자로 보완
+    return /\.(mp4|mov|m4v|3gp|3g2|avi|webm|mkv|hevc|qt)$/i.test(f.name || "");
+  }
   function handleFile(f){
     if(!f) return;
-    if(f.type && f.type.indexOf("video/")!==0){ $("loading").textContent="영상 파일만 올릴 수 있어요 (mp4·mov 등)."; return; }
+    if(!isVideoFile(f)){
+      if(window.csLog) window.csLog("demo_file_rejected", { type: f.type, name: f.name });
+      $("loading").textContent="영상 파일만 올릴 수 있어요 (mp4·mov 등). 다른 파일이 선택된 것 같아요.";
+      return;
+    }
     $("loading").textContent="";
     showScreen("screenAnalyze");   // 넣으면 분석 화면으로 전환
     start(f);
