@@ -104,8 +104,10 @@
             .eq("report_id", rep.id).order("display_order");
           if (e3) throw e3;
           const when = rep.published_at ? new Date(rep.published_at).toLocaleDateString("ko-KR") : "";
+          const RTYPE = { single_meal:"한 끼 리포트", multi_day:"주간 리포트", coaching:"코칭 리포트" };
+          const rtLabel = RTYPE[rep.report_type] || "리포트";
           let html = `<div class="rhead"><div class="who"><div class="av">${nm.slice(0,1)}</div>`
-            + `<div><b>${nm} 식사 리포트</b><span>${esc(rep.report_type||"리포트")}${ageMonths(child.birth_date)}</span></div></div>`
+            + `<div><b>${nm} 식사 리포트</b><span>${esc(rtLabel)}${ageMonths(child.birth_date)}</span></div></div>`
             + (when? `<div class="period">📅 발행일 ${when}</div>`:``) + `</div>`;
           (fs||[]).forEach(f=>{
             const s = SRC[f.source_type] || {cls:"src-guardian",label:f.source_type||"기타"};
