@@ -91,16 +91,54 @@ export class AudioChewDetector {
     this._raf = requestAnimationFrame(tick);
   }
 
-  // 오디오 자체 루프: 밴드 에너지 → 엔벨로프 → 적응형 바닥 → 온셋 상태머신
-  _compute() {
-    const C = this.cfg;
-    this._analyser.getByteFrequencyData(this._freq);
+  // ── 업로드 영상 오디오: 파일 전체를 '오프라인'으로 훑어 씹기 횟수를 센다 ──
+  // 왜 오프라인인가: 실시간 분석은 _compute가 requestAnimationFrame(메인스레드)에 의존하는데,
+  // 업로드 분석은 MediaPipe(얼굴 검출)가 매 프레임 메인스레드를 점유해 오디오 샘플링이 굶주린다
+  // → 짧은 씹기 버스트를 놓친다. 파일은 전체가 이미 있으니 OfflineAudioContext로 밴드패스 렌더 후
+  //   시간영역 포락선에 동일한 온셋/리듬 게이트를 돌리면 부하와 무관하게 결정적으로 셀 수 있다.
+  //   또한 decodeAudioData 경로라 iOS에서도 createMediaElementSource보다 안정적이다.
+  // 입력: AudioBuffer(디코딩된 오디오). 반환: 누적 씹기 횟수(this.chew).
+  async analyzeBuffer(audioBuffer) {
+    this.reset();
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC || !audioBuffer || !audioBuffer.length) return 0;
+    const sr = audioBuffer.sampleRate;
+    // 1.5~6kHz만 통과(하이패스→로우패스) → 말소리(<1kHz) 배제, 씹기 '바삭' 대역 강조
+    const oac = new OAC(1, audioBuffer.length, sr);
+    const src = oac.createBufferSource(); src.buffer = audioBuffer;
+    const hp = oac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = this.cfg.bandLoHz; hp.Q.value = 0.7;
+    const lp = oac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = this.cfg.bandHiHz; lp.Q.value = 0.7;
+    src.connect(hp); hp.connect(lp); lp.connect(oac.destination);
+    src.start();
+    let rendered;
+    try { rendered = await oac.startRendering(); } catch (e) { return 0; }
+    const x = rendered.getChannelData(0);
 
-    // 관심 대역 평균 에너지(0~1)
+    // 밴드 통과 신호의 RMS 포락선을 ~12ms 홉으로 만들어 동일 상태머신에 투입(홉 시각=파일 시계)
+    const hop = Math.max(64, Math.round(sr * 0.012));
+    const win = hop * 2;
+    for (let i = 0; i + win <= x.length; i += hop) {
+      let s = 0;
+      for (let j = 0; j < win; j++) { const v = x[i + j]; s += v * v; }
+      const raw = Math.min(1, Math.sqrt(s / win) * 4);   // RMS 정규화(경험적 스케일)
+      this._step(raw, (i / sr) * 1000);
+    }
+    return this.chew;
+  }
+
+  // 오디오 자체 루프(라이브): 밴드 에너지(FFT) → 공통 스텝
+  _compute() {
+    this._analyser.getByteFrequencyData(this._freq);
     let sum = 0, n = 0;
     for (let i = this._loBin; i <= this._hiBin; i++) { sum += this._freq[i]; n++; }
     const raw = n ? (sum / n) / 255 : 0;
+    this._step(raw, this._now());
+  }
 
+  // 공통 스텝: 엔벨로프 → 적응형 바닥 → 온셋 히스테리시스 → 리듬 게이트(라이브·오프라인 공용)
+  // raw: 0~1 밴드 에너지, t: ms 시계(라이브=오디오시계, 오프라인=홉시각)
+  _step(raw, t) {
+    const C = this.cfg;
     // 비대칭 엔벨로프(빠르게 붙고 천천히 떨어짐)
     const a = raw > this._env ? C.envAttack : C.envRelease;
     this._env += (raw - this._env) * a;
@@ -118,7 +156,6 @@ export class AudioChewDetector {
 
     // 온셋(burst) 히스테리시스 → 종료 순간을 "온셋 1개"로
     this._chewedFlag = false; this._onsetFlag = false;
-    const t = this._now();
 
     // 리듬 유지시간 초과 → 락 해제(씹기 멈춤으로 간주, 다시 처음부터)
     if (this._locked && t - this._lastOnsetMs > C.rhythmHoldMs) { this._locked = false; this._streak = 0; }
@@ -128,7 +165,7 @@ export class AudioChewDetector {
     } else if (this._state === "burst" && ratio <= C.offRatio) {
       this._state = "quiet";
       const gap = t - this._lastOnsetMs;      // 직전 온셋과의 간격
-      if (t - this._lastOnsetMs >= C.minChewGapMs) {
+      if (gap >= C.minChewGapMs) {
         this._onsetFlag = true;               // 그래프용(필터 전 원시 온셋)
         this._lastOnsetMs = t;
 

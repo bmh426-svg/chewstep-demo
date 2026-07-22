@@ -718,6 +718,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let startPerf = 0, currentFacing = "environment";
   let chewAudio = 0, lastChewT = -1e9;          // 오디오 fallback 카운트 + 마지막 씹은 시각
   const AUDIO_PRIME = 4.0;                        // 직전 이 시간(초) 내 씹기 이력 있을 때만 오디오 신뢰
+  let fileAudioChew = 0, audioAnalysisPromise = null;  // 업로드 영상 오프라인 소리 분석 결과·진행 promise
   let lastCur = null, lastMetrics = null, lastPrev = null;  // 설문 단계로 넘길 분석 결과 보관
   let lastAnswers = null;                                   // 보호자 설문 응답(미리보기·상세·저장 공용)
   let lastRowId = null;                                     // 저장된 demo_responses 행 id(후기 업데이트용)
@@ -731,7 +732,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     JAW=[]; faces=0; frames=0; chew=0; state="closed"; openCnt=0;
     sumL=0; sumR=0; toCnt=0; maxJaw=0; firstT=null; lastT=0; lastSampleT=-1;
     sumJo=0; sumMc=0; sT=[]; sJo=[]; sJl=[]; sJr=[]; sTo=[];
-    chewAudio=0; lastChewT=-1e9;
+    chewAudio=0; lastChewT=-1e9; fileAudioChew=0; audioAnalysisPromise=null;
     octx.clearRect(0,0,overlay.width,overlay.height);
     wctx.clearRect(0,0,wave.width,wave.height);
     $("verdict").className="verdict";
@@ -854,8 +855,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function loadPrev(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ return null; } }
   function savePrev(o){ try{ localStorage.setItem(LS_KEY, JSON.stringify(o)); }catch(e){} }
 
-  function finish(){
+  async function finish(){
     if(!running) return; running=false;
+    // 업로드 소리 분석이 아직이면 잠깐 대기(대개 재생시간 내 이미 끝남)
+    if(audioAnalysisPromise){ try{ await Promise.race([audioAnalysisPromise, new Promise(r=>setTimeout(r,2500))]); }catch(e){} }
     // 라이브 촬영이었으면 카메라·마이크 정리 + UI 원복
     if(liveMode){
       stopLiveMedia(); liveMode=false;
@@ -867,32 +870,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     $("statusTxt").textContent = "분석 완료";
     const detect = frames? (faces/frames*100):0;
     const obs = Math.max(0, lastT-(firstT||0));
-    const cpm = obs>1? (chew/obs*60):0;
+    // 소리 기반 독립 카운트: 업로드=오프라인 분석(fileAudioChew), 라이브=영상에 이미 퓨전되어 0
+    const audioChew = fileAudioChew || (audioDet ? (audioDet.chew||0) : 0);
     const lr = sumL+sumR;
     const leftPct = lr>1e-6? Math.round(sumL/lr*100):50;
-    let q="medium";
-    if(faces===0 || detect<20) q="low_face";
-    else if(maxJaw<0.08 || (openCnt/Math.max(1,frames)*100)<2) q="low_motion";
-    else if(detect>=65 && obs>=20) q="high";
+    const videoWeak = (faces===0 || detect<20);
+    // 품질 판정:
+    //  - 영상 충분 → high/medium/low_motion (기존 영상 기반)
+    //  - 영상 약함 + 소리로 씹기 잡힘 → "audio"(소리 기반 씹기 횟수 사용)
+    //  - 영상·소리 모두 약함 → "low_face"(검출률 낮음 표시 + 보호자 고민/체크리스트 기반 결과)
+    let q, chewFinal = chew, cpmFinal = obs>1? (chew/obs*60):0;
+    if(videoWeak){
+      if(audioChew>=3){ q="audio"; chewFinal=audioChew; cpmFinal = obs>1? (audioChew/obs*60):0; }
+      else { q="low_face"; }
+    } else if(maxJaw<0.08 || (openCnt/Math.max(1,frames)*100)<2){ q="low_motion"; }
+    else if(detect>=65 && obs>=20){ q="high"; }
+    else { q="medium"; }
 
-    const cur = { date:new Date().toLocaleDateString('ko-KR'), cpm:+cpm.toFixed(1),
-                  chew, detect:Math.round(detect), leftPct, quality:q };
+    const cur = { date:new Date().toLocaleDateString('ko-KR'), cpm:+cpmFinal.toFixed(1),
+                  chew:chewFinal, detect:Math.round(detect), leftPct, quality:q, chewAudio:audioChew };
     // 분석 결과를 보관(설문 후 결과 렌더/저장에 사용)
     lastCur = cur;
-    lastMetrics = { detect, obs, cpm, leftPct };
-    lastPrev = (q==="low_face") ? null : loadPrev();   // 얼굴 못 잡은 세션은 비교 제외
-    if(window.csLog) window.csLog("demo_result", { cpm: cur.cpm, chew: cur.chew, detect: cur.detect, leftPct: cur.leftPct, quality: q });
+    lastMetrics = { detect, obs, cpm:cpmFinal, leftPct };
+    // 검출이 약한 세션(low_face·audio)은 영상 지표 신뢰가 낮아 이전 기록과 비교하지 않음
+    lastPrev = (q==="low_face"||q==="audio") ? null : loadPrev();
+    if(window.csLog) window.csLog("demo_result", { cpm: cur.cpm, chew: cur.chew, detect: cur.detect, leftPct: cur.leftPct, quality: q, chewAudio: audioChew });
 
-    if(q==="low_face"){
-      // 얼굴을 거의 못 잡음 → 설문 생략, 재촬영 안내(로그인 없이 바로) + 저장
-      lastAnswers = null;
-      renderPreview(cur, null, q);
-      saveResult(cur, lastMetrics, null);      // 재촬영 케이스는 로그인 없이 익명 저장(후기 단계 없음)
-      showScreen("screenResult");
-    } else {
-      // 정상 분석 → 영상 정보(설문) 단계로
-      goSurvey();
-    }
+    // ★ 검출률이 낮아도 재촬영 막다른 길로 보내지 않는다 — 모든 경우 설문(보호자 고민/체크리스트)으로 이어
+    //   결과에서 검출률이 낮음을 알리고, 그 정보를 바탕으로 안내(computeCoaching)를 도출한다.
+    goSurvey();
   }
 
   // ── 분석 신뢰도(영상 기준) 배너 — #verdict에 이유와 함께 표시 ──
@@ -903,13 +909,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     let level, cls;
     if(cur.quality==="high"){ level="높음"; cls="q-high"; }
     else if(cur.quality==="low_face"){ level="낮음"; cls="q-low"; }
+    else if(cur.quality==="audio"){ level="보통 (소리 기반)"; cls="q-medium"; }
     else { level="보통"; cls="q-medium"; }
     let msg = `전체 영상 중 <b>${pct}%</b>를 분석에 사용했어요.`;
     if(lost>=2) msg += ` 얼굴이 보이지 않은 약 ${lost}초 구간은 분석에서 제외했어요.`;
     const segMap = { start:"시작", middle:"중간", end:"끝", clip:"짧은 일부" };
     const seg = answers && answers.video_segment;
     if(seg && segMap[seg]) msg += ` 영상이 식사의 <b>${segMap[seg]}</b> 부분만 담고 있어 전체 식사량은 판단하지 않았어요.`;
-    if(cur.quality==="low_face") msg += ` 얼굴·입이 화면에 보인 구간이 적어 결과가 제한적이에요. <b>정면이 아니어도 괜찮아요</b> — 얼굴과 입이 화면에 담기도록 20~30초 정도 다시 찍어 주세요.`;
+    if(cur.quality==="low_face") msg += ` 얼굴·입이 화면에 보인 구간이 적어 <b>영상 기반 지표는 신뢰가 낮아요(검출 ${pct}%)</b>. 그래서 이번 결과는 보호자님이 알려주신 <b>고민과 체크리스트</b>를 바탕으로 안내했어요. 더 정확히 보시려면 얼굴·입이 화면에 담기도록 20~30초 정도 다시 찍어 주세요(정면이 아니어도 괜찮아요).`;
+    else if(cur.quality==="audio") msg += ` 얼굴이 충분히 보이지 않았지만 <b>씹는 소리</b>로 약 <b>${cur.chew}회</b>를 감지해 소리 기준으로 안내했어요(참고용). 좌우 균형처럼 영상에서만 얻는 지표는 이번엔 제외했어요.`;
     else if(cur.quality==="low_motion") msg += ` 씹는 움직임이 적게 관찰됐어요(재촬영이 아니라 관찰 결과예요).`;
     v.className = "verdict on " + cls;
     v.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--brand-deep,#0a7d57);letter-spacing:.02em;margin-bottom:6px;">7 · 결과의 관찰 범위</div>`+
@@ -935,7 +943,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       quality: cur.quality,
       samples: sT.length,
       chew_count: chew,
-      chew_audio_fallback: chewAudio,   // 🔎 얼굴 가림 구간에서 오디오로 이어받은 횟수(라이브 전용)
+      chew_audio_fallback: chewAudio,   // 🔎 얼굴 가림 구간에서 오디오로 이어받은 횟수(라이브 퓨전)
+      chew_audio_total: (cur.chewAudio||0),  // 🔎 소리 기반 독립 카운트(업로드 영상에서 얼굴 약해도 소리로 감지)
       chews_per_min: cur.cpm,
       detect_rate: Math.round(m.detect),
       left_pct: cur.leftPct,
@@ -960,7 +969,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       try { rowId = crypto.randomUUID(); } catch(e) { rowId = null; }
       const uid = await currentUserId();
       // 상태(성공/저품질/재촬영) + 사용자에게 나간 결과를 함께 저장 (관리자 품질검수용)
-      const statusVal = cur.quality==="low_face" ? "reshoot_low_face"
+      const statusVal = cur.quality==="low_face" ? "low_detection"     // 검출 낮음(재촬영 아님, 설문 기반 결과 제공)
+                      : cur.quality==="audio" ? "audio_based"          // 영상 약함 → 소리 기반 결과
                       : (cur.quality==="low_motion" ? "low_motion" : "completed");
       const confVal = cur.quality==="high" ? "high"
                     : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium");
@@ -1082,15 +1092,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const rPct = 100 - cur.leftPct;
     const balanced = (cur.leftPct>=40 && cur.leftPct<=60);
 
-    // 얼굴 못 잡음 → 재촬영 카드 (억지 예측 안 함)
+    // 검출이 약함 → 영상 지표(씹기 횟수·좌우균형)는 신뢰가 낮아 표시하지 않고, 고민/체크리스트 기반으로 안내(아래 해석 섹션에서 상세)
     if(q==="low_face"){
       rc.innerHTML =
         `<div class="rc-hero reshoot">`+
-          `<div class="rc-eyebrow">다시 찍기 · ${cur.date}</div>`+
-          `<h3>얼굴이 충분히<br>잡히지 않았어요</h3>`+
-          `<div class="rc-metricdesc">검출 ${cur.detect}%. 정면이 아니어도 괜찮으니, 아이 얼굴·입이 화면 안에 <b>밝게</b> 보이게 다시 찍어 주세요.</div>`+
-          `<div class="rc-next"><div class="t">이렇게 찍어요</div><p>밝은 곳에서 폰을 아이 정면 약 30cm에 두고, 입·턱이 가려지지 않게.</p></div>`+
+          `<div class="rc-eyebrow">관찰 범위 제한 · ${cur.date}</div>`+
+          `<h3>검출률이 낮아<br><span class="em">고민을 바탕으로</span> 안내해요</h3>`+
+          `<div class="rc-metricdesc">검출 ${cur.detect}%. 영상에서 얼굴·입이 충분히 보이지 않아, 알려주신 <b>고민과 체크리스트</b>를 바탕으로 아래 안내를 준비했어요. 씹기 횟수 같은 영상 지표는 이번엔 신뢰가 낮아 표시하지 않았어요.</div>`+
+          `<div class="rc-next"><div class="t">다음엔 이렇게</div><p>밝은 곳에서 폰을 아이 정면 약 30cm에 두고, 입·턱이 가려지지 않게 20~30초 찍으면 영상 지표까지 함께 볼 수 있어요.</p></div>`+
           `<div class="rc-trust"><div class="rc-badges"><span class="rc-badge">🎥 원본 영상 미저장</span></div></div>`+
+        `</div>`;
+      rc.classList.add("on");
+      return;
+    }
+    // 영상은 약하지만 '씹는 소리'로 잡힘 → 소리 기반 횟수 카드(좌우 균형 등 영상 전용 지표는 생략)
+    if(q==="audio"){
+      rc.innerHTML =
+        `<div class="rc-hero">`+
+          `<div class="rc-eyebrow">소리 기반 관찰 · ${cur.date}</div>`+
+          `<h3>씹는 <span class="em">소리</span>로<br>관찰했어요</h3>`+
+          `<div class="rc-solo">${cur.chew}<small>회</small></div>`+
+          `<div class="rc-metricname">씹는 소리 감지 횟수</div>`+
+          `<div class="rc-metricdesc">얼굴이 충분히 보이지 않아(검출 ${cur.detect}%) 영상 대신 <b>씹는 소리</b>로 약 ${cur.chew}회(분당 약 ${cur.cpm}회)를 감지했어요. 참고용이며, 아래 안내는 알려주신 고민도 함께 반영했어요.</div>`+
+          `<div class="rc-trust"><div class="rc-badges"><span class="rc-badge">🎥 원본 영상 미저장</span><span class="rc-badge">🔊 소리 기반(참고용)</span></div></div>`+
         `</div>`;
       rc.classList.add("on");
       return;
@@ -1149,9 +1173,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     rc.classList.add("on");
   }
 
+  // 업로드 영상의 오디오 트랙만 오프라인으로 디코딩→분석해 '씹는 소리' 횟수를 센다(fileAudioChew).
+  // 영상 프레임 루프(MediaPipe)와 독립 → 메인스레드 부하 무관·결정적. iOS도 decodeAudioData 지원.
+  async function analyzeFileAudio(file){
+    fileAudioChew = 0;
+    if(!file) return 0;
+    let ctx = null;
+    try{
+      const ab = await file.arrayBuffer();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return 0;
+      ctx = new AC();
+      // decodeAudioData: Promise/콜백 양식 모두 대비(구형 사파리)
+      const buf = await new Promise((res, rej)=>{
+        let p; try{ p = ctx.decodeAudioData(ab, res, rej); }catch(e){ rej(e); return; }
+        if(p && typeof p.then==="function") p.then(res, rej);
+      });
+      const det = new AudioChewDetector();
+      fileAudioChew = await det.analyzeBuffer(buf);
+      return fileAudioChew;
+    }catch(e){
+      // 오디오 트랙 없음/코덱 미지원 등 → 소리 분석 생략(영상·설문 기반으로 진행)
+      if(window.csLog) window.csLog("demo_audio_analyze_skip", { msg: String((e&&e.message)||e).slice(0,200) });
+      return 0;
+    }finally{
+      try{ ctx && ctx.close(); }catch(e){}
+    }
+  }
+
   async function start(file){
     curFile = file || null;
-    liveMode = false; stopLiveMedia();          // 라이브 잔여 상태 정리(파일 분석은 오디오 미사용)
+    liveMode = false; stopLiveMedia();          // 라이브 잔여 상태 정리(파일도 아래서 영상 트랙 오디오를 연결)
     try{ video.srcObject = null; }catch(e){}
     if(window.csLog) window.csLog("demo_analyze_start", { size: file && file.size, type: file && file.type });
     await ensure();
@@ -1172,6 +1224,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const fit=()=>{ overlay.width=video.clientWidth; overlay.height=video.clientHeight; };
     fit(); window.addEventListener("resize",fit);
     running=true;
+    // 업로드 영상의 '씹는 소리'는 오프라인으로 분석(영상 프레임 루프와 별개, 부하 무관·결정적).
+    // 얼굴 검출이 약해도 소리로 데이터 확보. 온디바이스 DSP(1.5~6kHz), 원본 오디오는 저장하지 않음.
+    audioAnalysisPromise = analyzeFileAudio(curFile);
     video.play().catch(()=>{});
     const useRVFC = typeof video.requestVideoFrameCallback==="function";
     function onFrame(now,meta){
@@ -1188,7 +1243,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     video.onended = finish;
     // 워치독: 12초 내 프레임이 하나도 안 잡히면 '멈춤'으로 판단 → 실패 기록 + 안내(무한 '분석 중…' 방지)
     setTimeout(function(){
-      if(running && sT.length===0){
+      // 프레임이 하나도 안 잡히면(=재생/디코딩 자체 실패) 멈춤. 얼굴 0이어도 프레임은 도니 여기 안 걸림 → 소리·설문 기반 결과로 진행.
+      if(running && frames===0){
         running=false; try{ video.pause(); }catch(e){}
         if(window.csLog) window.csLog("demo_analyze_stall", { videoWidth:video.videoWidth||0, readyState:video.readyState, paused:video.paused, errCode:(video.error&&video.error.code)||null, type:(curFile&&curFile.type)||"", size:(curFile&&curFile.size)||0 });
         $("loading").textContent="영상 분석이 시작되지 않았어요 😢 다른 영상(mp4)이나 ‘지금 바로 촬영’으로 다시 시도해 주세요.";
@@ -1396,9 +1452,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const head = a.concern_text
       ? `보호자님이 걱정하신 <b>“${escapeHtml(a.concern_text)}”</b> — 이 점을 중심으로 ${age}${food}아이의 이번 영상을 살펴봤어요.`
       : `${age}${food}아이의 이번 식사 영상을 살펴봤어요.`;
-    const body = (cur.quality==="low_motion")
-      ? `영상에서는 씹는 움직임이 뚜렷하게 관찰되지는 않았어요.`
-      : `영상에서는 총 <b>${cur.chew}회</b>(분당 약 ${cur.cpm}회) 씹는 움직임이 관찰됐어요.`;
+    let body;
+    if(cur.quality==="low_face")
+      body = `이번 영상은 얼굴·입이 충분히 보이지 않아(검출 ${cur.detect}%) 영상 기반 씹기 지표는 안내에서 제외하고, 알려주신 고민과 체크리스트를 중심으로 살펴봤어요.`;
+    else if(cur.quality==="audio")
+      body = `얼굴이 충분히 보이지 않았지만 <b>씹는 소리</b>로 총 <b>${cur.chew}회</b>(분당 약 ${cur.cpm}회)를 감지했어요(소리 기반, 참고용).`;
+    else if(cur.quality==="low_motion")
+      body = `영상에서는 씹는 움직임이 뚜렷하게 관찰되지는 않았어요.`;
+    else
+      body = `영상에서는 총 <b>${cur.chew}회</b>(분당 약 ${cur.cpm}회) 씹는 움직임이 관찰됐어요.`;
     const rep = {
       similar:" 평소에도 비슷하다고 답해 주셔서, 한 번의 식사에만 나타난 모습은 아닐 수 있어요.",
       worse:  " 이번엔 평소보다 못 먹었다고 답해 주셔서, 오늘의 컨디션이 영향을 줬을 수도 있어요.",
@@ -1416,6 +1478,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function pvObservations(cur){
     const obs = [];
     const balanced = (cur.leftPct>=40 && cur.leftPct<=60);
+    // 검출 낮음 — 영상 지표 대신 검출 낮음 안내 + 고민 기반(상세는 해석 섹션)
+    if(cur.quality==="low_face"){
+      obs.push({t:"watch", h:`검출률이 낮았어요 (${cur.detect}%)`, d:"영상에서 얼굴·입이 충분히 보이지 않아 씹기 횟수 같은 영상 지표는 이번엔 신뢰가 낮아 제외했어요. 아래 안내는 알려주신 고민과 체크리스트를 바탕으로 준비했어요."});
+      obs.push({t:"hold", h:"다음엔 이렇게 찍어요", d:"밝은 곳에서 폰을 아이 정면 약 30cm에 두고 입·턱이 가려지지 않게 20~30초 찍으면 영상 지표까지 함께 볼 수 있어요."});
+      obs.push({t:"hold", h:"원본 영상은 저장하지 않아요", d:"영상은 브라우저 안에서만 분석되고, 서버에는 움직임 지표만 남아요."});
+      return obs;
+    }
+    // 영상 약함 + 소리로 감지 — 소리 기반 횟수
+    if(cur.quality==="audio"){
+      obs.push({t:"watch", h:`씹는 소리로 약 ${cur.chew}회 감지 (분당 약 ${cur.cpm}회)`, d:"얼굴이 충분히 보이지 않아, 씹는 소리(리듬)로 씹기를 감지했어요. 소리 기반이라 참고용이에요."});
+      obs.push({t:"good", h:"씹는 소리가 규칙적으로 이어졌어요", d:"소리에서 씹는 리듬이 반복적으로 관찰됐어요."});
+      obs.push({t:"hold", h:"좌우 균형 등은 이번엔 제외했어요", d:"좌우 씹기 균형처럼 영상에서만 얻는 지표는 얼굴이 잘 안 보여 계산하지 않았어요."});
+      return obs;
+    }
     if(cur.quality==="low_motion"){
       obs.push({t:"watch", h:"씹는 움직임이 적게 관찰됐어요", d:"영상에서 씹기로 볼 수 있는 턱 움직임이 많지 않았어요. 실제 씹는 구간이 담겼는지 확인해 주세요."});
     } else {
@@ -1428,18 +1504,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function renderPreview(cur, answers, q){
     const pv = $("previewBlock"), gate = $("detailGate");
-    if(q==="low_face"){
-      $("pvTitle").textContent = "얼굴이 충분히 잡히지 않았어요";
-      pv.innerHTML =
-        `<div class="pv-summary">검출 <b>${cur.detect}%</b>. 정면이 아니어도 괜찮으니, 아이 얼굴·입이 화면 안에 <b>밝게</b> 보이게 다시 찍어 주세요.</div>`+
-        `<div class="pv-obs">`+
-          pvItem("hold","이렇게 찍어요","밝은 곳에서 폰을 아이 정면 약 30cm에 두고, 입·턱이 가려지지 않게 촬영해 주세요.")+
-          pvItem("hold","원본 영상은 저장하지 않아요","영상은 브라우저 안에서만 분석되고, 서버에는 움직임 지표만 남아요.")+
-        `</div>`;
-      gate.style.display = "none";
-      return;
-    }
-    $("pvTitle").textContent = "우리 아이 식사 분석 결과";
+    // 검출이 약해도(low_face/audio) 결과는 제공한다 — 재촬영 막다른 길 없이 고민/소리 기반으로 안내
+    $("pvTitle").textContent = (q==="low_face")
+      ? "우리 아이 식사 분석 결과 (검출률 낮음)"
+      : (q==="audio" ? "우리 아이 식사 분석 결과 (소리 기반)" : "우리 아이 식사 분석 결과");
     gate.style.display = "";
     const meta = [];
     if(answers){
@@ -1462,8 +1530,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function renderInterpret(cur, answers){
     const box = $("secInterpret");
     const lines = [];
+    const obsText =
+      cur.quality==="low_face" ? `얼굴·입이 충분히 보이지 않아(검출 ${cur.detect}%) 영상 기반 씹기 지표는 확인하기 어려웠어요`
+      : cur.quality==="audio" ? `얼굴이 잘 보이지 않아 씹는 <b>소리</b>로 약 ${cur.chew}회(분당 약 ${cur.cpm}회)를 감지했어요`
+      : cur.quality==="low_motion" ? "영상에서는 씹는 움직임이 뚜렷하지 않았어요"
+      : `영상에서는 총 ${cur.chew}회(분당 약 ${cur.cpm}회) 씹는 움직임이 관찰됐어요`;
     const lead = (answers && answers.concern_text)
-      ? `보호자님의 고민 <b>“${escapeHtml(answers.concern_text)}”</b>을 기준으로 보면, 영상에서는 ${cur.quality==="low_motion" ? "씹는 움직임이 뚜렷하지 않았어요" : `총 ${cur.chew}회(분당 약 ${cur.cpm}회) 씹는 움직임이 관찰됐어요`}.`
+      ? `보호자님의 고민 <b>“${escapeHtml(answers.concern_text)}”</b>을 기준으로 보면, ${obsText}.`
       : null;
     if(lead) lines.push(lead);
     if(answers){
@@ -1474,7 +1547,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if((cur.quality==="low_motion" || cur.cpm<25) && (answers.food_texture==="regular" || answers.food_texture==="soft_solid"))
         lines.push("일반·고형식을 드셨는데 씹는 움직임이 적게 관찰됐어요. 음식의 <b>크기나 단단함</b>이 지금 씹기 수준보다 조금 어려웠을 가능성도 함께 살펴볼 수 있어요.");
     }
-    if(!lines.length) lines.push("설문 응답이 많지 않아, 이번 결과는 영상에서 관찰된 <b>씹기 활동</b>을 중심으로 정리했어요.");
+    if(!lines.length){
+      if(cur.quality==="low_face") lines.push("설문 응답이 많지 않고 영상 검출도 낮아, 이번엔 <b>일반적인 관찰 포인트</b>를 중심으로 정리했어요. 다음엔 얼굴·입이 잘 보이게 찍어 주세요.");
+      else if(cur.quality==="audio") lines.push("설문 응답이 많지 않아, 이번 결과는 <b>씹는 소리</b>로 감지한 활동을 중심으로 정리했어요.");
+      else lines.push("설문 응답이 많지 않아, 이번 결과는 영상에서 관찰된 <b>씹기 활동</b>을 중심으로 정리했어요.");
+    }
     const coach = computeCoaching(cur, lastMetrics, answers);
     box.innerHTML = `<h4>가장 먼저 확인해볼 점</h4><ul><li>${coach.firstCheck}</li></ul>`+
       `<h4 style="margin-top:16px">그렇게 본 이유</h4><ul>${lines.map(l=>`<li>${l}</li>`).join("")}</ul>`+
