@@ -697,7 +697,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const vision = await FilesetResolver.forVisionTasks(WASM);
     const opts = { baseOptions:{modelAssetPath:MODEL, delegate:"GPU"}, runningMode:"VIDEO",
       numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:false,
-      minFaceDetectionConfidence:0.3, minFacePresenceConfidence:0.3, minTrackingConfidence:0.3 };
+      minFaceDetectionConfidence:0.25, minFacePresenceConfidence:0.25, minTrackingConfidence:0.25 };
     try{ fl = await FaceLandmarker.createFromOptions(vision, opts); }
     catch(e){ opts.baseOptions.delegate="CPU"; fl = await FaceLandmarker.createFromOptions(vision, opts); }
     $("loading").textContent = "";
@@ -871,7 +871,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const lr = sumL+sumR;
     const leftPct = lr>1e-6? Math.round(sumL/lr*100):50;
     let q="medium";
-    if(faces===0 || detect<35) q="low_face";
+    if(faces===0 || detect<20) q="low_face";
     else if(maxJaw<0.08 || (openCnt/Math.max(1,frames)*100)<2) q="low_motion";
     else if(detect>=65 && obs>=20) q="high";
 
@@ -909,7 +909,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const segMap = { start:"시작", middle:"중간", end:"끝", clip:"짧은 일부" };
     const seg = answers && answers.video_segment;
     if(seg && segMap[seg]) msg += ` 영상이 식사의 <b>${segMap[seg]}</b> 부분만 담고 있어 전체 식사량은 판단하지 않았어요.`;
-    if(cur.quality==="low_face") msg += ` 얼굴·입이 충분히 보이지 않아 결과가 제한적이에요. 밝은 곳에서 얼굴이 잘 보이게 다시 찍어 주세요.`;
+    if(cur.quality==="low_face") msg += ` 얼굴·입이 화면에 보인 구간이 적어 결과가 제한적이에요. <b>정면이 아니어도 괜찮아요</b> — 얼굴과 입이 화면에 담기도록 20~30초 정도 다시 찍어 주세요.`;
     else if(cur.quality==="low_motion") msg += ` 씹는 움직임이 적게 관찰됐어요(재촬영이 아니라 관찰 결과예요).`;
     v.className = "verdict on " + cls;
     v.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--brand-deep,#0a7d57);letter-spacing:.02em;margin-bottom:6px;">7 · 결과의 관찰 범위</div>`+
