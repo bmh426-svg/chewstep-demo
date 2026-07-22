@@ -565,6 +565,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="dsec" id="secConcern" style="display:none"></div>
     <!-- 2 · 이번 영상에서 관찰된 모습 (+전후 비교) -->
     <div class="resultcard" id="resultCard"></div>
+    <!-- 2.5 · 여러 기록이 쌓였을 때 변화 추이(계정 기준, DB) -->
+    <div class="dsec" id="secTrend" style="display:none"></div>
     <!-- 3·4 · 가장 먼저 확인해볼 점 / 그렇게 본 이유 -->
     <div class="dsec" id="secInterpret" style="display:none"></div>
     <!-- 5·6 · 다음 식사에서 바꿀 한 가지 / 관찰할 변화 -->
@@ -1184,6 +1186,47 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     rc.classList.add("on");
   }
 
+  // ── 변화 추이: 계정에 쌓인 여러 기록(demo_responses)으로 씹기(cpm) 트렌드를 그린다(로그인 사용자) ──
+  async function renderTrend(){
+    const box = $("secTrend"); if(!box) return;
+    box.style.display = "none";
+    let uid = null; try{ uid = await currentUserId(); }catch(e){}
+    if(!uid) return;
+    let rows = null;
+    try{
+      const res = await supabase.from("demo_responses")
+        .select("created_at, video_metrics, result")
+        .eq("user_id", uid).order("created_at", { ascending:true }).limit(60);
+      rows = res.data;
+    }catch(e){ return; }
+    if(!rows) return;
+    const pts = rows.map(function(r){
+      const m = r.video_metrics || {}; const o = (r.result && r.result.observation) || {};
+      let cpm = (m.chews_per_min!=null) ? m.chews_per_min : o.chews_per_min;
+      return (cpm!=null) ? +cpm : null;
+    }).filter(function(v){ return v!=null && v>0; });   // 씹기가 실제로 측정된 기록만
+    if(pts.length < 1){ return; }
+    if(pts.length < 2){
+      box.innerHTML = "<h4>변화 추이</h4><p style='font-size:14px;color:var(--ink-soft);line-height:1.6'>아직 비교할 기록이 적어요(현재 <b>"+pts.length+"회</b>). 같은 아이를 같은 조건에서 한 번 더 분석하면, 이곳에 <b>씹기 변화 추이</b>가 그려져요.</p>";
+      box.style.display = ""; return;
+    }
+    const n = pts.length, mn = Math.min.apply(null, pts), mx = Math.max.apply(null, pts);
+    const W = 300, H = 68, pad = 8;
+    const X = function(i){ return pad + (n===1 ? 0 : (i/(n-1))*(W-2*pad)); };
+    const Y = function(v){ return (mx===mn) ? H/2 : (H-pad) - ((v-mn)/(mx-mn))*(H-2*pad); };
+    let d = "", dots = "";
+    pts.forEach(function(v,i){ d += (i===0?"M":"L") + X(i).toFixed(1) + "," + Y(v).toFixed(1) + " ";
+      dots += "<circle cx='"+X(i).toFixed(1)+"' cy='"+Y(v).toFixed(1)+"' r='2.6' fill='"+(i===n-1?"#0a7d57":"#9fc9b8")+"'/>"; });
+    const first = pts[0], last = pts[n-1], delta = first>0 ? Math.round((last-first)/first*100) : 0;
+    const dir = delta>2 ? "↑ 늘었어요" : (delta<-2 ? "↓ 줄었어요" : "= 비슷해요");
+    box.innerHTML = "<h4>변화 추이 · 씹기 활동(분당)</h4>"+
+      "<div style='overflow-x:auto'><svg width='"+W+"' height='"+H+"' viewBox='0 0 "+W+" "+H+"' style='max-width:100%;height:auto'>"+
+        "<path d='"+d.trim()+"' fill='none' stroke='#0e9f6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>"+dots+"</svg></div>"+
+      "<p style='font-size:13.5px;color:var(--ink-2);margin-top:6px'>총 <b>"+n+"회</b> 기록 · 첫 기록 <b>"+first+"</b> → 최근 <b>"+last+"</b> ("+(delta>=0?"+":"")+delta+"% "+dir+")</p>"+
+      "<p style='font-size:12px;color:var(--ink-soft);margin-top:4px'>같은 계정의 지난 기록과 비교한 변화예요. 다른 아이와 비교하거나 진단하지 않아요.</p>";
+    box.style.display = "";
+  }
+
   // 업로드 영상의 오디오 트랙만 오프라인으로 디코딩→분석해 '씹는 소리' 횟수를 센다(fileAudioChew).
   // 영상 프레임 루프(MediaPipe)와 독립 → 메인스레드 부하 무관·결정적. iOS도 decodeAudioData 지원.
   async function analyzeFileAudio(file){
@@ -1676,8 +1719,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     renderConsult();                                 // 8 안전 안내
     showScreen("screenResult");
     // 결과 확정 즉시 저장(로그인 상태 → user_id 포함). 이미 저장됐으면 소유권만 연결.
-    if(!lastRowId){ saveResult(lastCur, lastMetrics, answers).catch(function(){}); }
-    else { (async()=>{ try{ const uid=await currentUserId(); if(uid) await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); }catch(e){} })(); }
+    // 저장이 끝난 뒤 변화 추이(계정 누적 기록)를 그려 방금 기록까지 포함시킨다.
+    const afterSave = (!lastRowId)
+      ? saveResult(lastCur, lastMetrics, answers)
+      : (async()=>{ try{ const uid=await currentUserId(); if(uid) await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); }catch(e){} })();
+    Promise.resolve(afterSave).catch(function(){}).then(function(){ renderTrend().catch(function(){}); });
     if(window.csLog) window.csLog("demo_detail_view", {});
   }
   // 설문 완료 → 업로드 단계로(분석 후 결과에서 이 답변을 사용)
