@@ -63,6 +63,9 @@
   <!-- 콘솔 -->
   <div id="console" class="hide">
     <div class="note">📡 아래 표는 <b>운영 Supabase에서 실시간 조회</b>한 데이터입니다. RLS 상 슈퍼관리자만 전 범위를 봅니다. ([DEMO] 표시 = 샘플)</div>
+    <h2 style="font-size:16px;margin:18px 0 10px;color:#0b0d10;font-weight:800;">운영 현황 <span style="font-size:11.5px;font-weight:600;color:#8a929c;">· 실집계와 ‘계측 대기’ 항목을 구분해 표시(정직명명)</span></h2>
+    <div id="ops" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px;">불러오는 중…</div>
+    <h2 style="font-size:16px;margin:18px 0 10px;color:#0b0d10;font-weight:800;">데이터 테이블</h2>
     <div class="kpis" id="kpis"></div>
     <div id="sections"></div>
   </div>
@@ -119,7 +122,52 @@
     return `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
 
+  function opsCard(title,ic,val,note,tone){
+    const c={ok:"#0a7d57",warn:"#b7791f",muted:"#8a929c"}[tone]||"#0b0d10";
+    return `<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:15px 17px;">`
+      +`<div style="font-size:12px;color:#5b636e;font-weight:700;">${ic} ${esc(title)}</div>`
+      +`<div style="font-size:23px;font-weight:800;margin-top:6px;color:${c};">${esc(val)}</div>`
+      +`<div style="font-size:11.5px;color:#8a929c;margin-top:4px;line-height:1.45;">${esc(note)}</div></div>`;
+  }
+  async function loadOps(){
+    const el=document.getElementById("ops"); if(!el) return;
+    const dk=d=>new Date(d).toISOString().slice(0,10); const today=new Date(); const tk=dk(today);
+    const cards=[];
+    // 1) 일별 사용자 (activity_logs)
+    try{ const {data}=await db.from("activity_logs").select("actor_profile_id,created_at").limit(2000); const r=data||[];
+      const tu=new Set(r.filter(x=>dk(x.created_at)===tk).map(x=>x.actor_profile_id)).size;
+      const wu=new Set(r.filter(x=>(today-new Date(x.created_at))/86400000<=7).map(x=>x.actor_profile_id)).size;
+      cards.push(opsCard("일별 사용자","👥",tu+"명","오늘 활동 · 최근 7일 "+wu+"명","ok"));
+    }catch(e){ cards.push(opsCard("일별 사용자","👥","—","조회 오류","warn")); }
+    // 2) 업로드 수 (media_assets)
+    try{ const {data}=await db.from("media_assets").select("id,created_at").limit(5000); const r=data||[];
+      cards.push(opsCard("업로드 수","🎞️",r.length+"건","오늘 "+r.filter(x=>dk(x.created_at)===tk).length+"건","ok"));
+    }catch(e){ cards.push(opsCard("업로드 수","🎞️","—","조회 오류","warn")); }
+    // 3) 분석 성공률 (analysis_jobs)
+    try{ const {data}=await db.from("analysis_jobs").select("status").limit(5000); const r=data||[];
+      if(!r.length) cards.push(opsCard("분석 성공률","🧠","집계 대기","분석 실행 데이터 없음(파일럿 후 집계)","muted"));
+      else { const ok=r.filter(x=>/succe|done|complete/i.test(x.status||"")).length;
+        cards.push(opsCard("분석 성공률","🧠",Math.round(ok/r.length*100)+"%",ok+"/"+r.length+" 성공","ok")); }
+    }catch(e){ cards.push(opsCard("분석 성공률","🧠","—","조회 오류","warn")); }
+    // 4) 재촬영률 (meal_sessions)
+    try{ const {data}=await db.from("meal_sessions").select("status").limit(5000); const r=data||[];
+      if(!r.length) cards.push(opsCard("재촬영률","🔁","집계 대기","세션 데이터 없음","muted"));
+      else { const re=r.filter(x=>/retake|reshoot|low|재촬영/i.test(x.status||"")).length;
+        cards.push(opsCard("재촬영률","🔁",(re?Math.round(re/r.length*100):0)+"%","세션 "+r.length+"건"+(re?"":" · 재촬영 태그 계측 대기"),re?"ok":"muted")); }
+    }catch(e){ cards.push(opsCard("재촬영률","🔁","—","조회 오류","warn")); }
+    // 5) 만족도 (미계측)
+    cards.push(opsCard("만족도","⭐","계측 예정","리포트 피드백(report_deliveries/후기) 수집 연동 필요","muted"));
+    // 6) 에러 모니터링
+    try{ const {data}=await db.from("activity_logs").select("action").ilike("action","%error%").limit(500); const n=(data||[]).length;
+      cards.push(opsCard("에러 모니터링","🚨",n+"건",n?"activity_logs 에러 액션":"기록된 에러 없음 · 상세 에러 로깅 연동 권장","muted"));
+    }catch(e){ cards.push(opsCard("에러 모니터링","🚨","미계측","에러 로깅 파이프라인 필요","warn")); }
+    // 7) 문의 답변 (채널)
+    cards.push(opsCard("문의 답변","💬","채널 안내","B2B=카카오 상담 채널 · B2C 문의는 관리자(/admin) 콘솔","muted"));
+    el.innerHTML=cards.join("");
+  }
+
   async function loadAll(){
+    loadOps();
     const secEl = document.getElementById("sections"); secEl.innerHTML = "불러오는 중…";
     const kpi = {}; let html = "";
     for(const s of SECTIONS){
