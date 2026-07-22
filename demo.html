@@ -542,34 +542,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </form>
   </section>
 
-  <!-- ===== 화면 4 · 결과 미리보기 (로그인 전 공개) ===== -->
+  <!-- ===== 화면 4 · 결과 (기본 + 상세 한 번에) ===== -->
   <section class="screen" id="screenResult">
     <span class="step-eyebrow">STEP 3 / 3 · 결과</span>
     <h1 id="pvTitle">우리 아이 식사 분석 결과</h1>
     <div id="previewBlock"></div>
 
-    <!-- 상담 이메일(선택): 결과 보고 전문가 상담을 원하면 -->
-    <div class="pv-consult" id="demoConsultBlock">
-      <div class="pv-consult-q">이 결과에 대해 <b>전문가 상담</b>을 받고 싶으세요?</div>
-      <p class="pv-consult-sub">이메일을 남겨주시면 작성하신 고민과 함께 확인해 답변드려요. (선택)</p>
-      <form id="demoConsultForm" novalidate>
-        <input class="pv-consult-inp" type="email" id="demoConsultEmail" placeholder="답변 받을 이메일 주소" autocomplete="email"/>
-        <button type="submit" class="btn-primary" id="demoConsultSend">상담 신청하기</button>
-        <div class="pv-consult-out" id="demoConsultOut" role="status" aria-live="polite"></div>
-      </form>
-    </div>
-
-    <!-- 상세 결과는 로그인 후 -->
-    <div class="detail-gate" id="detailGate">
-      <button class="btn-primary" id="toDetail">상세 분석과 맞춤 가이드 확인하기 →</button>
-      <p class="gate-note">분석 결과를 저장하고 다음 식사 영상과 비교하려면 로그인이 필요해요.</p>
-    </div>
-    <button class="btn-ghost" id="againPreview" style="margin-top:16px;">다른 영상 분석</button>
-  </section>
-
-  <!-- ===== 화면 5 · 상세 결과 (로그인 후) ===== -->
-  <section class="screen" id="screenDetail">
-    <span class="step-eyebrow">상세 분석 · 맞춤 가이드</span>
+    <!-- 상세 분석 (기본 분석 아래에 바로 이어서 표시) -->
+    <div class="detail-divider" style="margin:24px 0 4px;font-size:13px;font-weight:800;color:var(--brand-deep,#0a7d57);letter-spacing:.02em;">상세 분석 · 맞춤 가이드</div>
     <!-- (안전) §5 · 신호 선택 시 최상단 덮어쓰기 -->
     <div id="secSafetyTop"></div>
     <!-- 1 · 보호자 고민 요약 -->
@@ -615,6 +595,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button type="button" class="btn-primary" id="fbSend">의견 보내기</button>
         <span class="fb-thanks" id="fbThanks" style="display:none">고마워요! 의견이 저장됐어요 🙌</span>
       </div>
+    </div>
+
+    <!-- 상담하기 (맨 아래) : 결과 보고 전문가 상담을 원하면 -->
+    <div class="pv-consult" id="demoConsultBlock">
+      <div class="pv-consult-q">이 결과에 대해 <b>전문가 상담</b>을 받고 싶으세요?</div>
+      <p class="pv-consult-sub">이메일을 남겨주시면 작성하신 고민과 함께 확인해 답변드려요. (선택)</p>
+      <form id="demoConsultForm" novalidate>
+        <input class="pv-consult-inp" type="email" id="demoConsultEmail" placeholder="답변 받을 이메일 주소" autocomplete="email"/>
+        <button type="submit" class="btn-primary" id="demoConsultSend">상담하기</button>
+        <div class="pv-consult-out" id="demoConsultOut" role="status" aria-live="polite"></div>
+      </form>
     </div>
 
     <button class="again" id="again">🔄 다른 영상 분석</button>
@@ -1506,12 +1497,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return obs;
   }
   function renderPreview(cur, answers, q){
-    const pv = $("previewBlock"), gate = $("detailGate");
+    const pv = $("previewBlock");
     // 검출이 약해도(low_face/audio) 결과는 제공한다 — 재촬영 막다른 길 없이 고민/소리 기반으로 안내
     $("pvTitle").textContent = (q==="low_face")
       ? "우리 아이 식사 분석 결과 (검출률 낮음)"
       : (q==="audio" ? "우리 아이 식사 분석 결과 (소리 기반)" : "우리 아이 식사 분석 결과");
-    gate.style.display = "";
     const meta = [];
     if(answers){
       if(answers.child_age_months!=null) meta.push(`월령 ${answers.child_age_months}개월`);
@@ -1615,29 +1605,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     renderPreview(lastCur, answers, lastCur.quality);
     savePrev(lastCur);
     if(window.csLog) window.csLog("demo_survey_done", answers ? Object.assign({skipped:false}, answers) : {skipped:true});
+    // 상세 분석까지 한 번에 렌더(로그인은 데모 시작 시 이미 완료 → 별도 게이트 불필요)
+    renderSafetyTop(lastCur, answers);               // 안전(최상단)
+    renderConcern(answers);                          // 1 고민
+    renderCard(lastCur, lastPrev, lastCur.quality);  // 2 관찰된 모습
+    renderInterpret(lastCur, answers);               // 3·4 먼저확인·이유
+    renderActions(lastCur, answers);                 // 5·6 행동·관찰할 변화
+    renderConfidence(lastCur, lastMetrics, answers); // 7 관찰 범위
+    renderConsult();                                 // 8 안전 안내
     showScreen("screenResult");
-    // 로그인 없이도 분석 결과를 익명 저장 → 관리자에 즉시 반영(상세는 로그인 후 소유권 연결)
+    // 결과 확정 즉시 저장(로그인 상태 → user_id 포함). 이미 저장됐으면 소유권만 연결.
     if(!lastRowId){ saveResult(lastCur, lastMetrics, answers).catch(function(){}); }
+    else { (async()=>{ try{ const uid=await currentUserId(); if(uid) await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); }catch(e){} })(); }
+    if(window.csLog) window.csLog("demo_detail_view", {});
   }
   $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); finalizeResult(collectAnswers()); });
   $("surveySkip").addEventListener("click", ()=>{ finalizeResult(null); });
-
-  // '상세 분석과 맞춤 가이드 확인하기' → 로그인 필수 → 상세 결과 표시 + 저장(로그인 상태로 저장해 후기 UPDATE 가능)
-  async function goDetail(){
-    renderSafetyTop(lastCur, lastAnswers);   // 안전(최상단)
-    renderConcern(lastAnswers);              // 1 고민
-    renderCard(lastCur, lastPrev, lastCur.quality);  // 2 관찰된 모습
-    renderInterpret(lastCur, lastAnswers);   // 3·4 먼저확인·이유
-    renderActions(lastCur, lastAnswers);     // 5·6 행동·관찰할 변화
-    renderConfidence(lastCur, lastMetrics, lastAnswers); // 7 관찰 범위
-    renderConsult();                         // 8 안전 안내
-    // 미리보기 단계에서 이미 익명 저장됐으면(lastRowId 존재) → 로그인 계정으로 소유권 연결(후기 UPDATE 가능하게)
-    if(!lastRowId){ try{ await saveResult(lastCur, lastMetrics, lastAnswers); }catch(e){} }
-    else { try{ const uid=await currentUserId(); if(uid){ await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); } }catch(e){} }
-    if(window.csLog) window.csLog("demo_detail_view", {});
-    showScreen("screenDetail");
-  }
-  $("toDetail").addEventListener("click", ()=>{ gateResult(goDetail); });
 
   // ── 결과 후기 저장(도움 정도 + 가장 도움된 부분 + 자유서술, 본인 행 UPDATE) ──
   async function saveFeedback(){
@@ -1700,7 +1683,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     showScreen("screenUpload");
   }
   $("again").addEventListener("click", resetAll);
-  $("againPreview").addEventListener("click", resetAll);
 </script>
 
 <!-- 방문 여정 기록(홈→데모 연결) — Supabase journey_events -->
