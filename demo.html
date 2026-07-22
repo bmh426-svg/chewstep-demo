@@ -380,7 +380,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- ===== 화면 2 · 분석 중 ===== -->
   <section class="screen" id="screenAnalyze">
-    <span class="step-eyebrow">STEP 1 / 3 · 영상 분석</span>
+    <span class="step-eyebrow">STEP 2 / 3 · 영상 분석</span>
     <h1>실시간으로 분석하고 있어요</h1>
     <p class="lede">얼굴 인식 지점과 턱 움직임 파형을 보면서 씹기를 세는 중이에요. 영상이 끝나면 다음 단계로 넘어가요.</p>
 
@@ -424,9 +424,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- ===== 화면 3 · 영상 정보(보호자 설문) ===== -->
   <section class="screen" id="screenSurvey">
-    <span class="step-eyebrow">STEP 2 / 3 · 영상 정보</span>
-    <h1>영상 속 식사 상황을 알려주세요</h1>
-    <p class="lede">정확한 분석을 위해 아래 질문에 답해 주세요. 신뢰도는 <b>영상 자체</b>를 기준으로 계산되고, 답변은 맥락을 보충해요.</p>
+    <span class="step-eyebrow">STEP 1 / 3 · 우리 아이 정보</span>
+    <h1>먼저 우리 아이 식사 상황을 알려주세요</h1>
+    <p class="lede">영상을 올리기 전에 아래 질문에 답해 주세요. 신뢰도는 <b>영상 자체</b>를 기준으로 계산되고, 이 답변은 결과 해석의 맥락을 보충해요.</p>
 
     <form class="survey" id="surveyForm">
       <div class="q">
@@ -535,8 +535,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="survey-actions">
-        <button type="submit" class="btn-primary" id="surveySubmit">결과 보기 →</button>
-        <button type="button" class="btn-ghost" id="surveySkip">건너뛰기</button>
+        <button type="submit" class="btn-primary" id="surveySubmit">다음 · 영상 올리기 →</button>
+        <button type="button" class="btn-ghost" id="surveySkip">설문 건너뛰고 영상 올리기</button>
       </div>
       <p class="survey-note">입력 정보는 결과 보충과 서비스 개선을 위해 안전하게 저장돼요. <b>원본 영상은 저장하지 않습니다.</b></p>
     </form>
@@ -892,9 +892,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     lastPrev = (q==="low_face"||q==="audio") ? null : loadPrev();
     if(window.csLog) window.csLog("demo_result", { cpm: cur.cpm, chew: cur.chew, detect: cur.detect, leftPct: cur.leftPct, quality: q, chewAudio: audioChew });
 
-    // ★ 검출률이 낮아도 재촬영 막다른 길로 보내지 않는다 — 모든 경우 설문(보호자 고민/체크리스트)으로 이어
-    //   결과에서 검출률이 낮음을 알리고, 그 정보를 바탕으로 안내(computeCoaching)를 도출한다.
-    goSurvey();
+    // 설문(월령/고민/체크리스트)은 업로드 전에 이미 받았으므로, 분석이 끝나면 곧장 결과로.
+    // 검출률이 낮아도 재촬영 막다른 길 없이, 그 정보를 바탕으로 안내(computeCoaching)를 도출한다.
+    finalizeResult(lastAnswers);
   }
 
   // ── 분석 신뢰도(영상 기준) 배너 — #verdict에 이유와 함께 표시 ──
@@ -1310,21 +1310,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // ── 브라우저 '뒤로가기' 제어 ──
-  // 데모 진입 후 분석/설문/결과에서 뒤로가기 → 허브로 바로 나가지 않고 '업로드 선택'으로 복귀.
-  // 업로드/인트로에서의 뒤로가기만 실제 이탈로 처리(데모 안에서 길을 잃지 않게).
+  // 흐름: 인트로 → 설문 → 업로드 → 분석 → 결과. 뒤로가기는 이 순서의 '한 단계 앞'으로 되돌리고,
+  // 인트로에서의 뒤로가기만 실제 이탈로 처리(데모 안에서 길을 잃지 않게).
   let csBackArmed = false;
   function armDemoBack(){ if(csBackArmed) return; csBackArmed = true; try{ history.pushState({csDemo:1}, ""); }catch(e){} }
   window.addEventListener("popstate", function(){
     if(!csBackArmed) return;
     const active = [].slice.call(document.querySelectorAll(".screen")).find(s=>s.classList.contains("active"));
     const id = active ? active.id : "screenIntro";
-    if(id==="screenResult" || id==="screenSurvey" || id==="screenAnalyze"){
+    let target = null;
+    if(id==="screenResult" || id==="screenAnalyze"){
       if(running){ running=false; try{ video.pause(); }catch(e){} }   // 분석 중이면 멈춤
-      showUploadPhase("choice"); showScreen("screenUpload");
+      showUploadPhase("choice"); target = "screenUpload";
+    } else if(id==="screenUpload"){ target = "screenSurvey"; }
+    else if(id==="screenSurvey"){ target = "screenIntro"; }
+    if(target){
+      showScreen(target);
       try{ history.pushState({csDemo:1}, ""); }catch(e){}             // 다음 뒤로가기 대비
     } else {
-      // 업로드/인트로 → 실제 이탈
-      csBackArmed = false; try{ history.back(); }catch(e){}
+      csBackArmed = false; try{ history.back(); }catch(e){}           // 인트로 → 실제 이탈
     }
   });
 
@@ -1403,15 +1407,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // 시작하기: submit이 아니라 click으로 처리(모듈 로드 전 네이티브 폼 제출 방지 — 로그인 게이트 레이스 차단)
   $("introStart").addEventListener("click", function(e){
     e.preventDefault();
-    // 간단 설문값을 뒤 '영상 정보' 설문에 미리 채워 중복 입력 방지
-    const a = parseInt($("introAge").value, 10);
-    if(!isNaN(a)) $("ageMonths").value = a;
-    const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
-    if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
-    // 데모 시작 전 로그인 필수 — 분석 기록이 보호자 본인 계정으로 남도록(익명·타계정 혼입 방지)
+    // 데모 시작 전 로그인 필수 → 통과하면 업로드 '전에' 월령/고민/체크리스트(설문)부터 받는다.
     gateResult(function(){
-      showUploadPhase("choice");
-      showScreen("screenUpload");
+      try{ $("surveyForm").reset(); }catch(e){}
+      // 인트로에서 고른 월령·고민을 설문에 미리 채움(중복 입력 방지)
+      const a = parseInt($("introAge").value, 10);
+      if(!isNaN(a)) $("ageMonths").value = a;
+      const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
+      if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
+      showScreen("screenSurvey");
       armDemoBack();   // 이후 브라우저 뒤로가기는 데모 안에서 단계 복귀
       try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
     });
@@ -1648,7 +1652,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     lastAnswers = answers;
     renderPreview(lastCur, answers, lastCur.quality);
     savePrev(lastCur);
-    if(window.csLog) window.csLog("demo_survey_done", answers ? Object.assign({skipped:false}, answers) : {skipped:true});
     // 상세 분석까지 한 번에 렌더(로그인은 데모 시작 시 이미 완료 → 별도 게이트 불필요)
     renderSafetyTop(lastCur, answers);               // 안전(최상단)
     renderConcern(answers);                          // 1 고민
@@ -1663,8 +1666,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     else { (async()=>{ try{ const uid=await currentUserId(); if(uid) await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); }catch(e){} })(); }
     if(window.csLog) window.csLog("demo_detail_view", {});
   }
-  $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); finalizeResult(collectAnswers()); });
-  $("surveySkip").addEventListener("click", ()=>{ finalizeResult(null); });
+  // 설문 완료 → 업로드 단계로(분석 후 결과에서 이 답변을 사용)
+  function goUpload(answers){
+    lastAnswers = answers;
+    if(window.csLog) window.csLog("demo_survey_done", answers ? Object.assign({skipped:false}, answers) : {skipped:true});
+    showUploadPhase("choice");
+    showScreen("screenUpload");
+    try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
+  }
+  $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); goUpload(collectAnswers()); });
+  $("surveySkip").addEventListener("click", ()=>{ goUpload(null); });
 
   // ── 결과 후기 저장(도움 정도 + 가장 도움된 부분 + 자유서술, 본인 행 UPDATE) ──
   async function saveFeedback(){
