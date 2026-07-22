@@ -279,6 +279,7 @@ async function boot(){
     $("loginWrap").style.display="none";
     $("app").classList.add("on");
     await loadAll();
+    setupLiveUpdates();   // 새 이벤트 실시간 반영 + 폴백 폴링
   } else {
     $("loginWrap").style.display="flex";
     $("app").classList.remove("on");
@@ -311,6 +312,41 @@ async function loadAll(){
   const { data:ad } = await supabase.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(500);
   AUDIT = ad||[];
   renderDash(); renderAnalyses(); renderFeedback(); renderUsers(); renderAudit(); renderInquiries();
+}
+
+/* ---------- 실시간 자동 갱신 ---------- */
+/* 새 분석(demo_responses)·문의(inquiries)·에러(journey_events)가 들어오면 바로 다시 로드.
+   Realtime을 우선 쓰고, 누락 대비 20초 폴백 폴링을 함께 돌린다. */
+let _liveTimer=null, _reloadT=null, _liveChan=null;
+function scheduleReload(){
+  clearTimeout(_reloadT);
+  _reloadT = setTimeout(()=>{
+    loadAll().then(()=>{ const act=document.querySelector(".tabs button.active"); if(act && act.dataset.tab==="errors") loadErrors(); }, ()=>{});
+  }, 800);
+}
+function setLiveBadge(on, label){
+  let b=document.getElementById("liveBadge");
+  if(!b){ b=document.createElement("span"); b.id="liveBadge"; b.style.cssText="margin-left:10px;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px"; const w=document.getElementById("whoami"); if(w&&w.parentNode) w.parentNode.insertBefore(b, w.nextSibling); }
+  b.textContent = on ? "● 실시간" : "○ 자동(20초)";
+  b.style.color = on ? "#0a7d57" : "#8a94a6";
+  b.style.background = on ? "#e8f7f0" : "#eef1f5";
+  b.title = label||"";
+}
+function setupLiveUpdates(){
+  try{
+    if(_liveChan){ supabase.removeChannel(_liveChan); _liveChan=null; }
+    _liveChan = supabase.channel("admin-live")
+      .on("postgres_changes", { event:"*", schema:"public", table:"demo_responses" }, scheduleReload)
+      .on("postgres_changes", { event:"*", schema:"public", table:"inquiries" }, scheduleReload)
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"journey_events" }, (p)=>{
+        const et = (p && p.new && p.new.event_type) || "";
+        if(/error|fail|reject|stall/i.test(et)) scheduleReload();   // 에러성 이벤트만(page_view 등 잦은 로그 제외)
+      })
+      .subscribe((status)=>{ setLiveBadge(status==="SUBSCRIBED", status); });
+  }catch(e){ console.warn("realtime setup", e); setLiveBadge(false,"폴링"); }
+  // 폴백 폴링(실시간 미동작/누락 대비)
+  clearInterval(_liveTimer);
+  _liveTimer = setInterval(()=>{ if(document.visibilityState==="visible") scheduleReload(); }, 20000);
 }
 
 /* ---------- 대시보드 ---------- */

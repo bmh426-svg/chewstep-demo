@@ -303,9 +303,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
       </div>
       <div class="survey-actions">
-        <button type="submit" class="btn-primary" id="introStart">시작하기 · 영상 올리러 가기 →</button>
+        <button type="submit" class="btn-primary" id="introStart">로그인하고 시작하기 · 영상 올리러 가기 →</button>
       </div>
-      <p class="survey-note">입력 정보는 결과 보충과 서비스 개선에만 안전하게 쓰여요. <b>원본 영상은 저장하지 않습니다.</b></p>
+      <p class="survey-note">시작하려면 <b>로그인이 필요해요</b> — 분석 기록을 보호자님 계정에 안전하게 보관하고, 다음 기록과 비교해 드리기 위해서예요. 입력 정보는 결과 보충·서비스 개선에만 쓰이고 <b>원본 영상은 저장하지 않습니다.</b></p>
     </form>
   </section>
 
@@ -1378,9 +1378,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!isNaN(a)) $("ageMonths").value = a;
     const c = $("introForm").querySelector('input[name="intro_concern"]:checked');
     if(c && !($("concernText").value || "").trim()) $("concernText").value = c.value;
-    showUploadPhase("choice");
-    showScreen("screenUpload");
-    try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
+    // 데모 시작 전 로그인 필수 — 분석 기록이 보호자 본인 계정으로 남도록(익명·타계정 혼입 방지)
+    gateResult(function(){
+      showUploadPhase("choice");
+      showScreen("screenUpload");
+      try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
+    });
   });
 
   // 드래그앤드롭
@@ -1613,6 +1616,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     savePrev(lastCur);
     if(window.csLog) window.csLog("demo_survey_done", answers ? Object.assign({skipped:false}, answers) : {skipped:true});
     showScreen("screenResult");
+    // 로그인 없이도 분석 결과를 익명 저장 → 관리자에 즉시 반영(상세는 로그인 후 소유권 연결)
+    if(!lastRowId){ saveResult(lastCur, lastMetrics, answers).catch(function(){}); }
   }
   $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); finalizeResult(collectAnswers()); });
   $("surveySkip").addEventListener("click", ()=>{ finalizeResult(null); });
@@ -1626,7 +1631,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     renderActions(lastCur, lastAnswers);     // 5·6 행동·관찰할 변화
     renderConfidence(lastCur, lastMetrics, lastAnswers); // 7 관찰 범위
     renderConsult();                         // 8 안전 안내
+    // 미리보기 단계에서 이미 익명 저장됐으면(lastRowId 존재) → 로그인 계정으로 소유권 연결(후기 UPDATE 가능하게)
     if(!lastRowId){ try{ await saveResult(lastCur, lastMetrics, lastAnswers); }catch(e){} }
+    else { try{ const uid=await currentUserId(); if(uid){ await supabase.from("demo_responses").update({ user_id: uid }).eq("id", lastRowId); } }catch(e){} }
     if(window.csLog) window.csLog("demo_detail_view", {});
     showScreen("screenDetail");
   }
