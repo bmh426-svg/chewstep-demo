@@ -25,6 +25,8 @@ function apply(session){
   // 2) 헤더의 '로그인' 링크(배너 제외): B2C 모달로 열고, 로그인 상태면 '로그아웃'으로 전환
   arr(document.querySelectorAll('a[href="/login.html"], a[href="./login.html"], a[href="login.html"], a[href="#login"], a[href="#logout"]')).forEach((a)=>{
     if(a.classList.contains("login-banner")) return;
+    if(a.classList.contains("path")) return;      // 허브의 기관용 '카드'는 건드리지 않음
+    if(a.querySelector("*")) return;              // 자식 요소가 있는 링크(카드 등)는 제외 — 순수 텍스트 링크만
     if(authed){
       a.textContent = "로그아웃"; a.setAttribute("href", "#logout");
       if(a.__csMode !== "out"){ a.__csMode = "out"; }
