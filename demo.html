@@ -1321,15 +1321,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     start(f);
   }
 
-  $("file").addEventListener("change", function(){
-    const f=this.files && this.files[0]; if(f) handleFile(f);
-  });
+  // 파일 선택 공통 처리: iOS 사진보관함이 파일을 못 넘기는 경우(iCloud 원본 미다운로드·
+  // HEVC 내보내기 실패·0바이트)를 명확히 안내하고 진단 로그를 남긴다.
+  function onFilePicked(input, src){
+    const files = input.files;
+    const n = files ? files.length : 0;
+    const f = n ? files[0] : null;
+    if(window.csLog) window.csLog("demo_file_change", { src:src, count:n, type:(f&&f.type)||"", size:(f&&f.size)||0, name:((f&&f.name)||"").slice(0,80) });
+    if(!f || !f.size){
+      $("loading").textContent = "영상을 불러오지 못했어요 😢 아이폰 ‘사진’ 앱에서 iCloud에만 있는 영상이면 먼저 다운로드하거나, 다른 영상(또는 ‘지금 바로 촬영’)으로 다시 시도해 주세요.";
+      showUploadPhase("prev");
+      try{ input.value=""; }catch(e){}
+      return;
+    }
+    handleFile(f);
+    try{ input.value=""; }catch(e){}   // 같은 파일을 다시 고를 수 있게 초기화(File 참조는 이미 전달됨)
+  }
+  $("file").addEventListener("change", function(){ onFilePicked(this, "prev"); });
   // 지금 바로 촬영하기 → 라이브 카메라 우선(불가 시 파일선택 폴백)
   $("dropCapture").addEventListener("click", onCaptureClick);
   // 파일선택 폴백 경로(모바일 카메라 캡처 또는 데스크톱 파일 선택)
-  $("fileCapture").addEventListener("change", function(){
-    const f=this.files && this.files[0]; if(f) handleFile(f);
-  });
+  $("fileCapture").addEventListener("change", function(){ onFilePicked(this, "capture"); });
   // 라이브 촬영 종료 → 지표 확정 후 결과/설문 단계
   $("liveStop").addEventListener("click", function(){ finish(); });
   // 전/후면 카메라 선택 → 라이브 카메라 방향 + 파일 폴백 capture 힌트
