@@ -303,7 +303,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
       </div>
       <div class="survey-actions">
-        <button type="submit" class="btn-primary" id="introStart">로그인하고 시작하기 · 영상 올리러 가기 →</button>
+        <button type="button" class="btn-primary" id="introStart">로그인하고 시작하기 · 영상 올리러 가기 →</button>
       </div>
       <p class="survey-note">시작하려면 <b>로그인이 필요해요</b> — 분석 기록을 보호자님 계정에 안전하게 보관하고, 다음 기록과 비교해 드리기 위해서예요. 입력 정보는 결과 보충·서비스 개선에만 쓰이고 <b>원본 영상은 저장하지 않습니다.</b></p>
     </form>
@@ -1309,6 +1309,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     try{ window.scrollTo({top:0, behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); }
   }
 
+  // ── 브라우저 '뒤로가기' 제어 ──
+  // 데모 진입 후 분석/설문/결과에서 뒤로가기 → 허브로 바로 나가지 않고 '업로드 선택'으로 복귀.
+  // 업로드/인트로에서의 뒤로가기만 실제 이탈로 처리(데모 안에서 길을 잃지 않게).
+  let csBackArmed = false;
+  function armDemoBack(){ if(csBackArmed) return; csBackArmed = true; try{ history.pushState({csDemo:1}, ""); }catch(e){} }
+  window.addEventListener("popstate", function(){
+    if(!csBackArmed) return;
+    const active = [].slice.call(document.querySelectorAll(".screen")).find(s=>s.classList.contains("active"));
+    const id = active ? active.id : "screenIntro";
+    if(id==="screenResult" || id==="screenSurvey" || id==="screenAnalyze"){
+      if(running){ running=false; try{ video.pause(); }catch(e){} }   // 분석 중이면 멈춤
+      showUploadPhase("choice"); showScreen("screenUpload");
+      try{ history.pushState({csDemo:1}, ""); }catch(e){}             // 다음 뒤로가기 대비
+    } else {
+      // 업로드/인트로 → 실제 이탈
+      csBackArmed = false; try{ history.back(); }catch(e){}
+    }
+  });
+
   // ── 파일 받기(클릭 선택 / 드래그앤드롭 공통) ──
   function isVideoFile(f){
     if(!f) return false;
@@ -1381,7 +1400,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
 
   // ── 인트로(안내+간단설문) → 업로드 화면 ──
-  $("introForm").addEventListener("submit", function(e){
+  // 시작하기: submit이 아니라 click으로 처리(모듈 로드 전 네이티브 폼 제출 방지 — 로그인 게이트 레이스 차단)
+  $("introStart").addEventListener("click", function(e){
     e.preventDefault();
     // 간단 설문값을 뒤 '영상 정보' 설문에 미리 채워 중복 입력 방지
     const a = parseInt($("introAge").value, 10);
@@ -1392,6 +1412,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     gateResult(function(){
       showUploadPhase("choice");
       showScreen("screenUpload");
+      armDemoBack();   // 이후 브라우저 뒤로가기는 데모 안에서 단계 복귀
       try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
     });
   });
