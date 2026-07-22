@@ -27,6 +27,18 @@ export async function logEvent(eventType, meta) {
   }
 }
 
+// 전역 JS 에러 자동 기록(홈페이지 등 클라이언트 오류) → journey_events(event_type='client_error')
+if (typeof window !== "undefined" && !window.__csErrHook) {
+  window.__csErrHook = true;
+  window.addEventListener("error", (e) => {
+    try { logEvent("client_error", { message: String(e.message || "").slice(0, 300), src: String(e.filename || "").slice(0, 200), line: e.lineno || 0 }); } catch (_) {}
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const r = e && e.reason;
+    try { logEvent("client_error", { message: ("promise: " + String((r && r.message) || r || "")).slice(0, 300) }); } catch (_) {}
+  });
+}
+
 // 페이지에 붙이면 page_view + 섹션 노출 + 클릭 + 이탈을 자동 기록
 export function initJourneyAutoTrack() {
   logEvent("page_view", { title: document.title });

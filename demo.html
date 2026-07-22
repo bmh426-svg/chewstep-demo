@@ -1186,6 +1186,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const iv=setInterval(()=>{ if(!running||video.ended){clearInterval(iv); if(video.ended)finish(); return;} sample(video.currentTime); },80);
     }
     video.onended = finish;
+    // 워치독: 12초 내 프레임이 하나도 안 잡히면 '멈춤'으로 판단 → 실패 기록 + 안내(무한 '분석 중…' 방지)
+    setTimeout(function(){
+      if(running && sT.length===0){
+        running=false; try{ video.pause(); }catch(e){}
+        if(window.csLog) window.csLog("demo_analyze_stall", { videoWidth:video.videoWidth||0, readyState:video.readyState, paused:video.paused, errCode:(video.error&&video.error.code)||null, type:(curFile&&curFile.type)||"", size:(curFile&&curFile.size)||0 });
+        $("loading").textContent="영상 분석이 시작되지 않았어요 😢 다른 영상(mp4)이나 ‘지금 바로 촬영’으로 다시 시도해 주세요.";
+        showUploadPhase("choice"); showScreen("screenUpload");
+      }
+    }, 12000);
   }
 
   // ── 라이브 카메라 촬영(웹캠·모바일 공통) + 오디오 퓨전 ──
