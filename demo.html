@@ -262,6 +262,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <p style="margin:0;"><a href="http://localhost:8000/demo.html" style="color:#0a7d57;font-weight:700;">→ http://localhost:8000/demo.html 에서 이용</a></p>
   </div>
 </div>
+
+<!-- 로그인 상태 표시(로그인 시 '이름 · 로그아웃', 로그아웃 시 '로그인') — mountAuthUI가 자동으로 채움 -->
+<div id="authArea" class="demo-autharea"></div>
+<style>
+  .demo-autharea{ position:fixed; top:10px; right:12px; z-index:60; }
+  .demo-autharea:empty{ display:none; }
+  /* 데모 화면 상단(스텝 라벨)과 겹치지 않게 살짝 여백 */
+  .screen{ position:relative; }
+</style>
 <script>
   // 일반(비모듈) 스크립트라 file:// 에서도 반드시 실행됨 — file:// 로 연 경우에만 안내.
   if (location.protocol === "file:") {
