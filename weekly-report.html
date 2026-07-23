@@ -23,13 +23,16 @@
   ============================================================================
 -->
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
   :root{
-    --bg:#f6f8f7; --surface:#fff; --ink:#10201a; --ink-soft:#5a6b64; --ink-faint:#8a9a93;
-    --line:#e4eae7; --grid:#eef2f0;
-    --brand:#0e9f6e; --brand-deep:#0a7d57; --brand-tint:#e7f5ee;
-    --good:#0e9f6e; --warn:#d99a2b; --bad:#d9534f;
-    --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --bg:#fbf6ee; --surface:#fff; --ink:#3f382f; --ink-soft:#8f8478; --ink-faint:#a99e91;
+    --line:#ece2d3; --grid:#f0e9dc;
+    --brand:#829a6d; --brand-deep:#5f7a4f; --brand-tint:#edf1e4;
+    --good:#829a6d; --warn:#d99a2b; --bad:#d9534f;
+    --sans:'Gowun Dodum',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+    --head:'Jua','Gowun Dodum',sans-serif;
   }
+  h1,h2{font-family:var(--head);letter-spacing:0;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;word-break:keep-all;}
   .wrap{max-width:480px;margin:0 auto;padding:0 16px 60px;}
@@ -71,7 +74,7 @@
   .stat.wide .v{font-size:19px;}
 
   /* ── 영상(하이라이트) ── */
-  .clip{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(150deg,#12241d,#0a7d57);aspect-ratio:9/12;display:grid;place-items:center;}
+  .clip{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(150deg,#12241d,#5f7a4f);aspect-ratio:9/12;display:grid;place-items:center;}
   .clip .play{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;}
   .clip .play::before{content:"";border-left:16px solid var(--brand-deep);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px;}
   .clip .dur{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;}

@@ -7,7 +7,7 @@
 <title>Chewstep Admin</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A0%EF%B8%8F%3C/text%3E%3C/svg%3E" />
 <style>
-  :root{--brand:#0e9f6e;--brand-deep:#0a7d57;--tint:#e9f7f1;--ink:#0b0d10;--soft:#5b636e;--line:#e7e9ee;--bg:#f4f6f8;--warn:#b7791f;--danger:#d9534f;}
+  :root{--brand:#829a6d;--brand-deep:#5f7a4f;--tint:#edf1e4;--ink:#0b0d10;--soft:#5b636e;--line:#e7e9ee;--bg:#f4f6f8;--warn:#b7791f;--danger:#d9534f;}
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;}
   a{color:var(--brand-deep);}
@@ -340,7 +340,7 @@ function setLiveBadge(on, label){
   let b=document.getElementById("liveBadge");
   if(!b){ b=document.createElement("span"); b.id="liveBadge"; b.style.cssText="margin-left:10px;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px"; const w=document.getElementById("whoami"); if(w&&w.parentNode) w.parentNode.insertBefore(b, w.nextSibling); }
   b.textContent = on ? "● 실시간" : "○ 자동(20초)";
-  b.style.color = on ? "#0a7d57" : "#8a94a6";
+  b.style.color = on ? "#5f7a4f" : "#8a94a6";
   b.style.background = on ? "#e8f7f0" : "#eef1f5";
   b.title = label||"";
 }

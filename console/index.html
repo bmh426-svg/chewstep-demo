@@ -8,8 +8,8 @@
 <style>
   :root{
     --ink:#0b0d10; --ink-2:#3a4048; --ink-soft:#6b7280; --line:#e7e9ee; --bg:#ffffff; --panel:#ffffff;
-    --brand:#0e9f6e; --brand-deep:#0a7d57; --brand-tint:#e9f7f1;
-    --amber:#b7791f; --amber-tint:#fdf6e7; --future:#5b6bd8; --future-tint:#eef0fc;
+    --brand:#829a6d; --brand-deep:#5f7a4f; --brand-tint:#edf1e4;
+    --amber:#b7791f; --amber-tint:#fdf6e7; --future:#c0855b; --future-tint:#f6e9dd;
     --radius:16px; --shadow-md:0 10px 30px rgba(16,24,40,.08),0 2px 8px rgba(16,24,40,.05);
     --font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI","Malgun Gothic","Noto Sans KR",Roboto,sans-serif;
   }
@@ -123,7 +123,7 @@
   }
 
   function opsCard(title,ic,val,note,tone){
-    const c={ok:"#0a7d57",warn:"#b7791f",muted:"#8a929c"}[tone]||"#0b0d10";
+    const c={ok:"#5f7a4f",warn:"#b7791f",muted:"#8a929c"}[tone]||"#0b0d10";
     return `<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:15px 17px;">`
       +`<div style="font-size:12px;color:#5b636e;font-weight:700;">${ic} ${esc(title)}</div>`
       +`<div style="font-size:23px;font-weight:800;margin-top:6px;color:${c};">${esc(val)}</div>`

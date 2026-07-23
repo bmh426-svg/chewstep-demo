@@ -103,7 +103,7 @@ html, body { overflow-x:hidden; }
 .plan.later li::before { content:"–"; color:var(--future); font-weight:900; flex:none; }
 
 .cta-band { background:
-    radial-gradient(60% 80% at 85% 15%,rgba(14,159,110,.12),transparent 70%),
+    radial-gradient(60% 80% at 85% 15%,rgba(130,154,109,.12),transparent 70%),
     linear-gradient(180deg,var(--brand-tint),#fff 80%); }
 .cta-band .inner { max-width:720px; margin:0 auto; text-align:center; }
 .cta-band .ctas { justify-content:center; }

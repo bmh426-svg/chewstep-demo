@@ -17,7 +17,7 @@ function qBlock(title, inner, sub) {
   return `<div class="q"><div class="q-title">${esc(title)}${sub ? ` <span style="font-weight:600;color:var(--ink-faint)">${esc(sub)}</span>` : ""}</div>${inner}</div>`;
 }
 function head(t) {
-  return `<div class="q-title" style="margin:20px 0 4px;color:var(--brand-deep,#0a7d57);font-weight:800;letter-spacing:.01em">${esc(t)}</div>`;
+  return `<div class="q-title" style="margin:20px 0 4px;color:var(--brand-deep,#5f7a4f);font-weight:800;letter-spacing:.01em">${esc(t)}</div>`;
 }
 
 let _mount = null, _ageMonths = null;
@@ -78,7 +78,7 @@ export function renderSurvey(mount, o) {
   // 레시피 입력칸 스타일
   mount.querySelectorAll(".cs-inp").forEach((el) => {
     el.style.cssText = "width:100%;font:500 14px/1.5 var(--sans);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px 13px;outline:none;margin-top:6px;";
-    el.addEventListener("focus", () => { el.style.borderColor = "var(--brand)"; el.style.boxShadow = "0 0 0 3px rgba(14,159,110,.12)"; });
+    el.addEventListener("focus", () => { el.style.borderColor = "var(--brand)"; el.style.boxShadow = "0 0 0 3px rgba(130,154,109,.12)"; });
     el.addEventListener("blur", () => { el.style.borderColor = "var(--line)"; el.style.boxShadow = "none"; });
   });
 
