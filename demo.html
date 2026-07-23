@@ -367,6 +367,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="q-title"><span class="num">5</span>알레르기 · 피해야 할 음식 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
         <input type="text" id="childAllergy" class="date-inp" maxlength="100" style="width:100%;max-width:340px;" placeholder="예: 계란, 우유 (없으면 비워두세요)" />
       </div>
+      <div class="cs-emsg" id="childMsg" role="alert" style="display:none;margin-top:6px;"></div>
       <div class="survey-actions">
         <button type="submit" class="btn-primary" id="childSave">이 아이로 시작하기 →</button>
         <button type="button" class="btn-ghost" id="childCancelNew" style="display:none;">← 기존 아이 선택으로</button>
@@ -1489,7 +1490,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function esc2(s){ return String(s).replace(/'/g,"&#39;"); }
   function childMsg(t){ const m=$("childMsg"); if(m){ m.textContent=t; m.style.display=""; } }
-  $("childCancelNew").addEventListener("click", function(){ childMsg(""); $("childMsg").style.display="none"; renderChildList(); });
+  $("childCancelNew").addEventListener("click", function(){ const m=$("childMsg"); if(m){ m.textContent=""; m.style.display="none"; } renderChildList(); });
   $("childForm").addEventListener("submit", async function(e){
     e.preventDefault();
     const name = ($("childName").value||"").trim();
