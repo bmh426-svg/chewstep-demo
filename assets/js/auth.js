@@ -105,9 +105,6 @@ function buildModal() {
       `<button type="submit" class="cs-oauth cs-email"><span>✉️</span> 이메일로 계속하기</button>` +
       `<div class="cs-emsg" role="alert"></div>` +
     `</form>` +
-    `<div class="cs-divider"><span>또는</span></div>` +
-    `<button class="cs-oauth cs-kakao" data-soon="kakao"><span>💬</span> 카카오로 계속하기</button>` +
-    `<button class="cs-oauth cs-google" data-soon="google"><span>G</span> Google로 계속하기</button>` +
     `<p class="cs-modal-note">로그인 시 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다.</p>` +
     `</div>`;
   document.body.appendChild(wrap);
@@ -147,13 +144,7 @@ function buildModal() {
     }
   });
 
-  // 카카오/구글 — 키 연결 전까지는 안내만(가짜 동작 금지)
-  wrap.querySelectorAll("[data-soon]").forEach((b) => {
-    b.onclick = () => {
-      msg.className = "cs-emsg";
-      msg.textContent = "카카오·구글 로그인은 곧 지원돼요. 지금은 이메일로 로그인해 주세요.";
-    };
-  });
+  // 소셜 로그인 버튼 제거됨 — 이메일 로그인만 제공(제공자 키 연결 후 재도입 가능).
 
   return { open: () => wrap.classList.add("open"), close };
 }

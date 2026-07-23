@@ -304,11 +304,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="q">
         <div class="q-title"><span class="num">2</span>요즘 식사에서 가장 궁금하거나 걱정되는 점은요? <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
         <div class="opts">
-          <label class="opt"><input type="radio" name="intro_concern" value="잘 안 먹어요"/><span>잘 안 먹어요</span></label>
           <label class="opt"><input type="radio" name="intro_concern" value="자꾸 뱉어요"/><span>자꾸 뱉어요</span></label>
-          <label class="opt"><input type="radio" name="intro_concern" value="너무 느리게 먹어요"/><span>너무 느리게 먹어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="잘 씹지 않는 것 같아요"/><span>잘 씹지 않는 것 같아요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="너무 오래 먹어요"/><span>너무 오래 먹어요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="먹는 양이 적어요"/><span>먹는 양이 적어요</span></label>
           <label class="opt"><input type="radio" name="intro_concern" value="특정 음식만 먹어요"/><span>특정 음식만 먹어요</span></label>
-          <label class="opt"><input type="radio" name="intro_concern" value="잘 씹고 있는지 궁금해요"/><span>잘 씹는지 궁금해요</span></label>
+          <label class="opt"><input type="radio" name="intro_concern" value="그냥 확인하고 싶어요"/><span>그냥 확인하고 싶어요</span></label>
         </div>
       </div>
       <div class="survey-actions">
@@ -334,21 +335,36 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <input type="text" id="childName" class="date-inp" maxlength="20" style="width:100%;max-width:340px;" placeholder="예: 서아, 우리 둘째" />
       </div>
       <div class="q">
-        <div class="q-title"><span class="num">2</span>월령(개월)</div>
-        <input type="number" id="childAge" class="date-inp" min="1" max="120" inputmode="numeric" style="max-width:160px;" placeholder="예: 14" />
-      </div>
-      <div class="q">
-        <div class="q-title"><span class="num">3</span>가장 큰 식사 고민 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
-        <div class="opts">
-          <label class="opt"><input type="radio" name="child_concern" value="잘 안 먹어요"/><span>잘 안 먹어요</span></label>
-          <label class="opt"><input type="radio" name="child_concern" value="자꾸 뱉어요"/><span>자꾸 뱉어요</span></label>
-          <label class="opt"><input type="radio" name="child_concern" value="너무 느리게 먹어요"/><span>너무 느리게 먹어요</span></label>
-          <label class="opt"><input type="radio" name="child_concern" value="특정 음식만 먹어요"/><span>특정 음식만 먹어요</span></label>
-          <label class="opt"><input type="radio" name="child_concern" value="잘 씹고 있는지 궁금해요"/><span>잘 씹는지 궁금해요</span></label>
+        <div class="q-title"><span class="num">2</span>지금 몇 개월인가요?</div>
+        <div class="agebox">
+          <input type="number" id="childAge" class="date-inp" min="1" max="120" inputmode="numeric" style="max-width:120px;" placeholder="예: 14" />
+          <span class="unit">개월</span>
         </div>
       </div>
       <div class="q">
-        <div class="q-title"><span class="num">4</span>알레르기 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
+        <div class="q-title"><span class="num">3</span>현재 식사 단계</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="child_stage" value="early"/><span>초기 (미음·죽)</span></label>
+          <label class="opt"><input type="radio" name="child_stage" value="mid"/><span>중기 (으깬 음식)</span></label>
+          <label class="opt"><input type="radio" name="child_stage" value="late"/><span>후기 (잘게 썬 음식)</span></label>
+          <label class="opt"><input type="radio" name="child_stage" value="finger"/><span>완료기 (유아식)</span></label>
+          <label class="opt"><input type="radio" name="child_stage" value="regular"/><span>일반식</span></label>
+          <label class="opt"><input type="radio" name="child_stage" value="unknown"/><span>잘 모르겠어요</span></label>
+        </div>
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">4</span>평소 가장 큰 고민 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="child_concern" value="자꾸 뱉어요"/><span>자꾸 뱉어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="잘 씹지 않는 것 같아요"/><span>잘 씹지 않는 것 같아요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="너무 오래 먹어요"/><span>너무 오래 먹어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="먹는 양이 적어요"/><span>먹는 양이 적어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="특정 음식만 먹어요"/><span>특정 음식만 먹어요</span></label>
+          <label class="opt"><input type="radio" name="child_concern" value="그냥 확인하고 싶어요"/><span>그냥 확인하고 싶어요</span></label>
+        </div>
+      </div>
+      <div class="q">
+        <div class="q-title"><span class="num">5</span>알레르기 · 피해야 할 음식 <span style="font-weight:600;color:var(--ink-faint)">(선택)</span></div>
         <input type="text" id="childAllergy" class="date-inp" maxlength="100" style="width:100%;max-width:340px;" placeholder="예: 계란, 우유 (없으면 비워두세요)" />
       </div>
       <div class="survey-actions">
@@ -481,7 +497,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <form class="survey" id="surveyForm">
       <div id="surveyMount"></div>
 
-      <div class="survey-actions">
+      <!-- 진행 버튼은 단계형 설문(survey-render.js)이 스텝 내비게이션으로 직접 렌더 -->
+      <div class="survey-actions" style="display:none">
         <button type="submit" class="btn-primary" id="surveySubmit">다음 · 영상 올리기 →</button>
         <button type="button" class="btn-ghost" id="surveySkip">설문 건너뛰고 영상 올리기</button>
       </div>
@@ -509,6 +526,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="dsec" id="secInterpret" style="display:none"></div>
     <!-- 5·6 · 다음 식사에서 바꿀 한 가지 / 관찰할 변화 -->
     <div class="dsec" id="secActions" style="display:none"></div>
+    <!-- 6.5 · 식감 연결 레시피 (잘 먹는 음식 + 연습할 음식 입력 시) -->
+    <div class="dsec" id="secRecipe" style="display:none"></div>
     <!-- 7 · 결과의 관찰 범위 -->
     <div class="verdict" id="verdict"></div>
     <!-- 8 · 안전 안내 -->
@@ -560,6 +579,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button class="again" id="again">🔄 다른 영상 분석</button>
   </section>
 
+  <!-- ===== 화면 · 우리 아이 맞춤 레시피 (결과의 배너에서 진입) ===== -->
+  <section class="screen" id="screenRecipe">
+    <button type="button" class="btn-ghost" id="recipeBack" style="margin-bottom:12px">← 결과로 돌아가기</button>
+    <span class="step-eyebrow">우리 아이 맞춤</span>
+    <h1>🍳 식감 연결 레시피</h1>
+    <p class="lede">좋아하는 음식으로 아직 어려운 음식을 <b>조금씩 연습</b>하는 방법이에요. 아이 반응을 보며 편한 방법부터 골라 보세요.</p>
+    <div id="recipeScreenBody"></div>
+    <button type="button" class="btn-ghost" id="recipeBack2" style="margin-top:22px;width:100%">← 결과로 돌아가기</button>
+  </section>
+
   <!-- 감사 화면 (의견 보내기 → 화면 전환) -->
   <section class="screen" id="screenThanks">
     <div class="thanks">
@@ -580,6 +609,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
   import { mountAuthUI } from "./assets/js/auth.js";
   import { renderSurvey, collectSurveyAnswers } from "./assets/js/survey-render.js";
+  import { fetchRecipe } from "./assets/js/recipe.js";
   import { AudioChewDetector } from "./assets/js/audio-chew.js";
   const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
   const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
@@ -1323,7 +1353,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const active = [].slice.call(document.querySelectorAll(".screen")).find(s=>s.classList.contains("active"));
     const id = active ? active.id : "screenIntro";
     let target = null;
-    if(id==="screenResult" || id==="screenAnalyze"){
+    if(id==="screenRecipe"){ target = "screenResult"; }
+    else if(id==="screenResult" || id==="screenAnalyze"){
       if(running){ running=false; try{ video.pause(); }catch(e){} }   // 분석 중이면 멈춤
       showUploadPhase("choice"); target = "screenUpload";
     } else if(id==="screenUpload"){ target = "screenSurvey"; }
@@ -1428,6 +1459,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // ── 아이 선택/등록 ──
   let currentChild = null, myChildren = [];
+  const STAGE_LABEL = { early:"초기", mid:"중기", late:"후기", finger:"완료기", regular:"일반식", unknown:"" };
   function ageMonthsOf(ch){
     if(!ch) return null;
     if(ch.birth_date){ const b=new Date(ch.birth_date), n=new Date(); let m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); if(n.getDate()<b.getDate()) m--; return Math.max(0,m); }
@@ -1443,9 +1475,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(myChildren.length){
       list.style.display = "";
       list.innerHTML = "<div class='q-title' style='margin-bottom:8px'>등록된 아이</div>" +
-        myChildren.map(function(ch){ const m=ageMonthsOf(ch);
+        myChildren.map(function(ch){ const m=ageMonthsOf(ch); const st=STAGE_LABEL[ch.feeding_stage];
           return "<button type='button' class='opt' data-cid='"+esc2(ch.id)+"' style='width:100%;text-align:left;margin-bottom:8px;cursor:pointer'>"+
-            "<b>"+escapeHtml(ch.name||"우리 아이")+"</b>"+(m!=null?" · "+m+"개월":"")+(ch.concern?" · "+escapeHtml(ch.concern):"")+"</button>"; }).join("") +
+            "<b>"+escapeHtml(ch.name||"우리 아이")+"</b>"+(m!=null?" · "+m+"개월":"")+(st?" · "+st:"")+(ch.concern?" · "+escapeHtml(ch.concern):"")+"</button>"; }).join("") +
         "<button type='button' class='btn-ghost' id='childAddNew' style='margin-top:4px'>+ 새 아이 등록</button>";
       form.style.display = "none";
       list.querySelectorAll("[data-cid]").forEach(function(b){ b.addEventListener("click", function(){ const ch=myChildren.find(function(x){return String(x.id)===b.getAttribute("data-cid");}); selectChild(ch); }); });
@@ -1466,13 +1498,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(isNaN(age) || age<1){ childMsg("월령(개월)을 숫자로 입력해 주세요."); return; }
     const cc = $("childForm").querySelector('input[name="child_concern"]:checked');
     const concern = cc ? cc.value : null;
+    const sc = $("childForm").querySelector('input[name="child_stage"]:checked');
+    const feeding_stage = sc ? sc.value : null;
     const allergy = ($("childAllergy").value||"").trim() || null;
     const bd = new Date(); bd.setMonth(bd.getMonth()-age); const birth_date = bd.toISOString().slice(0,10);
     const btn = $("childSave"); btn.disabled = true;
     try{
       const uid = await currentUserId();
       let id=null; try{ id = crypto.randomUUID(); }catch(e){}
-      const row = { id: id||undefined, user_id: uid, name: name, birth_date: birth_date, concern: concern, allergies: allergy };
+      const row = { id: id||undefined, user_id: uid, name: name, birth_date: birth_date, concern: concern, feeding_stage: feeding_stage, allergies: allergy };
       const { data, error } = await supabase.from("children").insert(row).select().maybeSingle();
       btn.disabled = false;
       if(error){ childMsg("저장 실패: "+error.message); return; }
@@ -1482,7 +1516,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
   function selectChild(ch){
     currentChild = ch || null;
-    renderSurvey($("surveyMount"), { ageMonths: ageMonthsOf(ch) });   // v3 스키마(웹·앱 공용) 설문 렌더
+    renderSurvey($("surveyMount"), {                                  // v3 스키마(웹·앱 공용) 단계형 설문 렌더
+      ageMonths: ageMonthsOf(ch),
+      onComplete: function(answers){ goUpload(answers); },            // 마지막 스텝 '완료 · 영상 올리기'
+      onSkip: function(){ goUpload(null); }                            // '설문 건너뛰기'
+    });
     if(window.csLog) window.csLog("demo_child_selected", { child_id: (ch&&ch.id)||null });
     showScreen("screenSurvey");
     try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
@@ -1649,6 +1687,93 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     box.innerHTML = `<h4>다음 식사에서 바꿀 한 가지</h4><ul>${acts.map(a=>`<li>${a}</li>`).join("")}</ul>`;
     box.style.display = "";
   }
+  // 6.5 · 식감 연결 레시피 — 설문에서 '잘 먹는 음식 + 연습할 음식'을 입력했을 때만 표시.
+  //  recipe-coach(Claude) 호출 → 키 없음/오류/오프라인이면 규칙 템플릿(3가지 접근법)으로 폴백.
+  //  반환: { source, recipes:[...] } — 여러 접근법을 카드로 나열.
+  function recipeBadge(source){
+    return source==="ai"
+      ? `<span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(14,159,110,.12);color:var(--brand-deep,#0a7d57);vertical-align:middle;">AI 맞춤</span>`
+      : `<span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(0,0,0,.06);color:var(--ink-soft);vertical-align:middle;">참고 템플릿</span>`;
+  }
+  function recipeItemHtml(r){
+    const chip = r.approach ? `<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:800;background:rgba(14,159,110,.12);color:var(--brand-deep,#0a7d57);">${escapeHtml(r.approach)}</span>` : "";
+    return `<div style="border:1px solid var(--line,#e6e8e7);border-radius:14px;padding:14px 15px 16px;margin-top:12px;">`
+      + (chip ? `<div style="margin-bottom:6px">${chip}</div>` : "")
+      + `<p style="font-size:15px;font-weight:800;color:var(--brand-deep,#0a7d57);margin:0 0 6px;">${escapeHtml(r.menu||"")}</p>`
+      + (r.reason ? `<p style="margin:0 0 8px">${escapeHtml(r.reason)}</p>` : "")
+      + ((r.firstTry&&r.firstTry.length) ? `<div style="font-weight:700;font-size:13px;margin-top:6px">처음 시도해볼 방법</div><ul style="margin:4px 0 0">${r.firstTry.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>` : "")
+      + (r.nextStep ? `<div style="font-weight:700;font-size:13px;margin-top:8px">다음 단계</div><p style="margin:2px 0 0">${escapeHtml(r.nextStep)}</p>` : "")
+      + (r.caution ? `<p class="disc" style="margin-top:8px">⚠ ${escapeHtml(r.caution)}</p>` : "")
+      + `</div>`;
+  }
+  // 레시피 목록 HTML(레시피 전용 화면 본문) — { source, recipes } → 카드들
+  function recipesInnerHtml(out, liked, practice){
+    const list = out && (out.recipes || (out.recipe ? [out.recipe] : []));
+    if(!out || !list || !list.length){
+      return `<p class="disc">지금은 레시피를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>`;
+    }
+    const badge = recipeBadge(out.source);
+    const usable = list.filter(r=>r.suitable !== false);
+    const unsuitable = list.find(r=>r.suitable === false);
+    if(!usable.length && unsuitable){   // 조합이 어색하다고 판단(AI만) — 억지 레시피 대신 안내
+      return `<div style="margin-bottom:6px">${badge}</div>` +
+        `<p>${escapeHtml(unsuitable.note || "이 두 음식은 함께 잇기보다 각각 따로 연습하는 게 좋아요.")}</p>` +
+        (unsuitable.caution ? `<p class="disc">${escapeHtml(unsuitable.caution)}</p>` : "");
+    }
+    const cntMsg = usable.length>1 ? `${usable.length}가지 방법 중 아이가 편해하는 것부터 골라 보세요.` : "아이 반응을 보며 시도해 보세요.";
+    return `<div style="margin-bottom:6px">${badge}</div>` +
+      `<p class="disc">‘${escapeHtml(liked)}’로 ‘${escapeHtml(practice)}’를 조금씩 연습하는 방법이에요. ${cntMsg}</p>` +
+      usable.map(recipeItemHtml).join("") +
+      `<p class="disc" style="margin-top:12px">⚠ 참고용 안내예요. 알레르기 있는 재료는 빼고, 새로운 음식은 소량부터 시도해 주세요.</p>`;
+  }
+
+  // 결과에서 넘겨받는 레시피 입력(전용 화면에서 지연 조회)
+  let recipeInput = null;
+
+  // 결과 화면 · 레시피 진입 배너 (설문에서 두 음식을 입력했을 때만)
+  function renderRecipe(answers){
+    const box = $("secRecipe");
+    const rc = (answers && answers.survey && answers.survey.recipe) || {};
+    const liked = (rc.liked||"").trim(), practice = (rc.practice||"").trim();
+    if(!liked || !practice){ box.style.display="none"; box.innerHTML=""; recipeInput=null; return; }
+    const s = (answers && answers.survey) || {};
+    recipeInput = { liked, practice, ctx: {
+      age_months: s.age_months || null,
+      ceiling: (s.lens01 && s.lens01.chew_ceiling) || null,
+      behavior: (s.lens01 && s.lens01.behavior) || null,
+      concern: (answers && answers.concern_type) || null,
+      allergy: (currentChild && currentChild.allergies) || ""
+    } };
+    box.style.display = "";
+    box.innerHTML =
+      `<button type="button" id="recipeBannerBtn" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;border:none;border-radius:16px;padding:18px;background:linear-gradient(135deg,#0e9f6e,#0a7d57);color:#fff;box-shadow:0 6px 18px rgba(14,159,110,.28);">`+
+        `<div style="font-size:26px;line-height:1;">🍳</div>`+
+        `<div style="flex:1;min-width:0;">`+
+          `<div style="font-size:16px;font-weight:800;">우리 아이 맞춤 레시피 보러가기</div>`+
+          `<div style="font-size:12.5px;opacity:.93;margin-top:3px;">‘${escapeHtml(liked)}’로 ‘${escapeHtml(practice)}’ 연습하는 방법을 확인해 보세요</div>`+
+        `</div>`+
+        `<div style="font-size:22px;font-weight:800;">→</div>`+
+      `</button>`;
+    const btn = $("recipeBannerBtn");
+    if(btn) btn.addEventListener("click", function(){
+      if(window.csLog) window.csLog("demo_recipe_open", { liked: liked, practice: practice });
+      openRecipeScreen();
+    });
+  }
+
+  // 레시피 전용 화면 진입 + 지연 조회/렌더
+  async function openRecipeScreen(){
+    armDemoBack();
+    showScreen("screenRecipe");
+    try{ history.pushState({csDemo:1}, ""); }catch(e){}
+    const body = $("recipeScreenBody");
+    if(!recipeInput){ body.innerHTML = `<p class="disc">레시피 정보를 찾지 못했어요.</p>`; return; }
+    const { liked, practice, ctx } = recipeInput;
+    body.innerHTML = `<p class="disc">‘${escapeHtml(liked)}’로 ‘${escapeHtml(practice)}’ 연습 방법을 만들고 있어요…</p>`;
+    let out = null;
+    try{ out = await fetchRecipe(liked, practice, ctx); }catch(e){ out = null; }
+    body.innerHTML = recipesInnerHtml(out, liked, practice);
+  }
   // 1 · 보호자 고민 요약
   function renderConcern(answers){
     const box = $("secConcern"); const a = answers || {};
@@ -1697,6 +1822,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     renderCard(lastCur, lastPrev, lastCur.quality);  // 2 관찰된 모습
     renderInterpret(lastCur, answers);               // 3·4 먼저확인·이유
     renderActions(lastCur, answers);                 // 5·6 행동·관찰할 변화
+    renderRecipe(answers);                            // 6.5 식감 연결 레시피(선택 입력 시, 비동기)
     renderConfidence(lastCur, lastMetrics, answers); // 7 관찰 범위
     renderConsult();                                 // 8 안전 안내
     showScreen("screenResult");
@@ -1716,8 +1842,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     showScreen("screenUpload");
     try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
   }
-  $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); goUpload(collectAnswers()); });
-  $("surveySkip").addEventListener("click", ()=>{ goUpload(null); });
+  // 진행/건너뛰기는 단계형 설문(survey-render.js)의 스텝 내비게이션이 처리한다.
+  // 폼 자체 submit(예: 입력칸에서 Enter)은 조기 이동을 막기 위해 무시.
+  $("surveyForm").addEventListener("submit", e=>{ e.preventDefault(); });
 
   // ── 결과 후기 저장(도움 정도 + 가장 도움된 부분 + 자유서술, 본인 행 UPDATE) ──
   async function saveFeedback(){
@@ -1779,6 +1906,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     showScreen("screenUpload");
   }
   $("again").addEventListener("click", resetAll);
+  // 레시피 화면 → 결과로 돌아가기
+  $("recipeBack").addEventListener("click", function(){ showScreen("screenResult"); });
+  $("recipeBack2").addEventListener("click", function(){ showScreen("screenResult"); });
 </script>
 
 <!-- 방문 여정 기록(홈→데모 연결) — Supabase journey_events -->
