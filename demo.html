@@ -1033,6 +1033,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     },
     safetyLabels: { choke:"사레·기침", swallow:"삼킴 어려움", vomit:"반복 구토", refuse_all:"식사·수유 전면 거부", weight:"체중 감소 우려" }
   };
+  // v3 설문(survey-render.js) → 가능성 점수 매핑. 설문 값이 바뀌어 옛 RULES와 맞지 않던 문제 해결.
+  const V3 = {
+    concern: { noeat:{interval:2,repetition:1}, hold:{texture:2}, spit:{texture:2,repetition:1}, texture:{texture:3}, meat:{texture:2}, slow:{texture:1,expectation:1}, fast:{interval:1} },
+    foodForm: { regular:{texture:1}, small_bits:{texture:1} },                 // 형태가 거칠수록 질감 부담 가능성
+    behavior: { "혀로 밀어냄":{texture:1}, "구역질함":{texture:1}, "씹다가 뱉음":{texture:1}, "오래 물고 있음":{texture:1} },
+    hardAny: ["고기","채소","밥알","덩어리","바삭한 음식","미끄러운 음식"],       // 하나라도 있으면 texture:1
+    interval: { "30분 이내":{interval:2}, "30분~1시간":{interval:1} },           // 직전 식사 간격 짧음 = 덜 배고픔
+    portion: { "훨씬 적음":{expectation:1}, "조금 적음":{expectation:1} },
+    retry: { "거의 안 함":{repetition:2}, "1~2번":{repetition:1} }              // 반복 노출 적음 = 익숙함 부족
+  };
   // 입력(설문+영상) → 가장 먼저 볼 가능성 + 안전신호 + 행동. §5 안전은 결과 상단 덮어쓰기.
   function computeCoaching(cur, metrics, answers){
     const a = answers || {};
@@ -1041,10 +1051,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const safetyOn = !!a.safety_alert || safety.length>0;
     const score = { interval:0, texture:0, expectation:0, repetition:0 };
     const add = o => { if(o) for(const k in o) score[k] = (score[k]||0) + o[k]; };
-    add(RULES.concern[a.concern_type]);
-    add(RULES.mealGap[a.last_meal_gap]);
-    add(RULES.texture[a.food_texture]);
-    add(RULES.exposure[a.exposure_count]);
+    const sv = a.survey;
+    if(sv){
+      // v3 설문 기반 점수(현행) — 설문 응답이 결과에 실제로 반영되도록
+      add(V3.concern[sv.concern]);
+      const l1 = sv.lens01 || {};
+      add(V3.foodForm[l1.food_form]);
+      add(V3.behavior[l1.behavior]);
+      if(Array.isArray(l1.hard_textures) && l1.hard_textures.some(t=>V3.hardAny.indexOf(t)>=0)) add({texture:1});
+      add(V3.interval[(sv.lens02||{}).interval]);
+      add(V3.portion[(sv.lens03||{}).portion_gap]);
+      add(V3.retry[(sv.lens04||{}).retry_count]);
+    } else {
+      // legacy(옛 설문) 폴백
+      add(RULES.concern[a.concern_type]);
+      add(RULES.mealGap[a.last_meal_gap]);
+      add(RULES.texture[a.food_texture]);
+      add(RULES.exposure[a.exposure_count]);
+    }
     const longPause = metrics && metrics.pause_count!=null && metrics.samples && (metrics.pause_count/metrics.samples > 0.15);
     if(cur.quality==="low_motion" || cur.cpm<25 || longPause) add(RULES.videoLowMotion);
     let top=null, best=-1;
