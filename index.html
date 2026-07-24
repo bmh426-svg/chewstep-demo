@@ -37,13 +37,21 @@
   .nav-links a.inst-cta { font-size:13.5px; font-weight:700; color:var(--future); background:#fff; border:1px solid var(--future-line); padding:8px 14px; border-radius:11px; text-decoration:none; margin-left:6px; }
   .nav-links a.inst-cta:hover { background:var(--future-tint); }
 
-  .hub-main { padding:26px 0 8px; position:relative; overflow:hidden; }
-  /* 히어로 배경: 가족 일러스트를 글귀 뒤에 희미하게 */
-  .hero-bg { position:absolute; top:-40px; left:50%; transform:translateX(-50%);
-    width:min(1080px,128%); height:auto; opacity:.16; pointer-events:none; z-index:0; user-select:none;
-    -webkit-mask-image:radial-gradient(72% 66% at 50% 38%, #000 42%, transparent 78%);
-            mask-image:radial-gradient(72% 66% at 50% 38%, #000 42%, transparent 78%); }
-  .hub-center { position:relative; z-index:1; max-width:820px; margin:0 auto; text-align:center; }
+  .hub-main { padding:26px 0 8px; }
+  .hub-center { max-width:820px; margin:0 auto; text-align:center; }
+  /* 히어로: 좌 텍스트 · 우 일러스트 2단 (글자 옆 공간 활용) */
+  .hero-grid { display:grid; grid-template-columns:1.02fr .98fr; gap:40px; align-items:center; max-width:1040px; margin:0 auto 10px; }
+  .hero-copy { text-align:left; }
+  .hero-copy h1 { margin:16px 0 16px; }
+  .hero-copy .sub { margin:0 0 26px; max-width:27em; }
+  .hero-art img { display:block; width:100%; height:auto; border-radius:24px;
+    box-shadow:0 20px 46px rgba(90,70,45,.16); border:1px solid rgba(236,226,211,.9); }
+  @media (max-width:900px){
+    .hero-grid { grid-template-columns:1fr; gap:20px; text-align:center; max-width:560px; }
+    .hero-copy { text-align:center; }
+    .hero-copy .sub { margin-left:auto; margin-right:auto; }
+    .hero-art { max-width:400px; margin:4px auto 0; }
+  }
   .hub-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:800;
     color:var(--brand-deep); background:var(--brand-tint); padding:7px 14px; border-radius:999px; }
   .hub-eyebrow .dot { width:7px;height:7px;border-radius:50%;background:var(--brand); }
@@ -133,22 +141,24 @@
   </div>
 
   <main class="hub-main" id="main">
-    <img class="hero-bg" src="/assets/img/hero-family.png" alt="" aria-hidden="true" />
     <div class="wrap">
-      <div class="hub-center">
-        <span class="hub-eyebrow reveal"><span class="dot"></span> 이유식·유아식 식사 코칭</span>
-        <h1 class="reveal">우리 아이가 왜 잘 먹지 않는지<br /><span class="accent">식사 영상으로 살펴보세요</span></h1>
-        <p class="sub reveal">
-          씹는 모습과 식사 상황을 함께 살펴보고,<br />
-          다음 식사에서 먼저 시도할 <b>한 가지</b>를 알려드려요.
-        </p>
-
-        <div class="reveal">
-          <a href="/demo.html" class="cta-primary">무료로 식사 분석 시작하기 <span class="arrow">→</span></a>
-          <p class="cta-micro">약 3분 소요 <span class="sep">·</span> 영상 분석 후 미저장 <span class="sep">·</span> 결과 바로 확인</p>
-          <p class="cta-login">이미 분석한 적이 있나요? <a href="/login.html">내 결과 확인하기 →</a></p>
+      <div class="hero-grid">
+        <div class="hero-copy reveal">
+          <span class="hub-eyebrow"><span class="dot"></span> 이유식·유아식 식사 코칭</span>
+          <h1>우리 아이가 왜 잘 먹지 않는지<br /><span class="accent">식사 영상으로 살펴보세요</span></h1>
+          <p class="sub">씹는 모습과 식사 상황을 함께 살펴보고, 다음 식사에서 먼저 시도할 <b>한 가지</b>를 알려드려요.</p>
+          <div>
+            <a href="/demo.html" class="cta-primary">무료로 식사 분석 시작하기 <span class="arrow">→</span></a>
+            <p class="cta-micro">약 3분 소요 <span class="sep">·</span> 영상 분석 후 미저장 <span class="sep">·</span> 결과 바로 확인</p>
+            <p class="cta-login">이미 분석한 적이 있나요? <a href="/login.html">내 결과 확인하기 →</a></p>
+          </div>
         </div>
+        <div class="hero-art reveal">
+          <img src="/assets/img/hero-family.png" alt="온 가족이 식탁에 둘러앉아 아이의 식사를 함께 즐기는 모습" />
+        </div>
+      </div>
 
+      <div class="hub-center">
         <div class="sec-head reveal">
           <div class="k">이렇게 진행돼요</div>
           <h2>3단계면 충분해요</h2>
