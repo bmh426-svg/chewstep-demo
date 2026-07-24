@@ -40,16 +40,15 @@
   .hub-main { padding:26px 0 8px; position:relative; overflow:hidden; }
   .hub-center { max-width:820px; margin:0 auto; text-align:center; }
   /* 히어로: 텍스트는 왼쪽, 일러스트는 CTA 오른쪽 빈 공간에 희미하게 겹쳐(공간 차지 X → 아래 섹션이 위로) */
-  .hero-copy { text-align:left; max-width:600px; position:relative; z-index:1; margin-bottom:8px; }
+  .hero-copy { text-align:center; max-width:660px; margin:0 auto 8px; position:relative; z-index:1; }
   .hero-copy h1 { margin:16px 0 16px; }
-  .hero-copy .sub { margin:0 0 26px; max-width:27em; }
-  .hero-art { position:absolute; top:60px; right:0; width:min(500px,44%); height:auto; opacity:.5;
+  .hero-copy .sub { margin:0 auto 26px; }
+  .hero-art { position:absolute; top:16px; right:0; width:min(380px,32%); height:auto; opacity:.42;
     pointer-events:none; z-index:0; user-select:none;
-    -webkit-mask-image:radial-gradient(72% 80% at 58% 44%, #000 46%, transparent 84%);
-            mask-image:radial-gradient(72% 80% at 58% 44%, #000 46%, transparent 84%); }
-  @media (max-width:820px){
-    .hero-art { display:none; }              /* 좁은 화면엔 옆 공간이 없어 숨김 */
-    .hero-copy { max-width:none; }
+    -webkit-mask-image:radial-gradient(70% 78% at 60% 42%, #000 44%, transparent 82%);
+            mask-image:radial-gradient(70% 78% at 60% 42%, #000 44%, transparent 82%); }
+  @media (max-width:900px){
+    .hero-art { display:none; }              /* 좁은 화면엔 옆 공간이 없어 숨김(모바일 깨짐 방지) */
   }
   .hub-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:800;
     color:var(--brand-deep); background:var(--brand-tint); padding:7px 14px; border-radius:999px; }
