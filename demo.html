@@ -556,6 +556,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="secSafetyTop"></div>
     <!-- ★ 고민 중심 코칭 리포트 (STEP 디자인) — 아래 개별 dsec들을 대체 -->
     <div id="secReport" style="display:none"></div>
+    <div id="reportDl" style="display:none;margin-top:12px;text-align:center;">
+      <button type="button" id="dlReport" style="border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 20px;font:800 14px/1 var(--sans);color:var(--brand-deep);cursor:pointer;">📄 한 장 리포트 저장 (PDF)</button>
+      <div style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">핵심만 A4 한 장으로 — 다운로드·인쇄해서 보관하거나 공유하세요</div>
+    </div>
     <!-- 1 · 보호자 고민 요약 -->
     <div class="dsec" id="secConcern" style="display:none"></div>
     <!-- 2 · 이번 영상에서 관찰된 모습 (+전후 비교) -->
@@ -742,6 +746,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let fileAudioChew = 0, audioAnalysisPromise = null;  // 업로드 영상 오프라인 소리 분석 결과·진행 promise
   let lastCur = null, lastMetrics = null, lastPrev = null;  // 설문 단계로 넘길 분석 결과 보관
   let lastAnswers = null;                                   // 보호자 설문 응답(미리보기·상세·저장 공용)
+  let lastCoachAi = null;                                   // LLM 코칭 결과(있으면 리포트·한장PDF에 반영)
   let lastRowId = null;                                     // 저장된 demo_responses 행 id(후기 업데이트용)
   // landmark 추출 결과 시계열(원본 영상 미저장 · 얼굴 검출된 프레임만) — Supabase 저장용
   const SERIES_MAX = 4000;
@@ -1750,8 +1755,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const obs = pvObservations(cur);
     const coach = computeCoaching(cur, lastMetrics, answers);
     pv.innerHTML =
-      (coach.safetyOn ? safetyBannerHtml(coach.safety) : "")+
-      `<div class="pv-summary">${personalSummary(cur, answers)}</div>`+
+      `<div class="pv-summary">${personalSummary(cur, answers)}</div>`+  /* 안전 안내는 secSafetyTop 한 곳에서만 표시(중복 제거) */
       `<div class="pv-meta">${meta.map(m=>`<span>${m}</span>`).join("")}</div>`+
       `<div class="pv-obs">${obs.map(o=>pvItem(o.t,o.h,o.d)).join("")}</div>`;
   }
@@ -1808,6 +1812,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const concernLabel = a.concern_type || null;
     const li = arr => arr.map(s => `<div class="row"><span class="dot"></span><span>${escapeHtml(s)}</span></div>`).join("");
     box.style.display = "";
+    const dl = $("reportDl"); if(dl) dl.style.display = "";
     box.innerHTML =
       `<div class="rp-core"><span class="d"></span><span class="t"><b>핵심 한 줄</b> · ${escapeHtml(core)}</span></div>`+
       (concernLabel ? `<span class="rp-chip">보호자 고민 · ${escapeHtml(concernLabel)}</span>` : "")+
@@ -1821,6 +1826,62 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `</div></div>`+
       `<div class="rp-safe"><div class="lab">사레가 걸렸을 때</div>${li(REPORT.safe)}</div>`+
       `<p class="rp-note">※ 발달 단계 진단이 아니라, 오늘 관찰과 입력을 바탕으로 한 <b>참고용 코칭</b>이에요. 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의해 주세요.</p>`;
+  }
+
+  // ── 한 장 리포트(PDF) — 핵심만 A4 한 장, 새 창에서 인쇄/저장 ──
+  function onePagerHtml(){
+    const cur = lastCur || {}, a = lastAnswers || {};
+    const coach = computeCoaching(cur, lastMetrics, a);
+    const ai = lastCoachAi;
+    const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    const firstCheck = (ai && ai.firstCheck) ? esc(ai.firstCheck) : (coach.firstCheck || "");
+    const tips = (ai && ai.tips && ai.tips.length) ? ai.tips.map(esc) : ((coach.tips && coach.tips.length) ? coach.tips : [coach.action]);
+    const core = REPORT.core[coach.possibility] || REPORT.core.unclear;
+    const concern = a.concern_type || "";
+    const name = (currentChild && currentChild.name) || "우리 아이";
+    const age = (a.child_age_months != null) ? a.child_age_months + "개월" : "";
+    let metric;
+    if(cur.quality==="low_face") metric = "영상 검출이 낮아 설문 답변을 중심으로 정리했어요.";
+    else if(cur.quality==="audio") metric = `씹기(소리 기준) 약 ${cur.chew||0}회 관찰`;
+    else { const cpm=cur.cpm||0; const lp=(cur.leftPct!=null)?cur.leftPct:50; metric = `씹기 속도 ${cpm}회/분 · 좌우 균형 ${lp}:${100-lp} · 총 ${cur.chew||0}회`; }
+    const tipLi = tips.map(t=>`<li>${t}</li>`).join("");
+    const consultLi = REPORT.consult.map(s=>`<li>${esc(s)}</li>`).join("");
+    return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chewstep 식사 코칭 리포트 — ${esc(name)}</title><style>`+
+      `@page{size:A4;margin:14mm}*{box-sizing:border-box;margin:0;padding:0}`+
+      `body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#3f382f;background:#fff;line-height:1.55;padding:20px}`+
+      `.wrap{max-width:720px;margin:0 auto}`+
+      `.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #829a6d;padding-bottom:10px;margin-bottom:14px}`+
+      `.brand{font-size:18px;font-weight:800;color:#5f7a4f}.top .meta{font-size:12px;color:#8f8478;text-align:right}`+
+      `.core{background:#edf1e4;border:1px solid rgba(130,154,109,.4);border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:12px}.core b{color:#5f7a4f}`+
+      `.chip{display:inline-block;background:#edf1e4;color:#5f7a4f;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;margin-bottom:10px}`+
+      `.lab{font-size:11px;font-weight:800;letter-spacing:.04em;color:#98917f;text-transform:uppercase;margin:14px 0 5px}`+
+      `.obs{font-size:13.5px;color:#5e544a;background:#f6f2ea;border-radius:10px;padding:9px 12px}.diag{font-size:14.5px}`+
+      `.sol{background:#edf1e4;border-radius:12px;padding:12px 14px;margin-top:8px}.sol ul{padding-left:18px}.sol li{font-size:13.5px;margin:4px 0}`+
+      `.consult{font-size:13px;color:#7a4b00;background:#f7eeda;border-radius:10px;padding:10px 13px;margin-top:12px}.consult ul{padding-left:18px;margin-top:4px}.consult li{margin:2px 0}`+
+      `.foot{font-size:11px;color:#8f8478;margin-top:16px;border-top:1px solid #ece2d3;padding-top:8px}`+
+      `.bar{position:fixed;top:0;left:0;right:0;background:#5f7a4f;color:#fff;padding:9px;text-align:center;font-size:13px}`+
+      `.bar button{background:#fff;color:#5f7a4f;border:none;border-radius:8px;padding:6px 14px;font-weight:800;cursor:pointer;margin-left:8px}`+
+      `@media print{.bar{display:none}body{padding:0}}`+
+      `</style></head><body>`+
+      `<div class="bar">이 화면을 PDF로 저장하거나 인쇄하세요 <button onclick="window.print()">PDF로 저장 / 인쇄</button></div>`+
+      `<div class="wrap" style="margin-top:46px">`+
+      `<div class="top"><div class="brand">🥣 Chewstep</div><div class="meta">우리 아이 식사 코칭 리포트<br>${esc(name)}${age?" · "+esc(age):""}</div></div>`+
+      `<div class="core"><b>핵심 한 줄</b> · ${esc(core)}</div>`+
+      (concern?`<span class="chip">보호자 고민 · ${esc(concern)}</span>`:"")+
+      `<div class="lab">이번에 관찰된 모습</div><div class="obs">${esc(metric)}</div>`+
+      `<div class="lab">가장 먼저 확인해볼 점${ai?" (AI 맞춤)":""}</div><div class="diag">${firstCheck}</div>`+
+      `<div class="sol"><div class="lab" style="color:#a55b0e;margin-top:0">💡 오늘 저녁 바로 시도할 팁</div><ul>${tipLi}</ul></div>`+
+      `<div class="consult"><b>이럴 땐 상담 받아보세요</b><ul>${consultLi}</ul></div>`+
+      `<div class="foot">※ 발달 단계 진단이 아니라 오늘 관찰·입력 기반 참고용 코칭입니다. 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의하세요. · © 2026 Chewstep</div>`+
+      `</div></body></html>`;
+  }
+  function openOnePager(){
+    try{
+      const w = window.open("", "_blank");
+      if(!w){ alert("팝업이 차단됐어요. 팝업을 허용한 뒤 다시 눌러 주세요."); return; }
+      w.document.open(); w.document.write(onePagerHtml()); w.document.close();
+      if(window.csLog) window.csLog("demo_report_download", { possibility: (computeCoaching(lastCur, lastMetrics, lastAnswers)||{}).possibility });
+    }catch(e){ alert("리포트를 여는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."); }
   }
 
   // ── 상세 결과 섹션(로그인 후) ── (ai: coach LLM 결과가 있으면 반영, 없으면 규칙엔진)
@@ -1889,7 +1950,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       concern_text: (answers && answers.concern_text) || ""
     };
     let out = null; try{ out = await fetchCoach(ctx); }catch(e){ out = null; }
-    if(out && out.coach){ renderReport(cur, answers, out.coach); }
+    if(out && out.coach){ lastCoachAi = out.coach; renderReport(cur, answers, out.coach); }
   }
   // 6.5 · 식감 연결 레시피 — 설문에서 '잘 먹는 음식 + 연습할 음식'을 입력했을 때만 표시.
   //  recipe-coach(Claude) 호출 → 키 없음/오류/오프라인이면 규칙 템플릿(3가지 접근법)으로 폴백.
@@ -2017,7 +2078,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // 설문 완료(또는 건너뛰기) → 미리보기(로그인 없이 공개)
   function finalizeResult(answers){
-    lastAnswers = answers;
+    lastAnswers = answers; lastCoachAi = null;
     renderPreview(lastCur, answers, lastCur.quality);
     savePrev(lastCur);
     // 상세 분석까지 한 번에 렌더(로그인은 데모 시작 시 이미 완료 → 별도 게이트 불필요)
@@ -2110,6 +2171,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // 레시피 화면 → 결과로 돌아가기
   $("recipeBack").addEventListener("click", function(){ showScreen("screenResult"); });
   $("recipeBack2").addEventListener("click", function(){ showScreen("screenResult"); });
+  // 한 장 리포트 저장(PDF)
+  $("dlReport").addEventListener("click", openOnePager);
 </script>
 
 <!-- 방문 여정 기록(홈→데모 연결) — Supabase journey_events -->
