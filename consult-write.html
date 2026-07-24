@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>식습관 상담 글쓰기 · Chewstep</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/assets/css/site.css" />
+<style>
+  body{ background:var(--bg-soft); }
+  .wrap-w{ max-width:720px; margin:0 auto; padding:40px 20px 80px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+  .topbar .brand{ display:inline-flex; align-items:center; gap:8px; font-weight:800; color:var(--ink); text-decoration:none; letter-spacing:-.02em; font-size:18px; }
+  .topbar .brand .logo{ width:30px;height:30px;display:grid;place-items:center;background:var(--brand);border-radius:9px; }
+  .back{ font-size:14px; font-weight:600; color:var(--ink-soft); text-decoration:none; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow-md); padding:30px 28px; }
+  .card h1{ font-size:24px; color:var(--ink); letter-spacing:-.02em; font-weight:800; margin-bottom:6px; }
+  .card .sub{ font-size:14px; color:var(--ink-soft); margin-bottom:22px; line-height:1.6; }
+  .nurse-note{ display:flex; gap:10px; align-items:flex-start; background:var(--brand-tint); border:1px solid rgba(130,154,109,.28); border-radius:12px; padding:12px 14px; margin-bottom:22px; font-size:13px; color:var(--ink-2); line-height:1.6; }
+  .nurse-note b{ color:var(--brand-deep); }
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:7px; }
+  .field .hint{ font-weight:500; color:var(--ink-soft); }
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
+    width:100%; border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+    font-size:15px; font-family:inherit; color:var(--ink); background:#fff; box-sizing:border-box; }
+  .field textarea{ min-height:200px; resize:vertical; line-height:1.6; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--brand); outline-offset:1px; border-color:var(--brand); }
+  .row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .row .field{ flex:1; min-width:160px; }
+  /* 공개/비공개 선택 */
+  .privacy{ margin:4px 0 22px; }
+  .privacy legend{ font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:9px; }
+  .privacy .opts{ display:flex; gap:12px; flex-wrap:wrap; }
+  .privacy .opt{ flex:1; min-width:220px; border:1.5px solid var(--line); border-radius:14px; padding:14px 16px; cursor:pointer; display:flex; gap:11px; align-items:flex-start; transition:border-color .15s, background .15s; }
+  .privacy .opt:has(input:checked){ border-color:var(--brand); background:var(--brand-tint); }
+  .privacy .opt input{ margin-top:3px; }
+  .privacy .opt .t{ font-size:14px; font-weight:800; color:var(--ink); }
+  .privacy .opt .d{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin-top:3px; }
+  .actions{ display:flex; gap:12px; align-items:center; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:12px; font-weight:800; font-size:15px; text-decoration:none; border:none; cursor:pointer; }
+  .btn-primary{ background:var(--brand); color:#fff; }
+  .btn-primary:disabled{ opacity:.55; cursor:default; }
+  .btn-ghost{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+  .msg{ margin-top:16px; font-size:14px; font-weight:600; padding:12px 14px; border-radius:12px; display:none; }
+  .msg.show{ display:block; }
+  .msg.ok{ background:var(--brand-tint); color:var(--brand-deep); }
+  .msg.err{ background:var(--amber-tint); color:var(--amber); }
+  .gate{ text-align:center; padding:48px 20px; }
+  .gate h1{ font-size:22px; color:var(--ink); font-weight:800; margin-bottom:10px; }
+  .gate p{ color:var(--ink-soft); font-size:15px; margin-bottom:20px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap-w">
+  <div class="topbar">
+    <a href="/" class="brand"><span class="logo">🥣</span> Chewstep</a>
+    <a href="/consult.html" class="back" id="backLink">← 상담 목록으로</a>
+  </div>
+
+  <div class="card" id="loading"><p class="sub" style="margin:0">확인 중…</p></div>
+
+  <!-- 비로그인 -->
+  <div class="card gate" id="gate" style="display:none;">
+    <h1>로그인 후 상담을 남길 수 있어요</h1>
+    <p>아이 식습관 정보를 안전하게 보호하기 위해, 1:1 상담은 로그인한 보호자만 작성할 수 있어요.</p>
+    <a class="btn btn-primary" id="gateLogin" href="/login.html?next=/consult-write.html">로그인하기</a>
+  </div>
+
+  <!-- 글쓰기 폼 -->
+  <form class="card" id="form" style="display:none;">
+    <h1>👩‍⚕️ 식습관 상담 남기기</h1>
+    <p class="sub">소아과 간호사가 확인 후 답변해 드려요. 아이의 상황을 구체적으로 적어주실수록 도움이 됩니다.</p>
+    <div class="nurse-note">
+      <span aria-hidden="true">⚠️</span>
+      <span><b>의료 진단·응급 상담은 어렵습니다.</b> 사레·삼킴 곤란·체중 감소 등 이상 신호가 있으면 소아청소년과 등 전문 의료기관에 먼저 문의해 주세요.</span>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="fCategory">상담 분류</label>
+        <select id="fCategory">
+          <option>씹기·삼키기</option>
+          <option>뱉기·머금기</option>
+          <option>편식·거부</option>
+          <option>식사시간·양</option>
+          <option>이유식 진행</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fAge">아이 월령 <span class="hint">(선택)</span></label>
+        <input type="number" id="fAge" min="1" max="120" inputmode="numeric" placeholder="예: 14" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fName">표시 이름 <span class="hint">(선택 · 비우면 ‘보호자’로 표시)</span></label>
+      <input type="text" id="fName" maxlength="20" placeholder="예: 서아맘" />
+    </div>
+
+    <div class="field">
+      <label for="fTitle">제목</label>
+      <input type="text" id="fTitle" maxlength="120" placeholder="예: 15개월 아이가 고기를 자꾸 뱉어요" required />
+    </div>
+
+    <div class="field">
+      <label for="fBody">상담 내용</label>
+      <textarea id="fBody" placeholder="아이의 월령, 지금 먹는 음식 형태, 어떤 상황에서 어떤 모습을 보이는지 등을 적어주세요. 줄바꿈은 그대로 표시됩니다." required></textarea>
+    </div>
+
+    <fieldset class="privacy">
+      <legend>이 상담을 공개할까요?</legend>
+      <div class="opts">
+        <label class="opt">
+          <input type="radio" name="privacy" value="private" checked />
+          <span><span class="t">🔒 비공개</span><span class="d">나와 간호사(관리자)만 볼 수 있어요. 아이 개인정보가 걱정되면 이 옵션을 권장해요.</span></span>
+        </label>
+        <label class="opt">
+          <input type="radio" name="privacy" value="public" />
+          <span><span class="t">🌐 공개</span><span class="d">질문과 답변을 다른 보호자도 볼 수 있어요. 비슷한 고민을 가진 분들에게 도움이 돼요.</span></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" id="submitBtn">상담 남기기</button>
+      <a href="/consult.html" class="btn btn-ghost" id="cancelBtn">취소</a>
+    </div>
+    <div class="msg" id="msg"></div>
+  </form>
+</div>
+
+<script type="module">
+  import { supabase } from "/assets/js/supabase.js";
+  const $ = function (id) { return document.getElementById(id); };
+  const show = (el) => { el.style.display = ""; };
+  const hide = (el) => { el.style.display = "none"; };
+
+  (async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      hide($("loading")); show($("gate"));
+      $("gateLogin").href = "/login.html?next=" + encodeURIComponent("/consult-write.html");
+      return;
+    }
+    // 표시 이름 기본값: 프로필 display_name
+    try {
+      const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", session.user.id).maybeSingle();
+      if (prof && prof.display_name) $("fName").value = prof.display_name;
+    } catch (e) {}
+
+    hide($("loading")); show($("form"));
+
+    $("form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const title = $("fTitle").value.trim();
+      const body = $("fBody").value.trim();
+      const msg = $("msg");
+      if (!title || !body) {
+        msg.className = "msg err show"; msg.textContent = "제목과 내용을 모두 입력해 주세요."; return;
+      }
+      const ageRaw = parseInt($("fAge").value, 10);
+      const isPublic = (document.querySelector('input[name="privacy"]:checked') || {}).value === "public";
+      $("submitBtn").disabled = true;
+      msg.className = "msg show"; msg.textContent = "상담 등록 중…";
+      const { error } = await supabase.from("consultations").insert({
+        user_id: session.user.id,
+        author_name: ($("fName").value || "").trim() || null,
+        child_age_months: isNaN(ageRaw) ? null : ageRaw,
+        category: $("fCategory").value,
+        title: title,
+        body: body,
+        is_public: isPublic,
+      });
+      if (error) {
+        $("submitBtn").disabled = false;
+        msg.className = "msg err show";
+        msg.textContent = "등록에 실패했어요: " + (error.message || "알 수 없는 오류");
+        return;
+      }
+      msg.className = "msg ok show"; msg.textContent = "상담이 등록됐어요! 목록으로 이동합니다…";
+      setTimeout(function () { location.href = "/consult.html"; }, 900);
+    });
+  })();
+</script>
+</body>
+</html>
