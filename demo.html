@@ -1114,11 +1114,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       add(RULES.texture[a.food_texture]);
       add(RULES.exposure[a.exposure_count]);
     }
+    // 영상(CV) 판독 정확도가 낮아 영상 신호는 보조(약 30%)로만 반영 — 설문이 결과를 주도.
+    const VIDEO_WEIGHT = 0.3;
+    const surveyBest = Math.max(score.interval, score.texture, score.expectation, score.repetition);
     const longPause = metrics && metrics.pause_count!=null && metrics.samples && (metrics.pause_count/metrics.samples > 0.15);
-    if(cur.quality==="low_motion" || cur.cpm<25 || longPause) add(RULES.videoLowMotion);
+    if(cur.quality==="low_motion" || cur.cpm<25 || longPause) add({ texture: (RULES.videoLowMotion.texture||1) * VIDEO_WEIGHT });
     let top=null, best=-1;
     for(const key of RULES.priority){ if((score[key]||0) > best){ best = score[key]; top = key; } }
-    if(best<=0) top = "unclear";
+    // 설문에 실질 신호가 없고(영상만) 점수가 약하면 판단 보류 — 부정확한 영상만으로 단정하지 않음
+    if(surveyBest < 1 && best < 1) top = "unclear";
+    else if(best<=0) top = "unclear";
     const p = RULES.possibility[top] || RULES.possibility.unclear;
     const confidence = cur.quality==="high" ? "high" : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium");
     const tips = (p.tips || []).slice();
