@@ -96,9 +96,12 @@
   .sec-head h2 { font-size:clamp(22px,3vw,30px); color:var(--ink); margin:6px 0 0; letter-spacing:-.01em; }
   .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:880px; margin:0 auto; text-align:left; }
   .step { background:#fff; border:1px solid var(--line); border-radius:18px; padding:24px 22px; box-shadow:var(--shadow-sm); }
-  .step .n { width:36px; height:36px; border-radius:11px; background:var(--brand-tint); color:var(--brand-deep);
-    display:grid; place-items:center; font-family:var(--font-head,inherit); font-size:17px; margin-bottom:13px; }
+  .step .step-ic { display:block; font-size:25px; line-height:1; margin-bottom:8px; }
+  .step .n { width:32px; height:32px; border-radius:10px; background:var(--brand-tint); color:var(--brand-deep);
+    display:grid; place-items:center; font-family:var(--font-head,inherit); font-size:15px; margin-bottom:12px; }
   .step h3 { font-size:16.5px; color:var(--ink); margin:0 0 6px; }
+  .step h3 .t { display:inline-block; font-size:11.5px; font-weight:700; color:var(--brand-deep);
+    background:var(--brand-tint); border-radius:999px; padding:2px 8px; margin-left:5px; vertical-align:middle; font-family:var(--font,inherit); }
   .step p { font-size:14px; color:var(--ink-soft); line-height:1.6; margin:0; }
 
   /* 기관용 띠배너 */
@@ -167,19 +170,22 @@
         </div>
         <div class="steps">
           <div class="step reveal">
+            <span class="step-ic" aria-hidden="true">📱</span>
             <div class="n">1</div>
-            <h3>식사 영상 올리기</h3>
-            <p>아이의 입과 얼굴이 보이는 식사 영상을 올려주세요. (지금 촬영도 가능해요)</p>
+            <h3>식사 영상 올리기 <span class="t">1분</span></h3>
+            <p>평소 밥 먹는 영상이나 지금 찍은 30초 영상이면 충분해요.</p>
           </div>
           <div class="step reveal">
+            <span class="step-ic" aria-hidden="true">📝</span>
             <div class="n">2</div>
-            <h3>몇 가지 질문 답하기</h3>
-            <p>식사 간격, 음식 종류, 요즘 가장 큰 고민을 알려주세요.</p>
+            <h3>간단한 고민 체크 <span class="t">1분</span></h3>
+            <p>요즘 가장 답답했던 식습관 고민 몇 가지만 알려주세요.</p>
           </div>
           <div class="step reveal">
+            <span class="step-ic" aria-hidden="true">💡</span>
             <div class="n">3</div>
-            <h3>다음 식사 방법 확인하기</h3>
-            <p>관찰된 모습과 다음 식사에서 바로 시도할 한 가지를 확인하세요.</p>
+            <h3>맞춤 해결책 확인 <span class="t">즉시</span></h3>
+            <p>씹는 패턴 분석과 함께 오늘 저녁 바로 바꿀 한 가지를 받아보세요.</p>
           </div>
         </div>
 
