@@ -104,11 +104,11 @@
   .sec-head { text-align:center; margin:64px auto 22px; }
   .sec-head .k { font-size:13px; font-weight:800; color:var(--brand-deep); letter-spacing:.02em; }
   .sec-head h2 { font-size:clamp(22px,3vw,30px); color:var(--ink); margin:6px 0 0; letter-spacing:-.01em; }
-  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:880px; margin:0 auto; text-align:left; }
+  .steps { display:flex; align-items:center; gap:8px; max-width:920px; margin:0 auto; text-align:left; }
+  .steps .step { flex:1; }
   .step { background:#fff; border:1px solid var(--line); border-radius:18px; padding:24px 22px; box-shadow:var(--shadow-sm); }
-  .step .step-ic { display:block; font-size:25px; line-height:1; margin-bottom:8px; }
-  .step .n { width:32px; height:32px; border-radius:10px; background:var(--brand-tint); color:var(--brand-deep);
-    display:grid; place-items:center; font-family:var(--font-head,inherit); font-size:15px; margin-bottom:12px; }
+  .step .step-ic { display:block; font-size:30px; line-height:1; margin-bottom:12px; }
+  .step-arrow { flex:none; font-size:22px; font-weight:800; color:var(--brand); line-height:1; }
   .step h3 { font-size:16.5px; color:var(--ink); margin:0 0 6px; }
   .step h3 .t { display:inline-block; font-size:11.5px; font-weight:700; color:var(--brand-deep);
     background:var(--brand-tint); border-radius:999px; padding:2px 8px; margin-left:5px; vertical-align:middle; font-family:var(--font,inherit); }
@@ -131,7 +131,8 @@
   .hub-foot b { color:var(--ink-2); }
 
   @media (max-width:720px){
-    .steps { grid-template-columns:1fr; }
+    .steps { flex-direction:column; align-items:stretch; }
+    .step-arrow { align-self:center; transform:rotate(90deg); margin:2px 0; }
     .hero-illus { border-radius:20px; }
     .nav-links a.lnk { display:none; }            /* 모바일: 텍스트 메뉴 숨김, 기관·로그인만 */
     .nav-links a.inst-cta, .nav-links a.lnk.login { display:inline-block; }
@@ -181,19 +182,18 @@
         <div class="steps">
           <div class="step reveal">
             <span class="step-ic" aria-hidden="true">📱</span>
-            <div class="n">1</div>
             <h3>식사 영상 올리기 <span class="t">1분</span></h3>
             <p>평소 밥 먹는 영상이나 지금 찍은 30초 영상이면 충분해요.</p>
           </div>
+          <div class="step-arrow reveal" aria-hidden="true">→</div>
           <div class="step reveal">
             <span class="step-ic" aria-hidden="true">📝</span>
-            <div class="n">2</div>
             <h3>간단한 고민 체크 <span class="t">1분</span></h3>
             <p>요즘 가장 답답했던 식습관 고민 몇 가지만 알려주세요.</p>
           </div>
+          <div class="step-arrow reveal" aria-hidden="true">→</div>
           <div class="step reveal">
             <span class="step-ic" aria-hidden="true">💡</span>
-            <div class="n">3</div>
             <h3>맞춤 해결책 확인 <span class="t">즉시</span></h3>
             <p>씹는 패턴 분석과 함께 오늘 저녁 바로 바꿀 한 가지를 받아보세요.</p>
           </div>

@@ -275,6 +275,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rp-safe .lab{font-size:11px;font-weight:800;letter-spacing:.04em;color:#8a6516;text-transform:uppercase;margin-bottom:7px;}
   .rp-safe .row{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;color:#5b3a02;margin-bottom:5px;}
   .rp-safe .row .dot{width:6px;height:6px;border-radius:50%;background:#ba7517;margin-top:6px;flex:none;}
+  .rp-check .item{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .rp-check .item:first-child{border-top:none;}
+  .rp-check .cb{width:18px;height:18px;border-radius:5px;border:1.6px solid var(--line);flex:none;margin-top:1px;display:grid;place-items:center;color:#fff;font-size:11px;transition:background .15s,border-color .15s;}
+  .rp-check .item.on .cb{background:var(--brand);border-color:var(--brand);}
+  .rp-check .item.on .cb::after{content:"✓";}
+  .rp-check .tx{font-size:13.5px;color:var(--ink);line-height:1.5;}
+  .rp-check .item.on .tx{color:var(--ink-soft);text-decoration:line-through;}
+  .rp-check .d{font-weight:800;color:var(--brand-deep);margin-right:3px;}
   .rp-note{font-size:11.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5;}
   .rp-ai{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(130,154,109,.16);color:var(--brand-deep);vertical-align:middle;}
   @media(max-width:520px){.rp-grid{grid-template-columns:1fr;}}
@@ -1811,6 +1819,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const normal = REPORT.normal[poss] || REPORT.normal.unclear;
     const concernLabel = a.concern_type || null;
     const li = arr => arr.map(s => `<div class="row"><span class="dot"></span><span>${escapeHtml(s)}</span></div>`).join("");
+    // 며칠 미니 체크 — 팁에서 핵심만 뽑아 3개
+    const shortTip = t => String(t).replace(/<[^>]+>/g,"").split(/\s—\s|\(|\.\s|\. /)[0].trim();
+    const checks = [];
+    const plainTips = tips.map(shortTip).filter(Boolean);
+    if(plainTips[0]) checks.push(["오늘 저녁", plainTips[0]]);
+    if(plainTips[1]) checks.push(["내일", plainTips[1]]);
+    checks.push(["살펴보기", "아이가 뱉는 횟수·씹는 시간이 조금씩 달라지는지 관찰하기"]);
     box.style.display = "";
     const dl = $("reportDl"); if(dl) dl.style.display = "";
     box.innerHTML =
@@ -1825,12 +1840,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         `<div class="rp-sig warn"><div class="lab">이럴 땐 상담 받아보세요</div>${li(REPORT.consult)}</div>`+
       `</div></div>`+
       `<div class="rp-safe"><div class="lab">사레가 걸렸을 때</div>${li(REPORT.safe)}</div>`+
+      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">4</span> 며칠만 해볼까요? · 미니 체크</div>`+
+        `<div class="rp-check">${checks.map(c=>`<div class="item"><span class="cb"></span><span class="tx"><span class="d">${escapeHtml(c[0])}</span> ${escapeHtml(c[1])}</span></div>`).join("")}</div></div>`+
       `<p class="rp-note">※ 발달 단계 진단이 아니라, 오늘 관찰과 입력을 바탕으로 한 <b>참고용 코칭</b>이에요. 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의해 주세요.</p>`;
   }
 
   // ── 한 장 리포트(PDF) — 핵심만 A4 한 장, 새 창에서 인쇄/저장 ──
-  function onePagerHtml(){
+  function onePagerHtml(recipe){
     const cur = lastCur || {}, a = lastAnswers || {};
+    const rLiked = (recipeInput && recipeInput.liked) || "", rPractice = (recipeInput && recipeInput.practice) || "";
     const coach = computeCoaching(cur, lastMetrics, a);
     const ai = lastCoachAi;
     const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -1871,17 +1889,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `<div class="lab">이번에 관찰된 모습</div><div class="obs">${esc(metric)}</div>`+
       `<div class="lab">가장 먼저 확인해볼 점${ai?" (AI 맞춤)":""}</div><div class="diag">${firstCheck}</div>`+
       `<div class="sol"><div class="lab" style="color:#a55b0e;margin-top:0">💡 오늘 저녁 바로 시도할 팁</div><ul>${tipLi}</ul></div>`+
+      ((recipe && recipe.menu) ? (
+        `<div class="lab">🍳 식감 연결 레시피${(rLiked&&rPractice)?` — ${esc(rLiked)} + ${esc(rPractice)}`:""}</div>`+
+        `<div class="sol"><div style="font-weight:800;color:#5f7a4f;margin-bottom:4px">${esc(recipe.menu)}</div>`+
+        (recipe.reason?`<div style="font-size:12.5px;color:#5e544a;margin-bottom:6px">${esc(recipe.reason)}</div>`:"")+
+        ((recipe.firstTry&&recipe.firstTry.length)?`<ul>${recipe.firstTry.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"")+
+        (recipe.nextStep?`<div style="font-size:12.5px;margin-top:6px"><b>다음 단계</b> · ${esc(recipe.nextStep)}</div>`:"")+
+        `</div>`
+      ) : "")+
       `<div class="consult"><b>이럴 땐 상담 받아보세요</b><ul>${consultLi}</ul></div>`+
       `<div class="foot">※ 발달 단계 진단이 아니라 오늘 관찰·입력 기반 참고용 코칭입니다. 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의하세요. · © 2026 Chewstep</div>`+
       `</div></body></html>`;
   }
-  function openOnePager(){
+  async function openOnePager(){
+    // 팝업 차단 회피 위해 클릭 즉시 빈 창부터 연다
+    const w = window.open("", "_blank");
+    if(!w){ alert("팝업이 차단됐어요. 팝업을 허용한 뒤 다시 눌러 주세요."); return; }
+    try{ w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;color:#5f7a4f;padding:24px">리포트를 준비하고 있어요…</p>'); }catch(e){}
+    // 레시피 입력이 있으면 함께 담기 위해 미리 조회(키 없으면 템플릿)
+    let recipe = null;
+    if(recipeInput){ try{ const out = await fetchRecipe(recipeInput.liked, recipeInput.practice, recipeInput.ctx); if(out && out.recipes && out.recipes.length){ recipe = out.recipes.find(r=>r.suitable!==false) || out.recipes[0]; } }catch(e){} }
     try{
-      const w = window.open("", "_blank");
-      if(!w){ alert("팝업이 차단됐어요. 팝업을 허용한 뒤 다시 눌러 주세요."); return; }
-      w.document.open(); w.document.write(onePagerHtml()); w.document.close();
-      if(window.csLog) window.csLog("demo_report_download", { possibility: (computeCoaching(lastCur, lastMetrics, lastAnswers)||{}).possibility });
-    }catch(e){ alert("리포트를 여는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."); }
+      w.document.open(); w.document.write(onePagerHtml(recipe)); w.document.close();
+      if(window.csLog) window.csLog("demo_report_download", { possibility: (computeCoaching(lastCur, lastMetrics, lastAnswers)||{}).possibility, withRecipe: !!recipe });
+    }catch(e){ try{ w.close(); }catch(_){} alert("리포트를 여는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."); }
   }
 
   // ── 상세 결과 섹션(로그인 후) ── (ai: coach LLM 결과가 있으면 반영, 없으면 규칙엔진)
@@ -2173,6 +2204,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   $("recipeBack2").addEventListener("click", function(){ showScreen("screenResult"); });
   // 한 장 리포트 저장(PDF)
   $("dlReport").addEventListener("click", openOnePager);
+  // 미니 체크 토글(리포트가 재렌더돼도 부모(#secReport)에 위임)
+  $("secReport").addEventListener("click", function(e){ const it = e.target.closest && e.target.closest(".rp-check .item"); if(it) it.classList.toggle("on"); });
 </script>
 
 <!-- 방문 여정 기록(홈→데모 연결) — Supabase journey_events -->
