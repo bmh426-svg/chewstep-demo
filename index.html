@@ -44,8 +44,10 @@
   .hero-copy { text-align:left; }
   .hero-copy h1 { margin:16px 0 16px; }
   .hero-copy .sub { margin:0 0 26px; max-width:27em; }
-  .hero-art img { display:block; width:100%; height:auto; border-radius:24px;
-    box-shadow:0 20px 46px rgba(90,70,45,.16); border:1px solid rgba(236,226,211,.9); }
+  /* 옆 공간 일러스트 — 희미하게(반투명 + 가장자리 페이드로 배경에 녹아들게) */
+  .hero-art img { display:block; width:100%; height:auto; border-radius:22px; opacity:.6;
+    -webkit-mask-image:radial-gradient(78% 82% at 55% 45%, #000 50%, transparent 92%);
+            mask-image:radial-gradient(78% 82% at 55% 45%, #000 50%, transparent 92%); }
   @media (max-width:900px){
     .hero-grid { grid-template-columns:1fr; gap:20px; text-align:center; max-width:560px; }
     .hero-copy { text-align:center; }
