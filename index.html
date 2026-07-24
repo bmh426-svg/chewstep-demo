@@ -70,6 +70,14 @@
   .cta-login { margin:15px 0 0; font-size:14px; color:var(--ink-soft); }
   .cta-login a { color:var(--brand-deep); font-weight:700; text-decoration:none; }
   .cta-login a:hover { text-decoration:underline; }
+  /* 데모 + 상담 나란히 */
+  .cta-row { display:flex; gap:14px; justify-content:center; align-items:stretch; flex-wrap:wrap; }
+  .cta-secondary { display:inline-flex; align-items:center; gap:9px; font-family:var(--font-head,inherit);
+    font-size:clamp(16px,1.9vw,20px); font-weight:800; color:var(--brand-deep); background:#fff;
+    border:1.5px solid rgba(130,154,109,.5); border-radius:16px; padding:17px 30px; box-shadow:var(--shadow-sm);
+    text-decoration:none; cursor:pointer; transition:transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .22s, border-color .18s; }
+  .cta-secondary:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--brand); }
+  @media (max-width:520px){ .cta-row { flex-direction:column; } .cta-row .cta-primary, .cta-row .cta-secondary { justify-content:center; } }
 
   /* 결과 미리보기 — 코칭 리포트 느낌 */
   .result-demo { max-width:600px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:20px;
@@ -173,7 +181,10 @@
         <h1>안 먹는 우리 아이, 이유가 뭘까요?<br /><span class="accent">3분 식사 영상으로 원인부터 해결책까지</span></h1>
         <p class="sub">씹는 모습과 식사 패턴을 분석해, <b>오늘 저녁 식사에서 바로 적용할 한 가지</b>를 알려드릴게요.</p>
         <div>
-          <a href="/demo.html" class="cta-primary">무료로 식사 분석 시작하기 <span class="arrow">→</span></a>
+          <div class="cta-row">
+            <a href="/demo.html" class="cta-primary">무료로 식사 분석 시작하기 <span class="arrow">→</span></a>
+            <a href="/consult.html" class="cta-secondary">👩‍⚕️ 1:1 상담하기</a>
+          </div>
           <p class="cta-micro">약 3분 소요 <span class="sep">·</span> 영상 분석 후 미저장 <span class="sep">·</span> 결과 바로 확인</p>
           <p class="cta-login">이미 분석한 적이 있나요? <a href="/login.html">내 결과 확인하기 →</a></p>
         </div>
