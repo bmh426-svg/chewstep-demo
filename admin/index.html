@@ -133,6 +133,12 @@
   <div class="wrap">
     <!-- 대시보드 -->
     <div class="view on" id="view-dash">
+      <div id="testFilterBar" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:12.5px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--soft)">
+          <input type="checkbox" id="hideTest" checked /> 테스트 계정 제외
+        </label>
+        <span id="testFilterNote" class="muted"></span>
+      </div>
       <div class="cards" id="statCards"></div>
       <h3 style="font-size:13px;color:var(--soft);margin:8px 0 10px;">최근 분석</h3>
       <div class="tbl-wrap"><table id="recentTbl"></table></div>
@@ -259,6 +265,14 @@ let INQ = [];   // inquiries
 let USERS = []; // profiles
 let AUDIT = []; // audit_logs
 
+// 테스트 계정(대시보드·분석·피드백 통계에서 제외) — 이메일 기준. 계정 추가/제거는 여기만 수정.
+const TEST_EMAILS = ["chewstep.e2e@gmail.com","chewstep.b2b.guardian@gmail.com","qwert@naver.com","asd@naver.com"];
+let TEST_UIDS = new Set();   // 위 이메일에 해당하는 user_id 집합(loadAll에서 계산)
+let HIDE_TEST = true;        // 기본: 테스트 제외
+let VIS = [];                // 통계 표시 대상(테스트 제외 반영) — renderUsers는 원본 ALL 사용
+function isTestRow(r){ return !!(r && r.user_id && TEST_UIDS.has(r.user_id)); }
+function recomputeVis(){ VIS = HIDE_TEST ? ALL.filter(r=>!isTestRow(r)) : ALL.slice(); }
+
 function maskEmail(e){ if(!e) return ""; const [a,b]=String(e).split("@"); if(!b) return "***"; return a.slice(0,2)+"***@"+b; }
 function answersOf(r){ return r.answers||{}; }
 function metricsOf(r){ return r.video_metrics||{}; }
@@ -323,6 +337,8 @@ async function loadAll(){
   USERS = pf||[];
   const { data:ad } = await supabase.from("audit_logs").select("*").order("created_at",{ascending:false}).limit(500);
   AUDIT = ad||[];
+  TEST_UIDS = new Set((USERS||[]).filter(u=>u.email && TEST_EMAILS.includes(String(u.email).toLowerCase())).map(u=>u.id));
+  recomputeVis();
   renderDash(); renderAnalyses(); renderFeedback(); renderUsers(); renderAudit(); renderInquiries();
 }
 
@@ -363,12 +379,17 @@ function setupLiveUpdates(){
 
 /* ---------- 대시보드 ---------- */
 function renderDash(){
-  const total=ALL.length;
-  const today=ALL.filter(r=>{ const d=new Date(r.created_at); const n=new Date(); return d.toDateString()===n.toDateString(); }).length;
-  const success=ALL.filter(r=>r.status==="completed").length;
-  const lowq=ALL.filter(r=>r.status && r.status!=="completed").length;
-  const fbCount=ALL.filter(hasFb).length;
-  const reuseYes=ALL.filter(r=>fbOf(r).reuse_intent==="yes").length;
+  const excluded = ALL.filter(isTestRow).length;
+  const note=$("testFilterNote");
+  if(note) note.textContent = HIDE_TEST
+    ? `테스트 ${excluded}건 제외됨 · 표시 ${VIS.length} / 전체 ${ALL.length}건`
+    : `테스트 포함 · 전체 ${ALL.length}건`;
+  const total=VIS.length;
+  const today=VIS.filter(r=>{ const d=new Date(r.created_at); const n=new Date(); return d.toDateString()===n.toDateString(); }).length;
+  const success=VIS.filter(r=>r.status==="completed").length;
+  const lowq=VIS.filter(r=>r.status && r.status!=="completed").length;
+  const fbCount=VIS.filter(hasFb).length;
+  const reuseYes=VIS.filter(r=>fbOf(r).reuse_intent==="yes").length;
   const cards=[
     ["전체 분석",total],
     ["오늘 분석",today],
@@ -381,7 +402,7 @@ function renderDash(){
   $("statCards").innerHTML = cards.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
   // 최근 8건
   $("recentTbl").innerHTML = tblHead(["일시","월령","고민","품질","상태","피드백"]) +
-    "<tbody>"+ALL.slice(0,8).map(r=>rowAnalysis(r,true)).join("")+"</tbody>";
+    "<tbody>"+VIS.slice(0,8).map(r=>rowAnalysis(r,true)).join("")+"</tbody>";
   bindRows("recentTbl");
 }
 
@@ -404,7 +425,7 @@ function rowAnalysis(r,short){
 }
 function filtered(){
   const st=$("fStatus").value, fb=$("fFeedback").value, q=$("fSearch").value.trim().toLowerCase();
-  return ALL.filter(r=>{
+  return VIS.filter(r=>{
     if(st && r.status!==st) return false;
     if(fb==="yes" && !hasFb(r)) return false;
     if(fb==="no" && hasFb(r)) return false;
@@ -421,13 +442,14 @@ function renderAnalyses(){
   bindRows("analysesTbl");
 }
 ["fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
+$("hideTest").addEventListener("change", (e)=>{ HIDE_TEST=e.target.checked; recomputeVis(); renderDash(); renderAnalyses(); renderFeedback(); });
 $("uRefresh").addEventListener("click", loadAll);
 $("lgRefresh").addEventListener("click", loadAll);
 $("fAction").addEventListener("change", renderAudit);
 
 /* ---------- 피드백 목록 ---------- */
 function renderFeedback(){
-  const rows=ALL.filter(hasFb);
+  const rows=VIS.filter(hasFb);
   $("feedbackTbl").innerHTML = tblHead(["일시","고민","도움","재사용","가장 도움된 부분","의견"]) +
     (rows.length?("<tbody>"+rows.map(r=>{ const f=fbOf(r);
       return `<tr data-id="${esc(r.id)}"><td>${fmtDt(r.created_at)}</td><td class="wrap-cell">${esc(concernOf(r))}</td>`+
