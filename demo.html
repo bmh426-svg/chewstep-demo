@@ -489,7 +489,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <span style="color:var(--ink-faint)">끊긴 구간 = 얼굴 놓침</span>
       </div>
     </div>
-    <p class="note">분석 엔진: MediaPipe FaceLandmarker (v2-relaxed · 검출 신뢰도 0.3) · 씹기 기준 열림 0.15 / 닫힘 0.06.</p>
+    <p class="note">분석 엔진: MediaPipe FaceLandmarker (v2-relaxed · 검출 신뢰도 0.3) · 씹기 기준 열림 0.11 / 닫힘 0.07 (최소 간격 0.15초).</p>
   </section>
 
   <!-- ===== 화면 3 · 영상 정보(보호자 설문) ===== -->
@@ -620,7 +620,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
   const $ = id => document.getElementById(id);
-  const OPEN = 0.15, CLOSE = 0.06;
+  // 씹기 검출 문턱 — 과소 검출(작은·부분 씹기 놓침) 완화: 열림 낮추고 닫힘 올림. MIN_CHEW_DT는 지터 중복카운트 방지.
+  const OPEN = 0.11, CLOSE = 0.07, MIN_CHEW_DT = 0.15;
   // 아이폰 고효율(HEVC/.mov) 업로드본은 브라우저가 프레임·소리를 못 읽는 경우가 있음 → 정확한 안내
   const IOS_MOV_HINT = "이 영상은 브라우저가 잘 읽지 못했어요 — 아이폰 ‘고효율(HEVC/.mov)’ 영상일 수 있어요. <b>‘지금 바로 촬영’</b>을 쓰거나, 아이폰 <b>설정 → 카메라 → 포맷 → ‘높은 호환성’</b>으로 바꿔 다시 찍어 주세요.";
 
@@ -755,7 +756,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(jo>=OPEN) openCnt++;
       let chewed=false;
       if(state==="closed" && jo>=OPEN) state="open";
-      else if(state==="open" && jo<=CLOSE){ chew++; state="closed"; chewed=true; lastChewT=t; }
+      else if(state==="open" && jo<=CLOSE){ state="closed"; if(t - lastChewT >= MIN_CHEW_DT){ chew++; chewed=true; lastChewT=t; } }
       drawFace(res.faceLandmarks && res.faceLandmarks[0], chewed);
       $("mJaw").textContent = jo.toFixed(2);
       // landmark 추출 결과 시계열 기록(얼굴 검출 프레임만, 상한까지)
