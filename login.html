@@ -69,6 +69,9 @@
       <div class="field">
         <label for="pw">비밀번호</label>
         <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password" />
+        <div id="forgotRow" style="text-align:right;margin-top:8px;">
+          <a href="#" id="forgotLink" style="font-size:12.5px;color:var(--brand-deep);font-weight:700;text-decoration:none;">비밀번호를 잊으셨나요?</a>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" id="submitBtn">로그인 <span class="arrow">→</span></button>
       <div class="lmsg" id="lmsg"></div>
@@ -157,6 +160,7 @@
   const submitBtn = document.getElementById("submitBtn");
   const toggleText = document.getElementById("toggleText");
   const modeToggle = document.getElementById("modeToggle");
+  const forgotRow = document.getElementById("forgotRow");
   modeToggle.addEventListener("click", function (e) {
     e.preventDefault();
     mode = (mode === "login") ? "signup" : "login";
@@ -164,12 +168,35 @@
       submitBtn.innerHTML = "가입하고 시작하기 <span class='arrow'>→</span>";
       toggleText.textContent = "이미 계정이 있으신가요?";
       modeToggle.textContent = "로그인";
+      forgotRow.style.display = "none";     // 가입 모드에선 비밀번호 찾기 숨김
     } else {
       submitBtn.innerHTML = "로그인 <span class='arrow'>→</span>";
       toggleText.textContent = "처음이신가요?";
       modeToggle.textContent = "가입하기";
+      forgotRow.style.display = "";
     }
     msg.className = "lmsg";
+  });
+
+  // 비밀번호 찾기 — 입력한 이메일로 재설정 메일 발송(메일 링크 → /reset-password.html)
+  document.getElementById("forgotLink").addEventListener("click", async function (e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    if (!email) {
+      showMsg("가입하신 이메일을 먼저 입력한 뒤 ‘비밀번호를 잊으셨나요?’를 눌러 주세요.");
+      document.getElementById("email").focus();
+      return;
+    }
+    showMsg("재설정 메일을 보내는 중…", true);
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + "/reset-password.html"
+    });
+    if (error) {
+      showMsg("메일 전송에 실패했어요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>");
+      return;
+    }
+    // 계정 존재 여부를 노출하지 않도록 항상 동일한 안내(보안)
+    showMsg("<b>" + email + "</b> 주소로 가입돼 있다면 비밀번호 재설정 메일이 도착합니다.<br>메일의 링크를 열어 새 비밀번호를 설정해 주세요. (안 보이면 스팸함도 확인해 주세요.)", true);
   });
 
   document.getElementById("loginForm").addEventListener("submit", async function (e) {
