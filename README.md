@@ -17,7 +17,10 @@
 > ES 모듈을 쓰므로 **로컬에서는 웹서버로 열어야** 합니다(`python -m http.server 8000`).
 > `file://` 더블클릭 시 분석이 막힙니다. Vercel(https) 배포본에서는 정상 동작합니다.
 
-## 데이터 (Supabase 프로젝트 `adiqnrdgsmszmqvveoow`)
+## 데이터 (Supabase 프로젝트 `qwfskemfsrkmlrdttvqy` · 2026-07-26 통합)
+
+> 통합 전에는 B2C가 `adiqnrdgsmszmqvveoow`를 사용했으나, 단일 로그인·역할 라우팅을 위해
+> B2B 운영 프로젝트(`qwfskemfsrkmlrdttvqy`)로 계정·데이터를 통합했습니다. adiq는 백업으로 보존.
 
 - `demo_responses` — 체크리스트/영상 지표 익명 INSERT(동의 후). 개인 식별정보 미수집.
 - `journey_events` — 페이지 방문·클릭 등 익명 여정 기록.

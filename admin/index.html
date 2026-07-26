@@ -255,8 +255,9 @@
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPA_URL = "https://adiqnrdgsmszmqvveoow.supabase.co";
-const SUPA_KEY = "sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_";
+// 통합(2026-07-26): 관리자도 qwfsk 단일 프로젝트로 전환. [롤백용] 통합 전 adiq: URL adiqnrdgsmszmqvveoow / KEY sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_
+const SUPA_URL = "https://qwfskemfsrkmlrdttvqy.supabase.co";
+const SUPA_KEY = "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH";
 // 관리자 세션을 홈페이지 세션과 완전 분리한다.
 // 별도 storageKey → 홈에서 로그인해도 /admin은 자동으로 열리지 않고, 관리자 로그인을 따로 해야 함.
 const supabase = createClient(SUPA_URL, SUPA_KEY, {
@@ -316,9 +317,9 @@ async function boot(){
     const { data:{ user } } = await supabase.auth.getUser();
     const { data:prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     ME = prof;
-    $("whoami").textContent = user ? (user.email + (prof ? " · " + prof.role : "")) : "";
+    $("whoami").textContent = user ? (user.email + (prof ? " · " + (prof.user_type||prof.role||"관리자") : "")) : "";
     // 최근 로그인 기록(본인 행 last_login_at만 갱신 — 권한변경 트리거에 걸리지 않음)
-    supabase.from("profiles").update({ last_login_at: new Date().toISOString() }).eq("id", user.id).then(()=>{}, ()=>{});
+    // (통합 후 qwfsk profiles엔 last_login_at 컬럼이 없어 갱신 생략)
     // 감사 로그: 관리자 로그인 성공
     supabase.rpc("log_audit", { p_action:"login_success", p_target_type:"admin" }).then(()=>{}, ()=>{});
     $("loginWrap").style.display="none";
@@ -481,7 +482,8 @@ function renderFeedback(){
 }
 
 /* ---------- 사용자 목록 (오늘: 조회 전용) ---------- */
-const ROLE_LABEL={user:"보호자",staff:"어린이집",admin:"관리자",super_admin:"최고관리자"};
+const ROLE_LABEL={user:"보호자",staff:"어린이집",admin:"관리자",super_admin:"최고관리자",
+  parent:"부모",guardian:"기관보호자",teacher:"교사",center_director:"원장",chewstep_admin:"운영자"};
 function roleCls(r){ return (r==="admin"||r==="super_admin")?"ok":(r==="staff"?"warn":"mut"); }
 function renderUsers(){
   const cnt={}; ALL.forEach(r=>{ if(r.user_id) cnt[r.user_id]=(cnt[r.user_id]||0)+1; });
@@ -489,11 +491,11 @@ function renderUsers(){
   const body = USERS.map(u=>
     `<tr>`+
     `<td>${esc(u.email||"-")}</td>`+
-    `<td>${esc(u.display_name||"-")}</td>`+
-    `<td><span class="pill ${roleCls(u.role)}">${esc(ROLE_LABEL[u.role]||u.role||"-")}</span></td>`+
+    `<td>${esc(u.name||u.display_name||"-")}</td>`+
+    `<td><span class="pill ${roleCls(u.user_type||u.role)}">${esc(ROLE_LABEL[u.user_type||u.role]||u.user_type||u.role||"부모")}</span></td>`+
     `<td>${u.created_at?fmtDt(u.created_at):"-"}</td>`+
     `<td>${u.last_login_at?fmtDt(u.last_login_at):'<span class="muted">-</span>'}</td>`+
-    `<td>${u.is_active?'<span class="pill ok">활성</span>':'<span class="pill bad">정지</span>'}</td>`+
+    `<td>${(u.is_active!==false)?'<span class="pill ok">활성</span>':'<span class="pill bad">정지</span>'}</td>`+
     `<td>${cnt[u.id]||0}</td>`+
     `</tr>`).join("");
   $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석"]) +

@@ -4,8 +4,9 @@
 (function () {
   if (document.getElementById("inquiryModal")) return;
 
-  var CONTACT_FN = "https://adiqnrdgsmszmqvveoow.supabase.co/functions/v1/send-inquiry";
-  var SB_ANON_KEY = "sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_";
+  // 통합(2026-07-26): qwfsk로 전환. [롤백용] 통합 전 adiq: https://adiqnrdgsmszmqvveoow.supabase.co / sb_publishable_Asd-GkMXUFf-pGwtM3Bxag_4jECoxv_
+  var CONTACT_FN = "https://qwfskemfsrkmlrdttvqy.supabase.co/functions/v1/send-inquiry";
+  var SB_ANON_KEY = "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH";
 
   var css = ""
     + ".cs-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}"
