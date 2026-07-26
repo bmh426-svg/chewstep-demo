@@ -27,11 +27,11 @@ function apply(authed){
     el.style.display = authed ? "none" : "";
     if(!el.__csWired){ el.__csWired = true; el.addEventListener("click", openLogin); }
   });
-  // 1-b) 히어로 CTA: 로그인 시 '무료 데모 체험하기' → '우리 아이 기록 확인하기'
+  // 1-b) 히어로 CTA: 로그인 시 '안먹는 이유 확인하기' → '우리 아이 기록 확인하기'
   arr(document.querySelectorAll("[data-cta-demo]")).forEach((a)=>{
     a.innerHTML = authed
       ? '우리 아이 기록 확인하기 <span class="arrow">→</span>'
-      : '무료 데모 체험하기 <span class="arrow">→</span>';
+      : '안먹는 이유 확인하기 <span class="arrow">→</span>';
   });
   // 2) 헤더의 '로그인' 텍스트 링크(배너·카드 제외)
   arr(document.querySelectorAll('a[href="/login.html"], a[href="./login.html"], a[href="login.html"], a[href="#login"], a[href="#logout"]')).forEach((a)=>{
