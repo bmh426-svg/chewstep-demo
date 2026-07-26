@@ -1,0 +1,15 @@
+{
+  "name": "chewstep-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Chewstep 프로덕션(chewstep.com→qwfsk) 데일리 E2E 스모크",
+  "type": "commonjs",
+  "scripts": {
+    "test": "playwright test daily-smoke.spec.js",
+    "test:email": "playwright test email-send.spec.js",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
