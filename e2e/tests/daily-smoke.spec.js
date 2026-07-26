@@ -119,8 +119,16 @@ test.describe.serial("Chewstep 데일리 스모크", () => {
       for (let s = 1; s <= 6; s++) {
         await page.evaluate(() => {
           const vis = [...document.querySelectorAll(".sv-step")].find((e) => e.style.display !== "none"); if (!vis) return;
+          const labelText = (r) => ((r.closest("label") || r.parentElement || {}).textContent || "");
           const seen = new Set();
-          vis.querySelectorAll("input[type=radio]").forEach((r) => { if (!seen.has(r.name)) { seen.add(r.name); r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); } });
+          vis.querySelectorAll("input[type=radio]").forEach((r) => {
+            if (seen.has(r.name)) return; seen.add(r.name);
+            // 같은 그룹에서 '아니오'(안전) 옵션 우선 → 안전 게이팅 미발동, 정상 결과+제품추천 경로 검증
+            const group = [...vis.querySelectorAll('input[type=radio][name="' + (window.CSS && CSS.escape ? CSS.escape(r.name) : r.name) + '"]')];
+            const safe = group.find((x) => labelText(x).includes("아니오"));
+            const pick = safe || r;
+            pick.checked = true; pick.dispatchEvent(new Event("change", { bubbles: true }));
+          });
           const cs = new Set(); vis.querySelectorAll("input[type=checkbox]").forEach((c) => { if (!cs.has(c.name)) { cs.add(c.name); c.checked = true; } });
           const liked = document.querySelector("#r_liked"); if (liked) liked.value = "계란찜";
           const prac = document.querySelector("#r_practice"); if (prac) prac.value = "소고기";
