@@ -1630,7 +1630,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     try{
       const uid = await currentUserId();
       if(uid){
-        const r = await supabase.from("children").select("*").eq("user_id", uid).order("created_at",{ascending:true});
+        const r = await supabase.from("demo_children").select("*").eq("user_id", uid).order("created_at",{ascending:true});
         myChildren = r.data || [];
         // 아이별 지난 기록 요약(총 횟수·최근 날짜)을 한 번에 집계
         try{
@@ -1695,7 +1695,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const uid = await currentUserId();
       let id=null; try{ id = crypto.randomUUID(); }catch(e){}
       const row = { id: id||undefined, user_id: uid, name: name, birth_date: birth_date, concern: concern, feeding_stage: feeding_stage, allergies: allergy };
-      const { data, error } = await supabase.from("children").insert(row).select().maybeSingle();
+      const { data, error } = await supabase.from("demo_children").insert(row).select().maybeSingle();
       btn.disabled = false;
       if(error){ childMsg("저장 실패: "+error.message); return; }
       if(window.csLog) window.csLog("demo_child_registered", { age: age });
