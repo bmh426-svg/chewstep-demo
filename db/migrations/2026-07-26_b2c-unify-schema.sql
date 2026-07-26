@@ -267,7 +267,9 @@ end $$;
 -- 8) updated_at 자동 갱신 트리거 (전용 함수 · 이름충돌 없음)
 -- ─────────────────────────────────────────────────────────────
 create or replace function public.b2c_touch_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql
+set search_path to ''
+as $$
 begin new.updated_at = now(); return new; end $$;
 
 drop trigger if exists notices_touch on public.notices;
