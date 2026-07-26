@@ -1,11 +1,37 @@
+# robots.txt — 크롤링 지침일 뿐, 보안 장치가 아닙니다.
+# 비공개 데이터는 로그인·RLS·권한으로 실제 보호합니다.
+
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /console
 Disallow: /director
 Disallow: /teacher
+Disallow: /parents/redeem
 Disallow: /notice-write.html
+Disallow: /consult-write.html
 Disallow: /report.html
+Disallow: /weekly-report.html
 Disallow: /redeem.html
+Disallow: /reset-password.html
+Disallow: /architecture.html
+Disallow: /pitch.html
+Disallow: /pitch-editable.html
+
+# AI 검색·생성엔진 (GEO) — 공개 페이지 학습·인용 허용
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: Google-Extended
+Allow: /
 
 Sitemap: https://chewstep.com/sitemap.xml
