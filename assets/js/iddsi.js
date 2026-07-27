@@ -101,7 +101,8 @@ export function ageToLevel(months) {
 /* 지금 주는 형태 vs 보통 이 시기 형태
    반환: null | { status:'behind'|'typical'|'ahead', range, typicalInfo }
    ⚠ 표현 경계: '늦었다 / 또래보다 느리다 / 발달 지연' 금지.
-     behind 여도 "한 칸 올려볼 수 있어요" 라는 실행 제안으로만 쓴다. */
+     그리고 2026-07-27 결정 — **형태를 한 단계 올리라는 권고는 하지 않는다.**
+     질식 위험과 직결돼 임상 검토가 필요한 조언이라, 검토 전까지는 '보통 이 시기엔 ~' 사실 안내까지만 한다. */
 export function compareWithAge(level, months) {
   const r = typicalRangeForAge(months);
   if (level == null || !r) return null;
