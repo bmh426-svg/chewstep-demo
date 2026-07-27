@@ -138,6 +138,9 @@
       <div class="fld"><label>이메일</label><input type="email" id="email" autocomplete="username" required /></div>
       <div class="fld"><label>비밀번호</label><input type="password" id="password" autocomplete="current-password" required /></div>
       <button type="submit" class="btn btn-primary" id="loginBtn">로그인</button>
+      <div style="text-align:center;margin-top:12px">
+        <a href="#" id="forgotLink" style="font-size:12.5px;color:var(--brand-deep);font-weight:700;text-decoration:none">비밀번호를 잊으셨나요?</a>
+      </div>
       <div class="msg err" id="loginMsg"></div>
     </form>
   </div>
@@ -408,6 +411,18 @@ $("loginForm").addEventListener("submit", async e=>{
   const ok = await checkAdmin();
   if(!ok){ m.textContent="관리자 권한이 없는 계정입니다."; m.classList.add("show"); await supabase.auth.signOut(); btn.disabled=false; btn.textContent="로그인"; return; }
   await boot();
+});
+/* 비밀번호 재설정 메일 — 관리자 로그인 화면에서도 바로 받을 수 있게(홈 login.html과 동일 흐름).
+   메일 링크는 /reset-password.html 로 연결되고, 거기서 새 비밀번호를 정한다. */
+$("forgotLink").addEventListener("click", async (e)=>{
+  e.preventDefault();
+  const m=$("loginMsg"), email=$("email").value.trim();
+  const show=(text,ok)=>{ m.textContent=text; m.className="msg show "+(ok?"ok":"err"); };
+  if(!email){ show("이메일을 먼저 입력한 뒤 ‘비밀번호를 잊으셨나요?’를 눌러 주세요.", false); $("email").focus(); return; }
+  show("재설정 메일을 보내는 중…", true);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin+"/reset-password.html" });
+  if(error){ show("메일 발송 실패: "+error.message, false); return; }
+  show(email+" 으로 재설정 메일을 보냈어요. 메일의 링크에서 새 비밀번호를 정한 뒤 다시 로그인해 주세요. (스팸함도 확인)", true);
 });
 $("logoutBtn").addEventListener("click", async ()=>{
   try{ await supabase.rpc("log_audit", { p_action:"logout", p_target_type:"admin" }); }catch(e){}
