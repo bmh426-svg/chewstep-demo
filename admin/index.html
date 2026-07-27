@@ -207,6 +207,20 @@
         <span class="spacer"></span>
         <span class="count" id="aCount"></span>
         <button class="btn btn-ghost btn-sm" id="csvBtn">CSV 다운로드</button>
+        <button class="btn btn-ghost btn-sm" id="delModeBtn">🗑 삭제 모드</button>
+        <button class="btn btn-ghost btn-sm" id="restoreBtn" title="삭제 직전 내려받은 백업 JSON으로 되돌립니다">↩ 백업 복원</button>
+        <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" />
+      </div>
+      <!-- 삭제 액션 바: 삭제 모드에서만 보임 -->
+      <div id="delBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#fdeeee;border:1px solid #f3cfcf;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px">
+        <b style="color:#a03c39">삭제 모드</b>
+        <span class="count" id="delSelCount">0건 선택</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#a03c39;font-weight:700">
+          <input type="checkbox" id="delPurgeEvents" /> 연관 여정 로그도 함께 삭제
+        </label>
+        <span class="spacer" style="flex:1"></span>
+        <span class="count" style="font-size:12px">삭제 전 백업 JSON이 자동으로 내려받아집니다</span>
+        <button class="btn btn-sm" id="delSelBtn" style="background:#dc2626;color:#fff" disabled>선택 삭제</button>
       </div>
       <div class="tbl-wrap"><table id="analysesTbl"></table></div>
     </div>
@@ -229,7 +243,7 @@
     <!-- 감사 로그 (운영·보안 이벤트, append-only) -->
     <div class="view" id="view-audit">
       <div class="toolbar">
-        <select id="fAction"><option value="">액션 전체</option><option value="login_success">로그인</option><option value="logout">로그아웃</option><option value="role_change">역할 변경</option><option value="account_toggle">계정 활성·정지</option><option value="comment_create">댓글 작성</option></select>
+        <select id="fAction"><option value="">액션 전체</option><option value="login_success">로그인</option><option value="logout">로그아웃</option><option value="role_change">역할 변경</option><option value="account_toggle">계정 활성·정지</option><option value="comment_create">댓글 작성</option><option value="data_delete">기록 삭제</option><option value="data_restore">기록 복원</option></select>
         <span class="spacer"></span>
         <span class="count" id="lgCount"></span>
         <button class="btn btn-ghost btn-sm" id="lgRefresh">새로고침</button>
@@ -287,6 +301,29 @@
   </div>
 </div>
 
+<!-- 삭제 확인 (되돌릴 수 없는 작업 · 확인 문구 입력 필요) -->
+<div class="pw-bg" id="delBg">
+  <div class="pw-card" style="max-width:560px">
+    <h3 style="color:#a03c39">🗑 기록 삭제 — 되돌릴 수 없습니다</h3>
+    <div id="delWarn" style="display:none;background:#fdeeee;border:1px solid #f3cfcf;color:#a03c39;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin-bottom:12px;line-height:1.55"></div>
+    <div style="font-size:13px;color:var(--soft);margin-bottom:8px" id="delSummary"></div>
+    <div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px">
+      <table id="delPreviewTbl" style="width:100%;font-size:12.5px"></table>
+    </div>
+    <div style="background:var(--tint);border:1px solid #cdeee0;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;margin-bottom:12px">
+      <b>안전장치</b> — 삭제 직전 위 기록 전체가 <b>JSON 백업 파일</b>로 내려받아집니다.<br>
+      잘못 지웠다면 <b>↩ 백업 복원</b>에서 그 파일을 올려 되돌릴 수 있습니다.
+    </div>
+    <div class="fld"><label style="font-size:12.5px;color:var(--soft)">확인을 위해 <b style="color:#a03c39">삭제</b> 라고 입력하세요</label>
+      <input type="text" id="delConfirmText" placeholder="삭제" autocomplete="off" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;margin-top:6px" /></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost btn-sm" id="delCancel" style="flex:1">취소</button>
+      <button class="btn btn-sm" id="delGo" style="flex:2;background:#dc2626;color:#fff" disabled>백업 후 삭제</button>
+    </div>
+    <div class="msg" id="delMsg"></div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -319,6 +356,11 @@ let ALL = [];   // demo_responses
 let INQ = [];   // inquiries
 let USERS = []; // profiles
 let AUDIT = []; // audit_logs
+
+/* 삭제(더미·테스트 정리) 상태 — 기본 OFF. 켜야 체크박스와 삭제 버튼이 나온다. */
+let DEL_MODE = false;
+let DEL_SEL = new Set();     // 선택된 demo_responses.id
+let DEL_PENDING = [];        // 확인 모달에 올라간 삭제 대상 행(원본 객체)
 
 // 테스트 계정(대시보드·분석·피드백 통계에서 제외) — 이메일 기준. 계정 추가/제거는 여기만 수정.
 const TEST_EMAILS = ["chewstep.e2e@gmail.com","chewstep.b2b.guardian@gmail.com","qwert@naver.com","asd@naver.com"];
@@ -596,11 +638,12 @@ function renderStage(){
 function tblHead(cols){ return "<thead><tr>"+cols.map(c=>`<th>${c}</th>`).join("")+"</tr></thead>"; }
 function qualPill(q){ const [l,c]=[QUAL[q]||q||"-", q==="high"?"ok":(q?"warn":"mut")]; return `<span class="pill ${c}">${l}</span>`; }
 function statPill(s){ const m=STAT[s]; return m?`<span class="pill ${m[1]}">${m[0]}</span>`:`<span class="pill mut">${s||"-"}</span>`; }
-function rowAnalysis(r,short){
+function rowAnalysis(r,short,sel){
   const a=answersOf(r), mt=metricsOf(r), f=fbOf(r);
   const mo = a.child_age_months!=null ? a.child_age_months+"개월" : (r.age_band||"-");
   const fb = hasFb(r) ? (HELP[f.helpful]||"응답") : '<span class="muted">미응답</span>';
   return `<tr data-id="${esc(r.id)}">`+
+    (sel?`<td style="width:34px"><input type="checkbox" class="delChk" data-id="${esc(r.id)}" ${DEL_SEL.has(String(r.id))?"checked":""} /></td>`:"")+
     `<td>${fmtDt(r.created_at)}</td>`+
     `<td>${stagePill(r)}</td>`+
     `<td>${esc(mo)}</td>`+
@@ -626,10 +669,15 @@ function renderAnalyses(){
   const rows=filtered();
   const s=stageStats(rows);
   $("aCount").textContent = rows.length+"건 · "+s.perTotal+"명 (설문만 "+s.rec.survey+" / 설문+영상 "+s.rec.video+")";
-  $("analysesTbl").innerHTML = tblHead(["일시","단계","월령","고민","품질","상태","피드백"]) +
-    (rows.length?("<tbody>"+rows.map(r=>rowAnalysis(r)).join("")+"</tbody>"):"") ;
-  if(!rows.length) $("analysesTbl").innerHTML += `<tbody><tr><td colspan="7"><div class="empty">데이터가 없어요.</div></td></tr></tbody>`;
+  const cols=["일시","단계","월령","고민","품질","상태","피드백"];
+  const head = DEL_MODE
+    ? `<thead><tr><th style="width:34px"><input type="checkbox" id="delChkAll" title="화면에 보이는 기록 전체 선택" /></th>`+cols.map(c=>`<th>${c}</th>`).join("")+`</tr></thead>`
+    : tblHead(cols);
+  $("analysesTbl").innerHTML = head +
+    (rows.length?("<tbody>"+rows.map(r=>rowAnalysis(r,false,DEL_MODE)).join("")+"</tbody>"):"") ;
+  if(!rows.length) $("analysesTbl").innerHTML += `<tbody><tr><td colspan="${DEL_MODE?8:7}"><div class="empty">데이터가 없어요.</div></td></tr></tbody>`;
   bindRows("analysesTbl");
+  if(DEL_MODE) bindDelChecks(rows);
 }
 ["fStage","fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
 $("hideTest").addEventListener("change", (e)=>{ HIDE_TEST=e.target.checked; recomputeVis(); renderDash(); renderAnalyses(); renderFeedback(); });
@@ -683,8 +731,8 @@ function renderUsers(){
 }
 
 /* ---------- 감사 로그 (조회 전용, append-only) ---------- */
-const ACTION_LABEL={login_success:"로그인",logout:"로그아웃",role_change:"역할 변경",account_toggle:"계정 활성·정지",comment_create:"댓글 작성",analysis_view:"결과 조회",analysis_update:"결과 수정",data_delete:"삭제"};
-function actionCls(a){ return a==="role_change"?"bad":(a==="account_toggle"||a==="data_delete"?"warn":(a==="login_success"?"ok":"mut")); }
+const ACTION_LABEL={login_success:"로그인",logout:"로그아웃",role_change:"역할 변경",account_toggle:"계정 활성·정지",comment_create:"댓글 작성",analysis_view:"결과 조회",analysis_update:"결과 수정",data_delete:"기록 삭제",data_restore:"기록 복원"};
+function actionCls(a){ return (a==="role_change"||a==="data_delete")?"bad":(a==="account_toggle"||a==="data_restore"?"warn":(a==="login_success"?"ok":"mut")); }
 function auditDetail(r){
   const m=r.metadata||{};
   if(r.action==="role_change") return `${esc(m.target_email||r.target_id||"")}: ${esc(m.from)} → ${esc(m.to)}`;
@@ -718,7 +766,10 @@ function renderInquiries(){
 /* ---------- 상세 드로어 ---------- */
 function bindRows(tblId){
   $(tblId).querySelectorAll("tbody tr[data-id]").forEach(tr=>{
-    tr.addEventListener("click",()=>openDetail(tr.getAttribute("data-id")));
+    tr.addEventListener("click",(e)=>{
+      if(e.target && e.target.tagName==="INPUT") return;   // 삭제 체크박스 클릭은 드로어를 열지 않는다
+      openDetail(tr.getAttribute("data-id"));
+    });
   });
 }
 /* ---------- 부모가 본 결과화면 재현 (demo_responses.result 기반, 조회 전용) ----------
@@ -846,16 +897,150 @@ async function openDetail(id){
 }
 function openDrawer(){ $("drawerBg").classList.add("on"); $("drawer").classList.add("on"); }
 function closeDrawer(){ $("drawerBg").classList.remove("on"); $("drawer").classList.remove("on"); }
-// 분석 기록 삭제(관리자 전용 RLS: admin_delete_demo). 더미·테스트 정리용.
-async function deleteRecord(id){
-  if(!confirm("이 분석 기록을 삭제할까요?\n되돌릴 수 없습니다.")) return;
-  const { error } = await supabase.from("demo_responses").delete().eq("id", id);
-  if(error){ alert("삭제 실패: " + error.message); return; }
-  try{ await supabase.rpc("log_audit", { p_action:"data_delete", p_target_type:"demo_response" }); }catch(e){}
-  ALL = ALL.filter(x => String(x.id) !== String(id));
-  closeDrawer();
-  renderDash(); renderAnalyses(); renderFeedback(); renderUsers();
+/* ══════════════════════════════════════════════════════════════
+   분석 기록 삭제 · 복원 (더미·테스트 데이터 정리)
+
+   Supabase Free 플랜에는 PITR·자동백업이 없다 → 삭제는 되돌릴 수 없다.
+   그래서 삭제를 '되돌릴 수 있는 작업'으로 만드는 4중 안전장치를 둔다.
+     1) 삭제 모드 토글(기본 OFF) — 평소에는 체크박스도 삭제 버튼도 없다
+     2) 확인 모달에 지울 기록을 전부 나열 + 실사용자 데이터가 섞이면 경고
+     3) '삭제' 문구를 직접 입력해야 버튼이 열린다
+     4) 삭제 직전 대상 행 전체를 JSON 백업으로 자동 다운로드 → 복원 가능
+   실제 삭제는 서버 함수 admin_purge_demo_responses 가 수행한다
+   (한 번에 50건 상한 · 연관 여정 로그 정리 · audit_logs 에 id 목록 기록).
+   ══════════════════════════════════════════════════════════════ */
+function emailOfRow(r){
+  if(!r.user_id) return r.nickname || "(비로그인)";
+  const u = USERS.find(x=>x.id===r.user_id);
+  return u ? (u.email||r.user_id) : r.user_id;
 }
+function setDelMode(on){
+  DEL_MODE = on;
+  if(!on) DEL_SEL.clear();
+  $("delBar").style.display = on ? "flex" : "none";
+  $("delModeBtn").textContent = on ? "✕ 삭제 모드 끄기" : "🗑 삭제 모드";
+  $("delModeBtn").style.background = on ? "#fdeeee" : "";
+  $("delModeBtn").style.borderColor = on ? "#f3cfcf" : "";
+  renderAnalyses();
+  updateDelBar();
+}
+function updateDelBar(){
+  const n = DEL_SEL.size;
+  $("delSelCount").textContent = n + "건 선택" + (n>50 ? " · 한 번에 50건까지만 삭제됩니다" : "");
+  $("delSelBtn").disabled = (n===0);
+  $("delSelBtn").style.opacity = n===0 ? .5 : 1;
+}
+function bindDelChecks(rows){
+  $("analysesTbl").querySelectorAll("input.delChk").forEach(c=>{
+    c.addEventListener("change", ()=>{
+      const id=String(c.getAttribute("data-id"));
+      if(c.checked) DEL_SEL.add(id); else DEL_SEL.delete(id);
+      updateDelBar();
+    });
+  });
+  const all=$("delChkAll");
+  if(all) all.addEventListener("change", ()=>{
+    rows.forEach(r=>{ if(all.checked) DEL_SEL.add(String(r.id)); else DEL_SEL.delete(String(r.id)); });
+    renderAnalyses(); updateDelBar();
+  });
+}
+$("delModeBtn").addEventListener("click", ()=>setDelMode(!DEL_MODE));
+$("delSelBtn").addEventListener("click", ()=>openDeleteModal([...DEL_SEL]));
+
+/* ── 확인 모달 ── */
+function openDeleteModal(ids){
+  DEL_PENDING = ALL.filter(r=>ids.includes(String(r.id)));
+  if(!DEL_PENDING.length) return;
+  const over = DEL_PENDING.length > 50;
+  if(over) DEL_PENDING = DEL_PENDING.slice(0,50);
+  const real = DEL_PENDING.filter(r=>!isTestRow(r));
+  const warn=$("delWarn");
+  const parts=[];
+  if(real.length) parts.push(`⚠ 테스트 계정이 아닌 <b>실제 사용자 기록 ${real.length}건</b>이 포함돼 있습니다. 정말 더미 데이터가 맞는지 아래 목록을 확인하세요.`);
+  if(over) parts.push(`선택한 기록이 50건을 넘어 <b>앞의 50건만</b> 삭제됩니다. 나머지는 다시 실행하세요.`);
+  warn.innerHTML = parts.join("<br>");
+  warn.style.display = parts.length ? "block" : "none";
+
+  $("delSummary").innerHTML = `<b>${DEL_PENDING.length}건</b>의 분석 기록을 Supabase에서 완전히 지웁니다.`+
+    ($("delPurgeEvents").checked ? ` 연관 여정 로그도 함께 정리합니다(다른 기록이 쓰지 않는 세션만).` : ` 여정 로그는 남습니다.`);
+  $("delPreviewTbl").innerHTML =
+    `<thead><tr><th>일시</th><th>계정</th><th>단계</th><th>고민</th><th>구분</th></tr></thead><tbody>`+
+    DEL_PENDING.map(r=>`<tr><td style="white-space:nowrap">${fmtDt(r.created_at)}</td><td>${esc(maskEmail(emailOfRow(r))||emailOfRow(r))}</td>`+
+      `<td>${stagePill(r)}</td><td class="wrap-cell">${esc(concernOf(r))}</td>`+
+      `<td>${isTestRow(r)?'<span class="pill mut">테스트</span>':'<span class="pill bad">실사용</span>'}</td></tr>`).join("")+
+    `</tbody>`;
+  $("delConfirmText").value=""; $("delGo").disabled=true; $("delGo").style.opacity=.5;
+  $("delMsg").className="msg";
+  $("delBg").classList.add("on");
+  $("delConfirmText").focus();
+}
+function closeDeleteModal(){ $("delBg").classList.remove("on"); DEL_PENDING=[]; }
+$("delCancel").addEventListener("click", closeDeleteModal);
+$("delBg").addEventListener("click", e=>{ if(e.target===$("delBg")) closeDeleteModal(); });
+$("delConfirmText").addEventListener("input", e=>{
+  const ok = e.target.value.trim()==="삭제";
+  $("delGo").disabled=!ok; $("delGo").style.opacity= ok?1:.5;
+});
+
+/* ── 백업 다운로드 (복원 파일 포맷) ── */
+function downloadBackup(rows){
+  const stamp=new Date().toISOString().replace(/[:.]/g,"-").slice(0,19);
+  const payload={ kind:"chewstep-demo_responses-backup", version:1, exported_at:new Date().toISOString(),
+                  count:rows.length, rows };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=`chewstep_backup_${stamp}_${rows.length}건.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ── 실행 ── */
+$("delGo").addEventListener("click", async ()=>{
+  const m=$("delMsg"), btn=$("delGo");
+  const rows=DEL_PENDING.slice(), ids=rows.map(r=>r.id);
+  if(!ids.length) return;
+  btn.disabled=true; btn.textContent="백업 내려받는 중…";
+  downloadBackup(rows);                       // 삭제보다 먼저. 실패하면 삭제도 안 한다.
+  btn.textContent="삭제 중…";
+  const { data, error } = await supabase.rpc("admin_purge_demo_responses", {
+    p_ids: ids, p_purge_events: $("delPurgeEvents").checked
+  });
+  if(error){
+    m.textContent="삭제 실패: "+error.message+" (백업 파일은 이미 내려받아졌습니다)";
+    m.className="msg err show"; btn.disabled=false; btn.textContent="백업 후 삭제"; return;
+  }
+  const res=data||{};
+  ALL = ALL.filter(x=>!ids.includes(x.id));
+  ids.forEach(id=>DEL_SEL.delete(String(id)));
+  recomputeVis();
+  closeDeleteModal(); closeDrawer();
+  btn.disabled=false; btn.textContent="백업 후 삭제";
+  renderDash(); renderAnalyses(); renderFeedback(); renderUsers();
+  await loadAll();                            // 감사 로그 갱신 포함
+  alert(`삭제 완료 — 분석 기록 ${res.deleted||0}건`+
+        (res.events_deleted ? ` · 여정 로그 ${res.events_deleted}건` : "")+
+        `\n\n방금 내려받은 백업 JSON으로 되돌릴 수 있습니다(↩ 백업 복원).`);
+});
+
+/* ── 복원 ── */
+$("restoreBtn").addEventListener("click", ()=>$("restoreFile").click());
+$("restoreFile").addEventListener("change", async (e)=>{
+  const file=e.target.files && e.target.files[0]; e.target.value="";
+  if(!file) return;
+  let payload;
+  try{ payload=JSON.parse(await file.text()); }
+  catch(err){ alert("백업 파일을 읽지 못했습니다(JSON 형식 아님)."); return; }
+  const rows = Array.isArray(payload) ? payload : (payload && payload.rows);
+  if(!Array.isArray(rows) || !rows.length){ alert("복원할 기록이 없는 파일입니다."); return; }
+  if(!confirm(`${rows.length}건을 복원할까요?\n이미 존재하는 기록(같은 id)은 건너뜁니다.`)) return;
+  const { data, error } = await supabase.rpc("admin_restore_demo_responses", { p_rows: rows });
+  if(error){ alert("복원 실패: "+error.message); return; }
+  const r=data||{};
+  await loadAll();
+  alert(`복원 완료 — ${r.restored||0}건 (요청 ${r.submitted||rows.length}건, 나머지는 이미 존재)`);
+});
+
+// 드로어 안의 단일 삭제도 같은 확인 절차(백업 포함)를 거친다.
+function deleteRecord(id){ openDeleteModal([String(id)]); }
 $("drawerX").addEventListener("click",closeDrawer);
 $("drawerBg").addEventListener("click",closeDrawer);
 
