@@ -7,6 +7,9 @@ desktop.ini
 # 의존성(이 앱은 CDN ES모듈 사용, 로컬 설치 없음)
 node_modules/
 
+# E2E 프리뷰 스크린샷(임시)
+_preview-shots/
+
 # Vercel
 .vercel
 

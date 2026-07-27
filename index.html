@@ -195,6 +195,16 @@
   .hub-foot .wrap { text-align:center; }
   .hub-foot p { font-size:12.5px; color:var(--ink-soft); line-height:1.7; max-width:60em; margin:0 auto; }
   .hub-foot b { color:var(--ink-2); }
+  /* 문의·카카오 상담 */
+  .foot-contact { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:20px; }
+  .foot-contact .fc-label { font-size:14px; font-weight:800; color:var(--ink-2); }
+  .foot-contact .fc-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .fc-btn { display:inline-flex; align-items:center; gap:7px; font-size:14px; font-weight:700; padding:12px 20px; border-radius:12px;
+    text-decoration:none; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink); font-family:inherit;
+    transition:transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .2s, border-color .2s; }
+  .fc-btn:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); border-color:var(--brand); }
+  .fc-btn.kakao { background:#FEE500; border-color:#FEE500; color:#3C1E1E; }
+  .fc-btn.kakao:hover { border-color:#f4d900; box-shadow:0 6px 16px rgba(254,229,0,.4); }
 
   @media (max-width:720px){
     .steps { flex-direction:column; align-items:stretch; }
@@ -328,6 +338,13 @@
 
   <div class="hub-foot">
     <div class="wrap">
+      <div class="foot-contact">
+        <span class="fc-label">궁금한 점이 있으세요?</span>
+        <div class="fc-btns">
+          <button type="button" class="fc-btn" data-inquiry>✉️ 문의하기</button>
+          <a class="fc-btn kakao" href="https://pf.kakao.com/_nVIxbX/chat" target="_blank" rel="noopener">💬 카카오톡 채널 상담하기</a>
+        </div>
+      </div>
       <p><b>Chewstep은 의료 진단이나 치료를 제공하지 않습니다.</b> 일상 식사 관찰과 입력을 바탕으로 한 참고용 코칭이며, 정상·이상 판정을 제공하지 않습니다. &nbsp;·&nbsp; © 2026 Chewstep.</p>
     </div>
   </div>
@@ -348,5 +365,6 @@
   }
 </script>
   <script type="module" src="/assets/js/auth-nav.js"></script>
+  <script src="/assets/js/inquiry.js"></script>
 </body>
 </html>
