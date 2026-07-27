@@ -89,11 +89,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pr-home b{font-weight:800;margin-right:5px;}
   .pr-buy{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;}
   .pr-price{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;}
-  .pr-btn{font:700 13px/1 inherit;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;}
+  .pr-btn{display:inline-block;text-decoration:none;text-align:center;font:700 13px/1 inherit;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;}
   .pr-btn:hover{border-color:var(--brand);color:var(--brand-deep);}
   .pr-btn[disabled]{opacity:.55;cursor:default;}
   .pr-btn.solid{background:linear-gradient(145deg,var(--brand),var(--brand-deep));border:none;color:#fff;}
-  .pr-btn.light{width:100%;margin-top:10px;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.5);color:#fff;}
+  .pr-btn.light{display:block;width:100%;box-sizing:border-box;margin-top:10px;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.5);color:#fff;}
   .pr-prog{margin-top:12px;border-radius:16px;padding:16px 17px;background:linear-gradient(135deg,#829a6d,#5f7a4f);color:#fff;box-shadow:0 6px 18px rgba(130,154,109,.26);}
   .pr-prog-t{font-size:15.5px;font-weight:800;}
   .pr-prog-s{font-size:12.5px;opacity:.93;margin-top:4px;line-height:1.5;}
@@ -114,6 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <a href="how.html">이용 방법</a>
       <a href="prep.html" aria-current="page">1분 식감 체크</a>
       <a href="faq.html">FAQ</a>
+      <a href="products.html">상품</a>
       <a href="consult.html">상담하기</a>
     </nav>
     <div class="nav-cta">
@@ -238,7 +239,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `<p class="pr-why">${esc(p.why || "")}</p>`+
       `<div class="pr-home"><b>집에서 먼저</b> ${esc(p.homeFirst || "")}</div>`+
       `<div class="pr-buy"><span class="pr-price">${p.price ? p.price.toLocaleString("ko-KR") + "원" : ""}</span>`+
-      `<button type="button" class="pr-btn${isSet ? " solid" : ""}" data-pid="${esc(p.id)}">자세히 보기</button></div></div>`;
+      `<a class="pr-btn${isSet ? " solid" : ""}" data-pid="${esc(p.id)}" href="products.html#${esc(p.id)}">자세히 보기 →</a></div></div>`;
   }
 
   function render(input) {
@@ -297,7 +298,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         `<div class="pr-list">${(rec.bundle ? productCardHtml(rec.bundle, true) : "")}${rec.items.map((x) => productCardHtml(x)).join("")}</div>`+
         (rec.program ? `<div class="pr-prog"><div class="pr-prog-t">📦 ${esc(rec.program.name)}</div>`+
           `<div class="pr-prog-s">${esc(rec.program.sub)}</div>`+
-          `<button type="button" class="pr-btn light" data-pid="${esc(rec.program.id)}">프로그램 보기 · ${rec.program.price.toLocaleString("ko-KR")}원/4주</button></div>` : "")+
+          `<a class="pr-btn light" data-pid="${esc(rec.program.id)}" href="products.html#program">프로그램 보기 · ${rec.program.price.toLocaleString("ko-KR")}원/4주</a></div>` : "")+
         `<p class="disc" style="margin-top:12px;">※ 지금 보이는 상품은 <b>예시(데모)</b>예요 — 실제 판매·제휴 연결 전입니다. 알레르기가 있는 재료는 자동으로 빼고 보여드리지만, 구매 전 원재료를 꼭 확인해 주세요.</p>`;
     }
 
@@ -311,11 +312,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       logEvent("product_impression", { source: "prep", goal: rec.goal, ids: [rec.bundle && rec.bundle.id, ...rec.items.map((x) => x.id)].filter(Boolean) });
     }
     box.querySelectorAll(".pr-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        logEvent("product_click", { source: "prep", id: btn.getAttribute("data-pid"), goal: rec.goal });
-        btn.textContent = "준비 중이에요 (곧 열려요)";
-        btn.disabled = true;
-      });
+      btn.addEventListener("click", () => logEvent("product_click", { source: "prep", id: btn.getAttribute("data-pid"), goal: rec.goal, to: "products" }));
     });
   }
 

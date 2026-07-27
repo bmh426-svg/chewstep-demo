@@ -287,6 +287,28 @@ export const CATALOG = [
   },
 ];
 
+/* ── 상품 페이지 진입 카테고리 (2026-07-27) ──
+   원칙: 고민이 명확한 사람은 카테고리로 바로 상품을 보고,
+        모르겠는 사람에게는 **별도의 제품 추천 문항을 만들지 않고** 영상·체크리스트 분석으로 보낸다.
+        (핵심 흐름: 분석 → 행동 솔루션 → 필요한 경우 제품. 구매에 분석을 강제하지는 않는다)
+   goal 로 묶이지 않는 '자기주도'는 품목을 직접 지정한다 — 엔진에 해당 possibility가 없기 때문. */
+export const CATEGORIES = [
+  { id: "texture",  label: "질기거나 오래 물고 있어요",      sub: "질감·크기 조절",   goal: "texture" },
+  { id: "newfood",  label: "새로운 음식을 거부해요",          sub: "반복 노출 연습",   goal: "repetition" },
+  { id: "portion",  label: "한입 양을 줄이고 싶어요",         sub: "한입 양 조절",     goal: "expectation" },
+  { id: "selffeed", label: "자기주도 식사를 준비하고 싶어요", sub: "스스로 집어 먹기",
+    items: ["cutter-bite", "tray-explore", "nonfood-play", "cup-mini", "mat-size", "plate-guide"] },
+];
+export function categoryItems(catId) {
+  const c = CATEGORIES.find(x => x.id === catId);
+  if (!c) return { bundles: [], items: [] };
+  if (c.items) return { bundles: [], items: c.items.map(id => CATALOG.find(x => x.id === id)).filter(Boolean) };
+  return {
+    bundles: BUNDLES.filter(b => b.goal === c.goal),
+    items: CATALOG.filter(x => x.goal === c.goal),
+  };
+}
+
 /* ── 결과에 붙이지 않는 자료(SUPPORT) ──
    환경·자세·보호자 대응은 결과설계 §1에서 판단범위 '보류' → 영상·설문으로 판단하지 않는다.
    따라서 결과화면 추천 대상이 아니며, 4주 프로그램 구성품 또는 무료 다운로드로만 쓴다. */
