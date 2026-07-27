@@ -50,6 +50,21 @@
   .stat .k{font-size:12px;color:var(--soft);font-weight:600;}
   .stat .v{font-size:26px;font-weight:800;margin-top:4px;}
   .stat .v small{font-size:13px;color:var(--soft);font-weight:600;}
+  .stat.hi{border-color:#cdeee0;background:linear-gradient(180deg,#f6fcf9,#fff);}
+  .stat .sub{font-size:11.5px;color:var(--soft);font-weight:600;margin-top:4px;}
+  /* 단계 현황(설문만 → 설문+영상) */
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin:6px 0 10px;}
+  .sec-h h3{font-size:13px;color:var(--soft);}
+  .sec-h .hint{font-size:12px;color:var(--soft);}
+  .funnel{display:flex;height:14px;border-radius:999px;overflow:hidden;background:#eef0f2;margin:2px 0 10px;}
+  .funnel span{display:block;height:100%;}
+  .funnel .f-q{background:#c9d8bd;}
+  .funnel .f-u{background:#f0d69a;}
+  .funnel .f-v{background:var(--brand);}
+  .lgnd{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--soft);margin-bottom:14px;}
+  .lgnd i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:baseline;}
+  .notebox{background:#fdf6e7;border:1px solid #f2e3bd;color:#7a5c1e;border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.6;margin-bottom:14px;}
+  .notebox b{color:#5e4614;}
   /* 툴바 */
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   .toolbar select,.toolbar input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fff;}
@@ -159,6 +174,22 @@
         <span id="testFilterNote" class="muted"></span>
       </div>
       <div class="cards" id="statCards"></div>
+
+      <!-- 단계 현황: 설문만 vs 설문+영상 (사람 기준 · 기록 기준) -->
+      <div class="sec-h">
+        <h3>단계 현황 — 설문만 / 설문+영상</h3>
+        <span class="hint">사람 기준은 로그인 계정(user_id), 비로그인은 브라우저 식별자(anon_id)로 셉니다.</span>
+      </div>
+      <div id="stageNote"></div>
+      <div class="cards" id="stageCards"></div>
+      <div class="funnel" id="stageFunnel"></div>
+      <div class="lgnd">
+        <span><i style="background:#c9d8bd"></i>설문만</span>
+        <span><i style="background:#f0d69a"></i>영상 업로드(분석 미완)</span>
+        <span><i style="background:#829a6d"></i>설문+영상</span>
+      </div>
+      <div class="tbl-wrap" style="margin-bottom:22px"><table id="stageTbl"></table></div>
+
       <h3 style="font-size:13px;color:var(--soft);margin:8px 0 10px;">최근 분석</h3>
       <div class="tbl-wrap"><table id="recentTbl"></table></div>
     </div>
@@ -166,6 +197,7 @@
     <!-- 분석 기록 -->
     <div class="view" id="view-analyses">
       <div class="toolbar">
+        <select id="fStage"><option value="">단계 전체</option><option value="survey">설문만</option><option value="uploaded">영상 업로드(분석 미완)</option><option value="video">설문+영상</option></select>
         <select id="fStatus"><option value="">상태 전체</option><option value="completed">완료</option><option value="low_motion">움직임 적음</option><option value="reshoot_low_face">재촬영</option></select>
         <select id="fFeedback"><option value="">피드백 전체</option><option value="yes">피드백 있음</option><option value="no">피드백 없음</option></select>
         <input type="text" id="fSearch" placeholder="고민·닉네임 검색" />
@@ -300,6 +332,42 @@ function fbOf(r){ return r.feedback||{}; }
 function concernOf(r){ const a=answersOf(r); return a.concern_type || a.concern_text || "-"; }
 function hasFb(r){ const f=fbOf(r); return !!(f.helpful||f.most_useful||f.reuse_intent||f.feedback_text||f.comment||f.result_similarity); }
 
+/* ---------- 분석 단계 (설문만 / 설문+영상) ----------
+   2026-07-27: 영상 업로드가 필수 → 선택으로 바뀌면서, 하나의 기록이
+   '설문 기반 결과' → '영상·설문 통합 결과'로 승급될 수 있다.
+   판정은 DB의 result_type/video_status 를 우선 사용하고, 값이 비어 있는
+   과거 기록은 has_video/video_metrics 로 추정한다(백필 이전 데이터 안전장치).
+     survey   = 설문만 (영상 없음)
+     uploaded = 영상은 올렸으나 분석 지표 없음(실패·중단)
+     video    = 설문+영상 통합 */
+const STAGE_LABEL={ survey:["설문만","mut"], uploaded:["영상 분석 미완","warn"], video:["설문+영상","ok"] };
+const STAGE_RANK={ survey:0, uploaded:1, video:2 };
+function stageOf(r){
+  if(r.video_status==="analyzed" || r.result_type==="video_combined") return "video";
+  if(r.video_status==="uploaded") return "uploaded";
+  if(r.has_video) return r.video_metrics ? "video" : "uploaded";
+  return "survey";
+}
+function stagePill(r){ const m=STAGE_LABEL[stageOf(r)]; return `<span class="pill ${m[1]}">${m[0]}</span>`; }
+/* 사람 식별: 로그인 계정(user_id) > 비로그인 브라우저 식별자(anon_id) > 세션 */
+function personKey(r){ return r.user_id || (r.anon_id?("a:"+r.anon_id):(r.session_id?("s:"+r.session_id):("r:"+r.id))); }
+/* 한 사람은 '가장 진행된 단계'로 집계한다(설문만 3건 + 영상 1건 → 설문+영상 1명) */
+function stageStats(rows){
+  const rec={survey:0,uploaded:0,video:0};
+  const best=new Map();
+  rows.forEach(r=>{
+    const s=stageOf(r); rec[s]++;
+    const k=personKey(r);
+    if(!best.has(k) || STAGE_RANK[s]>STAGE_RANK[best.get(k)]) best.set(k,s);
+  });
+  const per={survey:0,uploaded:0,video:0};
+  best.forEach(s=>{ per[s]++; });
+  return { rec, per, recTotal:rows.length, perTotal:best.size };
+}
+/* 설문 단독 저장 경로(2차 작업)가 적용되기 전에는 '설문만' 기록이 생기지 않는다.
+   그 상태에서 전환율은 항상 100%로 보여 오해를 만들기 때문에 '산정 불가'로 표시한다. */
+function surveyPathLive(){ return ALL.some(r=>stageOf(r)==="survey"); }
+
 /* ---------- 인증 (role 기반) ----------
    이메일 하드코딩 폐기. profiles.role in (admin, super_admin) 인지만 확인한다.
    화면 숨김은 UX일 뿐, 실제 보안은 Supabase RLS(admin_read_all_*)가 담당. */
@@ -406,24 +474,84 @@ function renderDash(){
     : `테스트 포함 · 전체 ${ALL.length}건`;
   const total=VIS.length;
   const today=VIS.filter(r=>{ const d=new Date(r.created_at); const n=new Date(); return d.toDateString()===n.toDateString(); }).length;
-  const success=VIS.filter(r=>r.status==="completed").length;
+  // 영상 분석 성공률은 '영상이 있는 기록' 안에서만 계산한다(설문만 기록은 분모에서 제외).
+  const vidRows=VIS.filter(r=>stageOf(r)!=="survey");
+  const success=vidRows.filter(r=>r.status==="completed").length;
   const lowq=VIS.filter(r=>r.status && r.status!=="completed").length;
   const fbCount=VIS.filter(hasFb).length;
   const reuseYes=VIS.filter(r=>fbOf(r).reuse_intent==="yes").length;
+  const st=stageStats(VIS);
   const cards=[
-    ["전체 분석",total],
+    ["전체 분석",total+" <small>/ "+st.perTotal+"명</small>"],
+    ["설문만",st.per.survey+"명 <small>/ "+st.rec.survey+"건</small>"],
+    ["설문+영상",st.per.video+"명 <small>/ "+st.rec.video+"건</small>"],
     ["오늘 분석",today],
-    ["분석 성공",success+" <small>/ "+total+"</small>"],
+    ["영상 분석 성공",success+" <small>/ 영상 "+vidRows.length+"건</small>"],
     ["저품질·재촬영",lowq],
     ["피드백 응답",fbCount],
     ["재사용 의향(yes)",reuseYes],
     ["문의·신청",INQ.length],
   ];
   $("statCards").innerHTML = cards.map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  renderStage();
   // 최근 8건
-  $("recentTbl").innerHTML = tblHead(["일시","월령","고민","품질","상태","피드백"]) +
+  $("recentTbl").innerHTML = tblHead(["일시","단계","월령","고민","품질","상태","피드백"]) +
     "<tbody>"+VIS.slice(0,8).map(r=>rowAnalysis(r,true)).join("")+"</tbody>";
   bindRows("recentTbl");
+}
+
+/* ---------- 단계 현황 (설문만 → 설문+영상 전환) ---------- */
+function pctOf(n,d){ return d>0 ? Math.round(n/d*100) : 0; }
+function renderStage(){
+  const LIVE = surveyPathLive();
+  const st = stageStats(VIS);
+  const rate = LIVE ? (pctOf(st.per.video, st.perTotal)+"%") : '<span style="font-size:17px;color:var(--soft)">산정 불가</span>';
+
+  // 안내: 설문 단독 저장 경로가 아직 없으면 왜 '설문만'이 0인지 화면에서 밝힌다.
+  $("stageNote").innerHTML = LIVE ? "" :
+    `<div class="notebox"><b>지금은 '설문만' 기록이 생기지 않는 구조입니다.</b><br>`+
+    `현재 저장 로직은 영상 분석이 끝난 뒤에만 기록을 만들기 때문에, 모든 기록이 '설문+영상'으로 집계됩니다. `+
+    `설문 완료 시점에 기록을 먼저 만드는 <b>2차 작업</b>이 적용되면 이 화면의 '설문만'과 <b>영상 전환율</b>이 실제 값으로 채워집니다. `+
+    `그때까지 전환율은 <b>산정 불가</b>로 표시합니다.</div>`;
+
+  const sc=[
+    ["설문만", st.per.survey+"명", st.rec.survey+"건", ""],
+    ["영상 업로드(분석 미완)", st.per.uploaded+"명", st.rec.uploaded+"건", ""],
+    ["설문+영상", st.per.video+"명", st.rec.video+"건", "hi"],
+    ["영상 전환율(사람 기준)", rate, LIVE?(st.per.video+"명 / 전체 "+st.perTotal+"명"):"2차 작업 적용 후 집계", "hi"],
+  ];
+  $("stageCards").innerHTML = sc.map(([k,v,sub,cls])=>
+    `<div class="stat ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="sub">${sub}</div></div>`).join("");
+
+  // 퍼널 바(기록 기준 비율)
+  const t=st.recTotal||1;
+  $("stageFunnel").innerHTML =
+    `<span class="f-q" style="width:${st.rec.survey/t*100}%"></span>`+
+    `<span class="f-u" style="width:${st.rec.uploaded/t*100}%"></span>`+
+    `<span class="f-v" style="width:${st.rec.video/t*100}%"></span>`;
+
+  // 기간별 표 (셀 = 사람 · 기록)
+  const now=new Date();
+  const since=d=>new Date(now.getTime()-d*86400000);
+  const PERIODS=[
+    ["오늘", r=>new Date(r.created_at).toDateString()===now.toDateString()],
+    ["최근 7일", r=>new Date(r.created_at)>=since(7)],
+    ["최근 30일", r=>new Date(r.created_at)>=since(30)],
+    ["전체", ()=>true],
+  ];
+  const cell=(p,c)=>`${p}명 <span class="muted">· ${c}건</span>`;
+  const body=PERIODS.map(([label,f])=>{
+    const s=stageStats(VIS.filter(f));
+    const r=(surveyPathLive() && s.perTotal>0) ? pctOf(s.per.video,s.perTotal)+"%" : '<span class="muted">산정 불가</span>';
+    return `<tr><td><b>${label}</b></td>`+
+      `<td>${cell(s.per.survey,s.rec.survey)}</td>`+
+      `<td>${cell(s.per.uploaded,s.rec.uploaded)}</td>`+
+      `<td>${cell(s.per.video,s.rec.video)}</td>`+
+      `<td>${cell(s.perTotal,s.recTotal)}</td>`+
+      `<td>${r}</td></tr>`;
+  }).join("");
+  $("stageTbl").innerHTML = tblHead(["기간","설문만","영상 분석 미완","설문+영상","합계","영상 전환율"]) +
+    `<tbody style="cursor:default">${body}</tbody>`;
 }
 
 /* ---------- 분석 목록 ---------- */
@@ -436,6 +564,7 @@ function rowAnalysis(r,short){
   const fb = hasFb(r) ? (HELP[f.helpful]||"응답") : '<span class="muted">미응답</span>';
   return `<tr data-id="${esc(r.id)}">`+
     `<td>${fmtDt(r.created_at)}</td>`+
+    `<td>${stagePill(r)}</td>`+
     `<td>${esc(mo)}</td>`+
     `<td class="wrap-cell">${esc(concernOf(r))}</td>`+
     `<td>${qualPill(mt.quality)}</td>`+
@@ -445,7 +574,9 @@ function rowAnalysis(r,short){
 }
 function filtered(){
   const st=$("fStatus").value, fb=$("fFeedback").value, q=$("fSearch").value.trim().toLowerCase();
+  const sg=$("fStage").value;
   return VIS.filter(r=>{
+    if(sg && stageOf(r)!==sg) return false;
     if(st && r.status!==st) return false;
     if(fb==="yes" && !hasFb(r)) return false;
     if(fb==="no" && hasFb(r)) return false;
@@ -455,13 +586,14 @@ function filtered(){
 }
 function renderAnalyses(){
   const rows=filtered();
-  $("aCount").textContent = rows.length+"건";
-  $("analysesTbl").innerHTML = tblHead(["일시","월령","고민","품질","상태","피드백"]) +
+  const s=stageStats(rows);
+  $("aCount").textContent = rows.length+"건 · "+s.perTotal+"명 (설문만 "+s.rec.survey+" / 설문+영상 "+s.rec.video+")";
+  $("analysesTbl").innerHTML = tblHead(["일시","단계","월령","고민","품질","상태","피드백"]) +
     (rows.length?("<tbody>"+rows.map(r=>rowAnalysis(r)).join("")+"</tbody>"):"") ;
-  if(!rows.length) $("analysesTbl").innerHTML += `<tbody><tr><td colspan="6"><div class="empty">데이터가 없어요.</div></td></tr></tbody>`;
+  if(!rows.length) $("analysesTbl").innerHTML += `<tbody><tr><td colspan="7"><div class="empty">데이터가 없어요.</div></td></tr></tbody>`;
   bindRows("analysesTbl");
 }
-["fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
+["fStage","fStatus","fFeedback","fSearch"].forEach(id=>$(id).addEventListener("input",renderAnalyses));
 $("hideTest").addEventListener("change", (e)=>{ HIDE_TEST=e.target.checked; recomputeVis(); renderDash(); renderAnalyses(); renderFeedback(); });
 $("uRefresh").addEventListener("click", loadAll);
 $("lgRefresh").addEventListener("click", loadAll);
@@ -487,6 +619,12 @@ const ROLE_LABEL={user:"보호자",staff:"어린이집",admin:"관리자",super_
 function roleCls(r){ return (r==="admin"||r==="super_admin")?"ok":(r==="staff"?"warn":"mut"); }
 function renderUsers(){
   const cnt={}; ALL.forEach(r=>{ if(r.user_id) cnt[r.user_id]=(cnt[r.user_id]||0)+1; });
+  // 사람별 단계: 그 계정의 기록 중 가장 진행된 단계 + 설문만/영상 건수
+  const ustage={};
+  ALL.forEach(r=>{ if(!r.user_id) return;
+    const s=stageOf(r), u=ustage[r.user_id]||(ustage[r.user_id]={best:"survey",survey:0,uploaded:0,video:0});
+    u[s]++; if(STAGE_RANK[s]>STAGE_RANK[u.best]) u.best=s;
+  });
   $("uCount").textContent = USERS.length+"명";
   const body = USERS.map(u=>
     `<tr>`+
@@ -497,9 +635,13 @@ function renderUsers(){
     `<td>${u.last_login_at?fmtDt(u.last_login_at):'<span class="muted">-</span>'}</td>`+
     `<td>${(u.is_active!==false)?'<span class="pill ok">활성</span>':'<span class="pill bad">정지</span>'}</td>`+
     `<td>${cnt[u.id]||0}</td>`+
+    `<td>${(()=>{ const s=ustage[u.id]; if(!s) return '<span class="muted">기록 없음</span>';
+      const m=STAGE_LABEL[s.best];
+      return `<span class="pill ${m[1]}">${m[0]}</span> <span class="muted">설문만 ${s.survey} · 영상 ${s.video}`+
+             (s.uploaded?` · 분석미완 ${s.uploaded}`:"")+`</span>`; })()}</td>`+
     `</tr>`).join("");
-  $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석"]) +
-    (USERS.length?`<tbody>${body}</tbody>`:`<tbody><tr><td colspan="7"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
+  $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석","단계"]) +
+    (USERS.length?`<tbody style="cursor:default">${body}</tbody>`:`<tbody><tr><td colspan="8"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
 }
 
 /* ---------- 감사 로그 (조회 전용, append-only) ---------- */
@@ -602,6 +744,7 @@ async function openDetail(id){
   let body = "";
   body += `<div class="sec"><h3>기본</h3><div class="kv">`+
     `<div class="k">분석 일시</div><div class="v">${fmtDt(r.created_at)}</div>`+
+    `<div class="k">단계</div><div class="v">${stagePill(r)} <span class="muted">video_status: ${esc(r.video_status||"-")} · result_type: ${esc(r.result_type||"-")} · v${esc(r.result_version||1)}</span></div>`+
     `<div class="k">상태</div><div class="v">${statPill(r.status)}</div>`+
     `<div class="k">닉네임</div><div class="v">${esc(r.nickname||"-")}</div>`+
     `<div class="k">동의</div><div class="v">${r.consent?"예":"아니오"}</div>`+
@@ -613,12 +756,15 @@ async function openDetail(id){
     `음식 형태: <b>${esc(a.food_texture||"-")}</b><br>`+
     `직접 작성: ${esc(a.concern_text||"-")}`+
     `</div></div>`;
-  body += `<div class="sec"><h3>영상 지표</h3><div class="box">`+
+  body += `<div class="sec"><h3>영상 지표</h3>`+
+    (stageOf(r)==="survey"
+      ? `<div class="box"><span class="muted">영상 없음 — 설문 기반 결과입니다. 같은 기록에 영상이 추가되면 이 영역이 채워집니다.</span></div></div>`
+      : `<div class="box">`+
     `영상 길이: <b>${esc(mt.duration_sec!=null?mt.duration_sec+"초":"-")}</b> · 얼굴 인식률: <b>${esc(mt.detect_rate!=null?mt.detect_rate+"%":"-")}</b><br>`+
     `씹기 추정: <b>${esc(mt.chews_per_min!=null?mt.chews_per_min+"/분":"-")}</b> (count ${esc(mt.chew_count!=null?mt.chew_count:"-")}) · 품질: ${qualPill(mt.quality)}<br>`+
     `최대 턱 열림: <b>${esc(mt.max_jaw_open!=null?mt.max_jaw_open:"-")}</b> · 좌우 ${esc(mt.left_pct!=null?mt.left_pct:"-")}:${esc(mt.right_pct!=null?mt.right_pct:"-")}<br>`+
     `엔진: ${esc(mt.engine_version||mt.engine||"-")} · result_version: ${esc(mt.result_version||"-")}`+
-    `</div></div>`;
+    `</div></div>`);
   body += `<div class="sec"><h3>부모가 본 결과화면</h3>${resultScreenHtml(r)}</div>`;
   body += `<div class="sec"><h3>피드백</h3><div class="box">`+
     (hasFb(r)?
@@ -736,10 +882,11 @@ document.querySelectorAll(".tabs button").forEach(b=>{
 /* ---------- CSV (마스킹) ---------- */
 $("csvBtn").addEventListener("click",()=>{
   const rows=filtered();
-  const head=["분석일시","월령","고민유형","고민텍스트","음식형태","영상길이","얼굴인식률","씹기추정","품질","상태","결과행동","신뢰도","도움","재사용","의견"];
+  const head=["분석일시","단계","영상상태","결과유형","월령","고민유형","고민텍스트","음식형태","영상길이","얼굴인식률","씹기추정","품질","상태","결과행동","신뢰도","도움","재사용","의견"];
   const lines=[head.join(",")];
   rows.forEach(r=>{ const a=answersOf(r),mt=metricsOf(r),res=r.result||{},f=fbOf(r);
-    const c=[fmtDt(r.created_at),a.child_age_months!=null?a.child_age_months:(r.age_band||""),a.concern_type||"",a.concern_text||"",
+    const c=[fmtDt(r.created_at),STAGE_LABEL[stageOf(r)][0],r.video_status||"",r.result_type||"",
+      a.child_age_months!=null?a.child_age_months:(r.age_band||""),a.concern_type||"",a.concern_text||"",
       a.food_texture||"",mt.duration_sec!=null?mt.duration_sec:"",mt.detect_rate!=null?mt.detect_rate:"",mt.chews_per_min!=null?mt.chews_per_min:"",
       mt.quality||"",r.status||"",res.action||"",res.confidence||"",HELP[f.helpful]||f.helpful||"",REUSE[f.reuse_intent]||f.reuse_intent||"",f.feedback_text||f.comment||""];
     lines.push(c.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(","));
