@@ -26,6 +26,28 @@ let _mount = null, _ageMonths = null;
 function lede(t) {
   return `<p style="margin:2px 0 6px;font-size:13px;line-height:1.55;color:var(--ink-soft,#667)">${esc(t)}</p>`;
 }
+// ⑤ 식감 연결 레시피 — 무엇을 받게 되는지 크게 보여준다(두 칸 모두 필수 입력).
+function recipePitch() {
+  return `<div style="background:linear-gradient(160deg,#f3f7ee,#fff);border:1.5px solid #cfe0c1;border-radius:16px;padding:18px 18px 16px;margin:6px 0 16px;">
+    <div style="font-family:var(--head,'Jua',sans-serif);font-size:19px;line-height:1.4;color:var(--brand-deep,#5f7a4f);margin-bottom:8px;">
+      🍳 두 가지만 적으면<br><b style="font-size:21px">우리 아이 맞춤 레시피</b>를 만들어 드려요
+    </div>
+    <div style="font-size:14.5px;line-height:1.75;color:var(--ink,#3f382f);margin:0 0 12px;">
+      <div><b>잘 먹는 음식</b> + <b>안 먹는 음식</b>을 알려주시면</div>
+      <div style="padding-left:19px;position:relative;">
+        <span style="position:absolute;left:0;color:var(--brand-deep,#5f7a4f);">→</span>
+        그 둘을 이어 주는 <b>단계별 연결 레시피</b>를 만들어 드려요
+      </div>
+      <div style="margin-top:8px;color:var(--ink-soft,#8f8478);">
+        억지로 먹이지 않아요.<br>
+        이미 좋아하는 음식에 <b style="color:var(--ink,#3f382f)">조금씩 섞어 가는 방법</b>이에요.
+      </div>
+    </div>
+    <div style="font-size:13.5px;line-height:1.6;color:var(--ink-soft,#667);border-top:1px dashed #dbe6d0;padding-top:9px;">
+      결과 화면에서 바로 확인할 수 있어요 · <b>두 칸 모두 꼭 적어 주세요</b>
+    </div>
+  </div>`;
+}
 // 한 스텝(첫 스텝만 보이고 나머지는 숨김)
 function step(n, title, inner, intro) {
   return `<div class="sv-step" data-step="${n}"${n > 1 ? ' style="display:none"' : ""}>${head(title)}${intro ? lede(intro) : ""}${inner}</div>`;
@@ -60,9 +82,10 @@ export function renderSurvey(mount, o) {
     step(4, "④ 안전 확인",
       S.SAFETY.map((s) => qBlock(s.q, radios(s.id, S.YN))).join("")) +
     step(5, "⑤ 식감 연결 레시피", "" +
-      qBlock("요즘 잘 먹는 음식", `<input id="r_liked" type="text" maxlength="40" class="cs-inp" placeholder="예: 계란찜" value="${esc((o.recipe && o.recipe.liked) || "")}"/>`, "(선택)") +
-      qBlock("연습하고 싶은(안 먹는) 음식", `<input id="r_practice" type="text" maxlength="40" class="cs-inp" placeholder="예: 소고기" value="${esc((o.recipe && o.recipe.practice) || "")}"/>`, "(선택)"),
-      "두 음식을 적어 주시면, 결과에서 이 둘을 이어 주는 ‘연결 레시피’를 만들어 드려요.") +
+      recipePitch() +
+      qBlock("요즘 잘 먹는 음식", `<input id="r_liked" type="text" maxlength="40" class="cs-inp" placeholder="예: 계란찜" value="${esc((o.recipe && o.recipe.liked) || "")}"/>`, "(필수)") +
+      qBlock("연습하고 싶은(안 먹는) 음식", `<input id="r_practice" type="text" maxlength="40" class="cs-inp" placeholder="예: 소고기" value="${esc((o.recipe && o.recipe.practice) || "")}"/>`, "(필수)") +
+      `<div class="sv-err" id="recipeErr" style="display:none;margin-top:10px;background:#fdeeee;border:1px solid #f3cfcf;color:#a03c39;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.55;"></div>`) +
     step(6, "⑥ 마무리", "" +
       qBlock("가장 알고 싶은 점이 있다면 적어 주세요.", `<textarea id="want_to_know" class="ta" placeholder="예: 잘 씹고 있는 건지 궁금해요"></textarea>`, "(선택)")) +
     // ── 스텝 내비게이션 ──
@@ -70,10 +93,10 @@ export function renderSurvey(mount, o) {
        <button type="button" class="btn-ghost sv-prev" style="visibility:hidden;">← 이전</button>
        <div class="sv-progress" style="font-size:13px;font-weight:700;color:var(--ink-faint,#889);letter-spacing:.02em;"><span id="svStepNow">1</span> / <span id="svStepTotal">6</span></div>
        <button type="button" class="btn-primary sv-next">다음 →</button>
-     </div>
-     <div style="text-align:center;margin-top:12px;">
-       <button type="button" class="sv-skip" style="background:none;border:none;color:var(--ink-faint,#889);text-decoration:underline;cursor:pointer;font:600 13px/1 var(--sans);">설문 건너뛰고 영상 올리기</button>
      </div>`;
+  // 2026-07-27: '설문 건너뛰고 영상 올리기' 제거.
+  //   영상이 선택이 된 뒤로는 설문이 결과의 유일한 근거이고, 레시피 입력도 필수라
+  //   설문을 건너뛰면 만들 수 있는 결과가 없다. onSkip 은 호환용으로만 남긴다.
 
   // 레시피 입력칸 스타일
   mount.querySelectorAll(".cs-inp").forEach((el) => {
@@ -104,8 +127,42 @@ export function renderSurvey(mount, o) {
     try { mount.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
   };
   prevBtn.addEventListener("click", () => show(cur - 1));
-  nextBtn.addEventListener("click", () => { if (cur === total) onComplete(collectSurveyAnswers()); else show(cur + 1); });
-  mount.querySelector(".sv-skip").addEventListener("click", () => onSkip());
+  // 필수 입력 검사 — ⑤ 식감 연결 레시피의 두 칸은 반드시 채워야 다음으로 넘어간다.
+  //  (레시피가 이 설문의 핵심 보상이라, 선택으로 두면 대부분 비워서 결과가 비어 버림)
+  const requireRecipe = () => {
+    const liked = mount.querySelector("#r_liked"), prac = mount.querySelector("#r_practice");
+    const err = mount.querySelector("#recipeErr");
+    if (!liked || !prac) return true;                       // 이 스텝이 아니면 통과
+    if (!liked.closest(".sv-step") || liked.closest(".sv-step").style.display === "none") return true;
+    const a = (liked.value || "").trim(), b = (prac.value || "").trim();
+    const missing = [];
+    if (!a) missing.push("요즘 잘 먹는 음식");
+    if (!b) missing.push("연습하고 싶은(안 먹는) 음식");
+    if (!missing.length) { if (err) err.style.display = "none"; return true; }
+    if (err) {
+      err.innerHTML = `<b>${esc(missing.join(" · "))}</b>을 적어 주세요. 이 두 가지로 <b>맞춤 레시피</b>를 만들어 드려요.`;
+      err.style.display = "";
+    }
+    const focusEl = !a ? liked : prac;
+    focusEl.style.borderColor = "#d9534f";
+    try { focusEl.focus({ preventScroll: false }); } catch (e) { focusEl.focus(); }
+    return false;
+  };
+  [ "#r_liked", "#r_practice" ].forEach((sel) => {
+    const el = mount.querySelector(sel);
+    if (el) el.addEventListener("input", () => {
+      el.style.borderColor = "var(--line)";
+      const err = mount.querySelector("#recipeErr");
+      const liked = mount.querySelector("#r_liked"), prac = mount.querySelector("#r_practice");
+      if (err && liked && prac && (liked.value || "").trim() && (prac.value || "").trim()) err.style.display = "none";
+    });
+  });
+  nextBtn.addEventListener("click", () => {
+    if (!requireRecipe()) return;
+    if (cur === total) onComplete(collectSurveyAnswers()); else show(cur + 1);
+  });
+  const skipBtn = mount.querySelector(".sv-skip");   // 현재는 렌더하지 않음(설문 필수)
+  if (skipBtn) skipBtn.addEventListener("click", () => onSkip());
   show(1);
 }
 
