@@ -2,6 +2,7 @@
 // 저장 구조는 스키마의 ANSWERS_SHAPE 그대로: { food_texture, concern_type, concern_text, survey, safety_alert }
 // (앱 chewstep-mobile과 동일 구조 → demo_responses.answers 통합)
 import S from "/assets/js/survey-v3-schema.js";
+import { snapshotForm, restoreForm } from "/assets/js/survey-draft.js";   // 임시저장 폼 스냅샷(#1)
 
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const val = (o) => (typeof o === "object" ? o.v : o);
@@ -55,12 +56,16 @@ function step(n, title, inner, intro) {
 
 // 앱과 동일한 단계형(스텝) 설문. 각 스텝은 한 관점씩 보여주고 '다음'으로 진행한다.
 // 고민(concern) 선택 시 조건부 심화문항(deepMount)이 1스텝 안에서 즉시 렌더된다(웹·앱 공용 로직).
-// opts: { ageMonths, recipe, concern, onComplete(answers), onSkip() }
+// opts: { ageMonths, recipe, concern, onComplete(answers), onSkip(),
+//         restore: { form, step },              // 임시저장 초안 복원(#1)
+//         onProgress({ form, step })            // 문항 선택·스텝 이동마다 호출 → 호출부가 저장
+//       }
 export function renderSurvey(mount, o) {
   _mount = mount; o = o || {};
   _ageMonths = (o.ageMonths != null) ? o.ageMonths : null;
   const onComplete = typeof o.onComplete === "function" ? o.onComplete : function () {};
   const onSkip = typeof o.onSkip === "function" ? o.onSkip : function () {};
+  const onProgress = typeof o.onProgress === "function" ? o.onProgress : null;
 
   mount.innerHTML =
     step(1, "① 기본 정보", "" +
@@ -108,7 +113,17 @@ export function renderSurvey(mount, o) {
   // 고민 → 조건부 심화문항
   mount.querySelectorAll('input[name="concern"]').forEach((r) => r.addEventListener("change", renderDeep));
   if (o.concern) { const r = mount.querySelector('input[name="concern"][value="' + o.concern + '"]'); if (r) r.checked = true; }
+
+  /* ── 임시저장 초안 복원 (#1) ──
+     ① 먼저 concern 을 되돌려야 조건부 심화문항이 렌더된다
+     ② 그 뒤 전체 폼을 다시 복원해 심화문항 답변까지 채운다 */
+  const restore = o.restore && o.restore.form ? o.restore : null;
+  if (restore) {
+    const c = restore.form.concern;
+    if (c) { const r = mount.querySelector('input[name="concern"][value="' + c + '"]'); if (r) r.checked = true; }
+  }
   renderDeep();
+  if (restore) restoreForm(mount, restore.form);
 
   // ── 스텝 진행 로직 ──
   const steps = Array.prototype.slice.call(mount.querySelectorAll(".sv-step"));
@@ -118,6 +133,30 @@ export function renderSurvey(mount, o) {
   const nowEl = mount.querySelector("#svStepNow");
   mount.querySelector("#svStepTotal").textContent = String(total);
   let cur = 1;
+
+  /* ── 임시저장 (#1) ──
+     각 문항 선택 · 스텝 이동마다 호출부에 현재 상태를 넘긴다(호출부가 localStorage 에 쓴다).
+     입력칸은 타이핑마다 쓰지 않도록 살짝 묶어서 보낸다. */
+  let saveTimer = null;
+  const emitProgress = () => {
+    if (!onProgress) return;
+    try { onProgress({ form: snapshotForm(mount), step: cur }); } catch (e) { /* 저장 실패는 흐름을 막지 않는다 */ }
+  };
+  const emitSoon = () => {
+    if (!onProgress) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(emitProgress, 400);
+  };
+  // 라디오·체크박스는 즉시, 텍스트 입력은 묶어서 저장
+  mount.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t && (t.type === "radio" || t.type === "checkbox")) emitProgress(); else emitSoon();
+  });
+  mount.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "TEXTAREA" || t.type === "text" || t.type === "number")) emitSoon();
+  });
+
   const show = (i) => {
     cur = Math.max(1, Math.min(total, i));
     steps.forEach((s) => { s.style.display = (Number(s.dataset.step) === cur) ? "" : "none"; });
@@ -125,6 +164,7 @@ export function renderSurvey(mount, o) {
     nextBtn.textContent = cur === total ? "완료 · 영상 올리기 →" : "다음 →";
     nowEl.textContent = String(cur);
     try { mount.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+    emitProgress();                      // 스텝 이동 시점의 상태를 저장
   };
   prevBtn.addEventListener("click", () => show(cur - 1));
   // 필수 입력 검사 — ⑤ 식감 연결 레시피의 두 칸은 반드시 채워야 다음으로 넘어간다.
@@ -163,7 +203,8 @@ export function renderSurvey(mount, o) {
   });
   const skipBtn = mount.querySelector(".sv-skip");   // 현재는 렌더하지 않음(설문 필수)
   if (skipBtn) skipBtn.addEventListener("click", () => onSkip());
-  show(1);
+  // 초안이 있으면 저장된 스텝에서 이어서 시작한다(없으면 1스텝)
+  show(restore && restore.step ? restore.step : 1);
 }
 
 // 고민(concern) 선택 시 3단계 조건부 세트를 딥다이브 자리에 렌더

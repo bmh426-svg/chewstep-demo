@@ -49,9 +49,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(16,32,26,.04),0 6px 20px rgba(16,32,26,.05);}
   .card h2{font-size:13px;margin:0 0 10px;color:var(--ink-soft);font-weight:700;letter-spacing:.01em;}
 
-  .videobox{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;}
-  video{max-width:100%;max-height:100%;display:block;}
-  #overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  /* 영상 영역 — 2026-07-28(#2): 세로 영상이 잘리던 문제 수정.
+     · aspect-ratio 는 영상이 로드되면 원본 비율로 덮어쓴다(fitVideoBox) → 강제 확대·잘림 없음
+     · object-fit:contain 으로 원본 비율 유지(레터박스/필러박스는 배경색으로 처리)
+     · #overlay 는 inset:0 로 박스를 꽉 채우면 안 된다 — 영상이 레터박스되면 랜드마크가
+       가로로 늘어나 얼굴에서 벗어난다. 크기·위치를 fitOverlay()가 영상 표시 영역에 맞춘다. */
+  .videobox{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-height:70vh;display:flex;align-items:center;justify-content:center;}
+  .videobox video{width:100%;height:100%;object-fit:contain;display:block;}
+  #overlay{position:absolute;left:0;top:0;pointer-events:none;}
   .status{position:absolute;top:10px;left:10px;z-index:3;background:rgba(0,0,0,.62);color:#fff;font:700 11px/1.3 var(--sans);padding:6px 10px;border-radius:999px;display:flex;align-items:center;gap:7px;}
   .status .live{width:7px;height:7px;border-radius:50%;background:#34d399;animation:blink 1.2s infinite;}
   @keyframes blink{50%{opacity:.25;}}
@@ -415,6 +420,69 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .sq-cmp .col .lab{font-size:12px;font-weight:800;color:var(--brand-deep);letter-spacing:.02em;margin-bottom:6px;}
   .sq-cmp .col .li{font-size:14px;line-height:1.65;padding:3px 0;}
   .sq-cmp .ver{font-size:12px;color:var(--ink-faint);margin-top:4px;}
+
+  /* ── 분석 시작 전 영상 확인 단계 (2026-07-28 · #2·#3·#5) ── */
+  /* 세로 영상은 aspect-ratio 때문에 폭이 좁아진다 → 가운데로 모아 준다(margin-inline:auto) */
+  .reviewbox{position:relative;border-radius:14px;overflow:hidden;background:#0d1512;aspect-ratio:4/3;max-height:56vh;
+             display:flex;align-items:center;justify-content:center;margin:14px auto 0;}
+  .reviewbox video{width:100%;height:100%;object-fit:contain;display:block;}   /* 원본 비율 유지 · 잘라내지 않음 */
+  .vmeta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+  .vmeta span{background:var(--grid);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--ink-soft);}
+  .vmeta span b{color:var(--ink);}
+  .vmeta span.warn{background:#fdf1e7;color:#8a5a08;}
+  .pfstate{margin-top:14px;border-radius:14px;padding:15px 16px;font-size:14px;line-height:1.65;}
+  .pfstate.checking{background:var(--grid);color:var(--ink-soft);}
+  .pfstate.pass{background:#eef6ea;border:1px solid #cfe0c1;color:#40613a;}
+  /* 경계 수준 — 막지는 않지만 신뢰가 낮음(차단의 빨강과 구분되는 주의 톤) */
+  .pfstate.warn{background:#fdf4ec;border:1px solid #e8c9a8;color:#7a4f22;}
+  .pfstate.block{background:#fdf1f1;border:1px solid #f3cfcf;color:#8a3c39;}
+  .pfstate .pf-list li{font-variant-numeric:tabular-nums;}
+  .pfstate .pf-t{font-weight:800;font-size:15px;margin-bottom:6px;color:inherit;}
+  .pfstate .pf-list{margin:9px 0 0;padding-left:18px;font-size:13px;line-height:1.7;}
+  .pfbar{height:5px;border-radius:999px;background:rgba(0,0,0,.07);overflow:hidden;margin-top:9px;}
+  .pfbar i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s;}
+  .review-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .review-actions .btn-primary[disabled]{opacity:.45;cursor:not-allowed;}
+
+  /* ── 설문 이어하기 안내 (#1) ── */
+  .resume{background:linear-gradient(160deg,#f3f7ee,#fff);border:1.5px solid #cfe0c1;border-radius:18px;padding:20px 19px 18px;}
+  .resume .rs-t{font-family:var(--head,'Jua',sans-serif);font-size:19px;color:var(--brand-deep);margin-bottom:8px;}
+  .resume .rs-b{font-size:14.5px;line-height:1.7;color:var(--ink);margin:0 0 8px;}
+  .resume .rs-n{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0 0 14px;}
+  .resume .rs-a{display:flex;gap:10px;flex-wrap:wrap;}
+  .resume .rs-a button{flex:1 1 auto;min-width:140px;}
+
+  /* ── 분석 제한 배너 (#5) — 결과 최상단 ── */
+  #secLimited{background:#fdf4ec;border:1.5px solid #e8c9a8;border-radius:16px;padding:17px 18px 18px;margin:14px 0 4px;
+              font-size:14.5px;line-height:1.7;color:#7a4f22;}
+  #secLimited .lim-t{font-weight:800;font-size:15.5px;margin-bottom:8px;color:#8a5a08;letter-spacing:.01em;}
+  #secLimited .btn-primary{width:100%;}
+
+  /* ── 촬영 가이드 모달 (#4) — 직접 촬영·앨범 업로드 공통 ── */
+  .gmodal{position:fixed;inset:0;z-index:200;background:rgba(16,32,26,.55);display:none;
+          align-items:center;justify-content:center;padding:18px;overflow-y:auto;}
+  .gmodal.on{display:flex;}
+  .gsheet{background:var(--surface);border-radius:20px;max-width:560px;width:100%;padding:22px 20px 18px;
+          box-shadow:0 20px 60px rgba(16,32,26,.28);max-height:92vh;overflow-y:auto;}
+  .gsheet h2{font-family:var(--head,'Jua',sans-serif);font-size:21px;margin:0 0 6px;color:var(--brand-deep);}
+  .gsheet .glede{font-size:13.5px;line-height:1.6;color:var(--ink-soft);margin:0 0 14px;}
+  .glist{list-style:none;margin:0;padding:0;}
+  .glist li{display:flex;gap:10px;padding:8px 0;border-top:1px dashed var(--line);font-size:14px;line-height:1.6;}
+  .glist li:first-child{border-top:0;}
+  .glist .gic{flex:0 0 auto;width:24px;text-align:center;font-size:16px;}
+  .gex{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 4px;}
+  .gex figure{margin:0;border-radius:12px;overflow:hidden;border:1.5px solid var(--line);background:var(--grid);}
+  .gex figure.good{border-color:#9cbb86;}
+  .gex figure.bad{border-color:#e4b4b1;}
+  .gex .gcap{font-size:12px;font-weight:800;padding:7px 9px;line-height:1.45;}
+  .gex figure.good .gcap{background:#eef6ea;color:#40613a;}
+  .gex figure.bad .gcap{background:#fdf1f1;color:#8a3c39;}
+  .gdiagram{display:block;width:100%;height:auto;background:#fff;}
+  .gactions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .gactions button{flex:1 1 auto;min-width:150px;}
+  .gskip{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--ink-faint);
+         font:600 12.5px/1.4 var(--sans);cursor:pointer;text-decoration:underline;}
+  @media(max-width:560px){ .gex{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -699,8 +767,82 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </label>
     </div>
 
+    <!-- 3단계 · 올린 영상 확인 (분석 시작 전) — 2026-07-28 · 피드백 #2·#3·#5
+         · 원본 비율 그대로 보여준다(세로 영상도 잘리지 않음)
+         · 분석을 시작하기 전에 얼굴·입·턱이 보이는지 먼저 점검한다(프리플라이트)
+         · 기준 미달이면 분석을 진행하지 않고 재업로드를 먼저 안내한다 -->
+    <div class="uploadphase" id="uphReview" style="display:none">
+      <h1>올린 영상을 확인해 주세요</h1>
+      <p class="lede">원본 비율 그대로 보여드려요. 아이 <b>얼굴과 턱</b>이 화면 안에 들어와 있는지 봐주세요.
+        분석을 시작하기 전에 얼굴이 잘 보이는지 <b>먼저 확인</b>할게요.</p>
+      <div class="reviewbox">
+        <video id="reviewVideo" muted playsinline controls preload="metadata"></video>
+      </div>
+      <div class="vmeta" id="reviewMeta"></div>
+      <div class="pfstate checking" id="pfState"></div>
+      <div class="review-actions">
+        <button type="button" class="btn-primary" id="reviewStart" disabled>이 영상으로 분석 시작 →</button>
+        <button type="button" class="btn-ghost" id="reviewChange">영상 변경하기</button>
+      </div>
+      <p class="note">원본 영상은 어디에도 저장·업로드되지 않아요 · 확인도 분석도 100% 브라우저 안에서 실행돼요.</p>
+    </div>
+
     <div class="loading" id="loading"></div>
   </section>
+
+  <!-- ===== 촬영 가이드 모달 (#4) — 직접 촬영·앨범 업로드 모두 같은 가이드를 본다 ===== -->
+  <div class="gmodal" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="gsheet">
+      <h2 id="guideTitle">이렇게 찍으면 잘 분석돼요</h2>
+      <p class="glede">아이 얼굴과 턱이 보이면 충분해요. 예쁘게 담지 않아도 괜찮아요 —
+        <b>평소 식사 모습</b>이 가장 좋아요.</p>
+      <ul class="glist">
+        <li><span class="gic">👶</span><div>아이의 <b>얼굴과 턱이 모두</b> 보이게 촬영해 주세요</div></li>
+        <li><span class="gic">🧍</span><div><b>정면 또는 정면에 가까운 각도</b>를 권장해요</div></li>
+        <li><span class="gic">📏</span><div>카메라를 <b>아이 눈높이</b>에 두세요</div></li>
+        <li><span class="gic">✂️</span><div>얼굴이 화면 <b>위아래로 잘리지 않게</b> 찍어 주세요</div></li>
+        <li><span class="gic">✋</span><div>손이나 식기로 <b>입과 턱이 오래 가려지지 않게</b> 해주세요</div></li>
+        <li><span class="gic">💡</span><div>너무 <b>멀거나 어두운</b> 영상은 피해 주세요</div></li>
+        <li><span class="gic">😋</span><div>실제로 <b>씹는 장면</b>이 포함된 영상을 써주세요</div></li>
+        <li><span class="gic">📱</span><div><b>세로 영상도 가능</b>해요 — 얼굴 전체가 <b>중앙</b>에 들어오도록 찍어 주세요</div></li>
+      </ul>
+      <div class="gex">
+        <figure class="good">
+          <svg class="gdiagram" viewBox="0 0 160 120" role="img" aria-label="좋은 예 — 아이 얼굴과 턱이 화면 안에 온전히 들어오고 숟가락이 함께 보인다">
+            <rect width="160" height="120" fill="#f3f7ee"/>
+            <rect x="4" y="4" width="152" height="112" fill="none" stroke="#9cbb86" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <circle cx="80" cy="52" r="26" fill="#f6d9bf" stroke="#c9a184" stroke-width="1.5"/>
+            <circle cx="71" cy="47" r="2.6" fill="#4a3f36"/><circle cx="89" cy="47" r="2.6" fill="#4a3f36"/>
+            <path d="M71 63 q9 8 18 0" fill="none" stroke="#b5715f" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M62 74 q18 12 36 0" fill="none" stroke="#c9a184" stroke-width="1.5"/>
+            <path d="M104 84 l16 10" stroke="#8a9a7a" stroke-width="3.5" stroke-linecap="round"/>
+            <ellipse cx="102" cy="82" rx="7" ry="4.6" fill="#dfe8d5" stroke="#8a9a7a" stroke-width="1.4"/>
+          </svg>
+          <div class="gcap">⭕ 좋은 예 — 얼굴·턱·숟가락이 한 화면에</div>
+        </figure>
+        <figure class="bad">
+          <svg class="gdiagram" viewBox="0 0 160 120" role="img" aria-label="어려운 예 — 얼굴 위아래가 화면 밖으로 잘리고 입이 손에 가려져 있다">
+            <rect width="160" height="120" fill="#fdf1f1"/>
+            <rect x="4" y="4" width="152" height="112" fill="none" stroke="#e4b4b1" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <!-- 얼굴을 viewBox 보다 크게 그려 위아래가 실제로 잘려 보이게 한다 -->
+            <circle cx="80" cy="62" r="72" fill="#f6d9bf" stroke="#c9a184" stroke-width="1.5"/>
+            <circle cx="58" cy="44" r="4" fill="#4a3f36"/><circle cx="102" cy="44" r="4" fill="#4a3f36"/>
+            <path d="M40 74 q40 22 80 0 l0 46 l-80 0 z" fill="#e8b9a6" opacity=".92"/>
+            <path d="M0 4 L160 4" stroke="#d9534f" stroke-width="2.5"/>
+            <path d="M0 116 L160 116" stroke="#d9534f" stroke-width="2.5"/>
+            <text x="80" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="#a03c39">위 잘림</text>
+            <text x="80" y="112" text-anchor="middle" font-size="9" font-weight="700" fill="#a03c39">턱 잘림</text>
+          </svg>
+          <div class="gcap">❌ 어려운 예 — 얼굴이 잘리고 입이 가려짐</div>
+        </figure>
+      </div>
+      <div class="gactions">
+        <button type="button" class="btn-primary" id="guideCapture">📷 직접 촬영</button>
+        <button type="button" class="btn-ghost" id="guideAlbum">🎬 앨범에서 선택</button>
+      </div>
+      <button type="button" class="gskip" id="guideClose">닫기</button>
+    </div>
+  </div>
 
   <!-- ===== 화면 2 · 분석 중 ===== -->
   <section class="screen" id="screenAnalyze">
@@ -769,6 +911,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <section class="screen" id="screenResult">
     <span class="step-eyebrow" id="resultEyebrow">STEP 3 / 3 · 결과</span>
     <h1 id="pvTitle">우리 아이 식사 분석 결과</h1>
+    <!-- 분석 제한(#5) — 품질이 낮은 경우 일반 결과로 오해하지 않도록 최상단에 명시 -->
+    <div id="secLimited" style="display:none"></div>
     <div id="previewBlock"></div>
 
     <!-- 상세 분석 (기본 분석 아래에 바로 이어서 표시) -->
@@ -849,7 +993,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </form>
     </div>
 
-    <button class="again" id="again">🔄 다른 영상 분석</button>
+    <!-- 재분석(#3) — reset()이 숨기고 finalizeResult()가 다시 노출한다.
+         설문·아이 정보는 유지하고, 분석 완료 후이므로 새 분석 버전으로 저장된다. -->
+    <button class="again" id="again">🔄 다른 영상으로 다시 분석하기</button>
 
     <!-- 결과 맨 아래 · 홈으로 돌아가기 배너 -->
     <a class="home-banner" href="./index.html">
@@ -889,11 +1035,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
   import { mountAuthUI } from "./assets/js/auth.js";
   import { renderSurvey, collectSurveyAnswers } from "./assets/js/survey-render.js";
+  import SCHEMA from "./assets/js/survey-v3-schema.js";   // FREQ_LABEL · FOOD_ADVICE · SCHEMA_VERSION
+  // 음식 단계 게이팅(#6) — 현재 단계보다 이전 단계의 조언을 내보내지 않는다
+  import { FOOD_ADVICE, FOOD_ORDER, FOOD_LABEL, foodFormOf, gateTips, tipText,
+           sanitizeCoachForStage, stageContract,
+           filterAllergyTips, mentionsAllergen, allergyTokens } from "./assets/js/stage-gate.js";
   import { fetchRecipe } from "./assets/js/recipe.js";
   import { recommendProducts } from "./assets/js/products.js";
   import { IDDSI_ATTRIBUTION } from "./assets/js/iddsi.js";
   import { fetchCoach } from "./assets/js/coach.js";
   import { AudioChewDetector } from "./assets/js/audio-chew.js";
+  // 영상 확인(#2·#5) — 원본 비율·회전 확인 + 분석 전 품질 게이팅
+  import { probeVideo } from "./assets/js/video-meta.js";
+  import { runPreflight, preflightMessage, TIER, THRESHOLDS } from "./assets/js/video-preflight.js";
+  // 설문 임시저장·이어하기(#1)
+  import { loadDraft, saveDraft, clearDraft, savedAgo,
+           STAGE_SURVEY, STAGE_VIDEO_PENDING } from "./assets/js/survey-draft.js";
   const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
   const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
@@ -976,6 +1133,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const video = $("video"), overlay = $("overlay"), octx = overlay.getContext("2d");
   const wave = $("wave"), wctx = wave.getContext("2d");
   const frameCanvas = document.createElement("canvas"), fctx = frameCanvas.getContext("2d");
+
+  /* ── 영상 표시 영역·오버레이 정렬 (2026-07-28 · 피드백 #2) ────────────────
+     기존 문제: .videobox 가 4:3 으로 고정돼 있고 #overlay 는 inset:0 으로 박스를
+     꽉 채웠다. 랜드마크는 '영상 프레임 기준 0~1' 좌표인데 캔버스가 박스 전체로
+     늘어나 있어서, 세로 영상(레터박스)에서는 점이 가로로 늘어나 얼굴을 벗어났다.
+     사용자에게는 '영상이 잘려서 얼굴 인식이 안 된다'로 보였다.
+
+     수정: ① 박스의 aspect-ratio 를 영상 원본 비율로 맞춘다 → 잘림·강제확대 없음
+           ② 오버레이의 CSS 크기와 캔버스 버퍼 크기를 '영상이 실제로 그려진 사각형'에
+              1:1 로 맞춘다 → 좌표 왜곡 0 */
+  function fitVideoBox(){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if(!vw || !vh) return;
+    const box = video.parentElement;
+    if(box) box.style.aspectRatio = vw + " / " + vh;
+  }
+  // object-fit:contain 으로 그려진 영상 사각형을 계산해 오버레이를 그 위에 정확히 겹친다.
+  function fitOverlay(){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const bw = video.clientWidth, bh = video.clientHeight;
+    if(!vw || !vh || !bw || !bh) return;
+    const scale = Math.min(bw / vw, bh / vh);           // contain = 짧은 쪽에 맞춤
+    const dw = Math.max(1, Math.round(vw * scale));
+    const dh = Math.max(1, Math.round(vh * scale));
+    overlay.style.left = Math.round((bw - dw) / 2) + "px";
+    overlay.style.top  = Math.round((bh - dh) / 2) + "px";
+    overlay.style.width  = dw + "px";
+    overlay.style.height = dh + "px";
+    if(overlay.width !== dw || overlay.height !== dh){ overlay.width = dw; overlay.height = dh; }
+  }
+  // 영상 로드·창 크기 변경 때마다 다시 맞춘다(리스너 중복 등록 방지 — 한 번만 붙인다)
+  function syncVideoLayout(){ fitVideoBox(); fitOverlay(); }
+  video.addEventListener("loadedmetadata", syncVideoLayout);
+  video.addEventListener("resize", syncVideoLayout);       // 스트림 해상도 변경(라이브)
+  window.addEventListener("resize", fitOverlay);
 
   // 분석 상태
   let JAW = [], faces = 0, frames = 0, chew = 0, state = "closed", openCnt = 0;
@@ -1309,6 +1501,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           });
           surveyRowId = null;                 // 승급 완료 — 다음 분석은 새 기록으로
           videoContextPending = false;
+          clearSurveyDraft();                 // 최종 제출 성공 → 임시저장 삭제(#1)
         }
         return;
       }
@@ -1320,6 +1513,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       } else {
         lastRowId = rowId;   // 후기 업데이트에 사용(클라이언트 생성 id)
         if (window.csLog) window.csLog("demo_saved", { cpm: cur.cpm, quality: cur.quality, samples: sT.length });
+        clearSurveyDraft();          // 최종 제출 성공 → 임시저장 삭제(#1)
       }
     } catch (e) {
       if (window.csLog) window.csLog("demo_save_error", { msg: String(e) });
@@ -1333,6 +1527,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(cpm > 50) return "삼키기 전에 충분히 씹도록 다음 숟가락을 살짝 늦춰 주세요.";
     return "지금처럼 이어가고, 내일 비슷한 상황에서 한 번 더 찍어 변화를 비교해 보세요.";
   }
+  /* LLM 코칭 결과에서 알레르기 재료를 언급한 문장을 걸러낸다.
+     action(핵심 한 가지)이 알레르기 재료를 권하면 LLM 결과 전체를 버린다(규칙 엔진으로).
+     tips 는 해당 줄만 버리고, 전부 버려지면 규칙 엔진 팁(이미 알레르기 필터를 지난 것)으로 채운다. */
+  function sanitizeCoachForAllergy(coach, allergies, rule){
+    const tokens = allergyTokens(allergies);
+    if(!coach || !tokens.length) return coach;
+    if(mentionsAllergen(coach.action, tokens) || mentionsAllergen(coach.firstCheck, tokens)){
+      if(window.csLog) window.csLog("coach_allergy_rejected", { tokens: tokens.length });
+      return null;
+    }
+    const kept = (coach.tips || []).filter(t => !mentionsAllergen(t, tokens));
+    const dropped = (coach.tips || []).length - kept.length;
+    if(dropped > 0 && window.csLog) window.csLog("coach_allergy_tips_dropped", { dropped: dropped });
+    const out = Object.assign({}, coach);
+    out.tips = kept.length ? kept : ((rule && rule.tips) || []);
+    return out;
+  }
+
+  // 음식 단계 게이팅(#6)은 assets/js/stage-gate.js 모듈에 있다.
+  //   인라인으로 두면 회귀 테스트(verify/stage-gating-check.mjs)가 사본을 검사하게 되어
+  //   실제 화면 로직이 조용히 어긋날 수 있다 → 같은 모듈을 화면과 테스트가 함께 쓴다.
   // ===== C단계 · 규칙 엔진 (결과설계 문서 §4~§6) — 이 표만 고치면 결과가 바뀝니다 =====
   const RULES = {
     // §4 가능성 점수: 입력 → {가능성:점수}  (가능성 키: interval/texture/expectation/repetition)
@@ -1349,12 +1564,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           "밥·이유식을 <b>우유(수유)보다 먼저</b> 주세요 — 배부르면 잘 안 받아요.",
           "우유·주스로 배를 채우지 않기: 우유는 식사 직전이 아니라 <b>간식 시간</b>에 주세요."
         ] },
+      // 질감·크기 — 단계에 따라 '다음 한 걸음'의 방향이 정반대가 되는 가능성.
+      //   action/tips 모두 현재 음식 형태로 게이팅한다(아래 stageAction·gateTips).
       texture:     { label:"질감·크기", firstCheck:"이번에는 <b>음식의 질감이나 크기</b>가 아이에게 부담스럽지 않았는지 먼저 확인해 보세요.", action:"같은 음식을 지금보다 조금 더 부드럽고 작게 준비해 보세요.", watch:"바로 뱉는 행동이 줄어드는지, 씹는 움직임이 조금 더 이어지는지",
+        // 단계별 '다음 한 걸음' action — 없으면 위 기본 action 사용
+        stageAction: {
+          ground:     "가는 정도를 조금 거칠게 해서, 아주 작은 알갱이를 남겨 보세요.",
+          mashed:     "으깨는 정도를 조금 거칠게 해서 알갱이 크기를 키워 보세요.",
+          small_bits: "부드러움은 그대로 두고, 알갱이 크기만 한 단계 키워 보세요.",
+          soft:       "지금의 부드러움을 유지하면서, 한 입 크기를 조금씩 키워 보세요.",
+          regular:    "형태를 낮추지 말고, 한 입 크기와 두께 · 조리법만 조절해 보세요."
+        },
+        // 단계별 구체 팁은 FOOD_ADVICE[form].tips 가 담당한다(중복 방지).
+        // 여기에는 '단계와 무관하게 유효한' 팁만 둔다.
         tips:[
-          "믹서로 갈지 말고 <b>포크로 거칠게 으깨</b> 작은 알갱이를 남겨 주세요(다시 갈면 오히려 이전 단계로 후퇴).",
-          "고기·채소는 <b>밥이나 매시에 섞어</b> 한 덩어리로 — 단독으로 주면 입안에서 흩어져 뱉기 쉬워요(밥의 전분이 접착제 역할).",
-          "손가락으로 눌러 <b>스르륵 뭉개질 만큼</b> 충분히 익혀 부드럽게 해주세요.",
-          "<b>한 입은 작게</b>(티스푼 반 정도) — 입안에 공간이 있어야 혀·잇몸이 음식을 굴리며 으깨요."
+          // 더 부드럽게 익히기 = 일반 가정식·무른 유아식 아이에게는 한 단계 낮추는 조언
+          { t:"손가락으로 눌러 <b>스르륵 뭉개질 만큼</b> 충분히 익혀 부드럽게 해주세요.", for:["ground","mashed","small_bits"] },
+          // '매시'는 갈거나 으깬 형태를 가리키는 말 → 무른 유아식·일반식에는 밥 기준으로 따로 낸다
+          { t:"고기·채소는 <b>밥이나 매시에 섞어</b> 한 덩어리로 — 단독으로 주면 입안에서 흩어져 뱉기 쉬워요(밥의 전분이 접착제 역할).", for:["ground","mashed","small_bits"] },
+          { t:"고기·채소는 <b>밥과 함께 한 숟갈에</b> 담아 주세요 — 단독으로 주면 입안에서 흩어져 뱉기 쉬워요(밥의 전분이 접착제 역할).", for:["soft","regular"] },
+          "<b>한 입은 작게</b>(티스푼 반 정도) — 입안에 공간이 있어야 혀·잇몸이 음식을 굴려 부술 수 있어요."
         ] },
       expectation: { label:"기대 섭취량", firstCheck:"<b>한 끼 양은 한 번의 식사만으로 판단하기 어려워요.</b> 며칠간의 흐름으로 보는 게 좋아요.", action:"처음 제공량을 조금 줄여 부담을 낮추고, 아이가 더 원할 때 추가로 주세요.", watch:"거부감이 줄어드는지, 스스로 더 먹으려 하는지",
         tips:[
@@ -1394,7 +1623,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(c==="spit" || beh==="씹다가 뱉음")
       t.push("먹고 뱉을 때: 채소·고기를 <b>밥과 함께 섞어</b> 주고, 뱉는 순간 <b>육수 한 티스푼</b>이면 삼킴이 시작돼요(습관되지 않게 가끔만).");
     if(c==="hold" || c==="slow" || beh==="오래 물고 있음" || (cur && cur.cpm && cur.cpm<25)){
-      t.push("<b>음식 농도를 조금 되직하게</b>(숟가락에서 뚝 끊어져 떨어질 정도) — 너무 묽으면 씹지 않고 그냥 넘어가요.");
+      // '농도'는 갈거나 으깬 형태에서만 조절 대상 — 무른 유아식·일반식에는 해당하지 않는다
+      t.push({ t:"<b>음식 농도를 조금 되직하게</b>(숟가락에서 뚝 끊어져 떨어질 정도) — 너무 묽으면 씹지 않고 그냥 넘어가요.", for:["ground","mashed","small_bits"] });
       t.push("삼키기 전 <b>다음 숟가락을 살짝 늦춰</b> 입안에서 오물거릴 시간을 주세요.");
     }
     if(c==="meat")
@@ -1444,9 +1674,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const p = RULES.possibility[top] || RULES.possibility.unclear;
     const confidence = !hasVid ? "survey"
                      : (cur.quality==="high" ? "high" : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium"));
-    const tips = (p.tips || []).slice();
-    situationalTips(sv, cur).forEach(x => { if(tips.indexOf(x) < 0) tips.push(x); });
-    return { safety, safetyOn, possibility: top, second: second, label:p.label, firstCheck:p.firstCheck, action:p.action, watch:p.watch, tips:tips.slice(0,5), score, confidence };
+    // ── 음식 단계 게이팅(#6) ──
+    //   ① 현재 단계보다 이전 단계를 가리키는 팁은 제거
+    //   ② 질감·크기 가능성이면 현재 단계의 '다음 한 걸음' 팁을 맨 앞에 두어 실행안이 먼저 보이게
+    //   ③ action 도 단계별 문장으로 교체
+    const form = foodFormOf(a);
+    const stageAdvice = (form && FOOD_ADVICE[form]) || null;
+    // 알레르기(아이 등록 시 입력) — 단계별 팁은 구체 재료를 이름으로 권하므로 걸러야 한다
+    const allergies = (currentChild && currentChild.allergies) || "";
+    const tips = [];
+    const pushTip = x => { const s = tipText(x); if(s && tips.indexOf(s) < 0) tips.push(s); };
+    if(top === "texture" && stageAdvice) filterAllergyTips(stageAdvice.tips, allergies).forEach(pushTip);
+    filterAllergyTips(gateTips(p.tips, form), allergies).forEach(pushTip);
+    filterAllergyTips(gateTips(situationalTips(sv, cur), form), allergies).forEach(pushTip);
+    const action = (top === "texture" && form && p.stageAction && p.stageAction[form]) ? p.stageAction[form] : p.action;
+    return { safety, safetyOn, possibility: top, second: second, label:p.label, firstCheck:p.firstCheck, action:action, watch:p.watch, tips:tips.slice(0,5), score, confidence,
+             food_form: form, food_stage: stageAdvice ? stageAdvice.label : null };
   }
   // 안전 덮어쓰기 배너(§5) — legacy 코드 배열이 있으면 태그로, 없으면(safety_alert) 일반 안내
   function safetyBannerHtml(safety){
@@ -1630,6 +1873,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
   }
 
+  // 분석에 쓰는 objectURL — 다음 분석 시작·초기화 때 해제한다(재업로드 반복 시 누수 방지)
+  let analysisUrl = null;
+  function releaseAnalysisUrl(){
+    if(!analysisUrl) return;
+    try{ URL.revokeObjectURL(analysisUrl); }catch(e){}
+    analysisUrl = null;
+  }
+
   async function start(file){
     curFile = file || null;
     lastWasFile = true;
@@ -1639,20 +1890,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     await ensure();
     reset();
     $("statusTxt").textContent="분석 중…";
-    video.src = URL.createObjectURL(file);
+    // 앞선 분석의 objectURL 을 먼저 해제한다 — 재업로드(#3)로 여러 번 분석하면 그만큼 쌓인다
+    releaseAnalysisUrl();
+    analysisUrl = URL.createObjectURL(file);
+    video.src = analysisUrl;
     await new Promise(r=>{ video.onloadeddata=r; video.onerror=r; setTimeout(r,8000); });
     // 브라우저가 영상을 못 여는 경우(iOS의 일부 HEVC/.mov, 코덱 미지원 등) → 명확히 안내 + 로그
     if(!video.videoWidth || !video.videoHeight){
       running=false;
-      try{ URL.revokeObjectURL(video.src); }catch(e){}
+      releaseAnalysisUrl();
       if(window.csLog) window.csLog("demo_video_decode_fail", { type:file&&file.type, name:file&&file.name, size:file&&file.size });
       $("loading").textContent="이 영상은 브라우저에서 열리지 않아요 😢 mp4로 변환해 올리거나 ‘지금 바로 촬영’으로 다시 시도해 주세요.";
       showUploadPhase("choice"); showScreen("screenUpload");
       return;
     }
     // 오버레이 캔버스를 표시 크기에 맞춤
-    const fit=()=>{ overlay.width=video.clientWidth; overlay.height=video.clientHeight; };
-    fit(); window.addEventListener("resize",fit);
+    syncVideoLayout();          // 박스 비율 + 오버레이를 영상 표시 영역에 맞춤(리스너는 초기화 시 1회 등록)
     running=true;
     // 업로드 영상의 '씹는 소리'는 오프라인으로 분석(영상 프레임 루프와 별개, 부하 무관·결정적).
     // 얼굴 검출이 약해도 소리로 데이터 확보. 온디바이스 DSP(1.5~6kHz), 원본 오디오는 저장하지 않음.
@@ -1707,8 +1960,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }catch(eMic){ audioDet=null; micStream=null; }
 
     showScreen("screenAnalyze");
-    const fit=()=>{ overlay.width=video.clientWidth; overlay.height=video.clientHeight; };
-    fit(); window.addEventListener("resize", fit);
+    syncVideoLayout();          // 라이브 스트림도 같은 규칙(원본 비율 유지 + 오버레이 정렬)
     // 라이브 UI: 진행바 숨기고 종료 버튼 노출
     const prog = $("pfill") && $("pfill").parentElement; if(prog) prog.style.display="none";
     $("liveStop").style.display=""; $("liveHint").style.display="";
@@ -1748,8 +2000,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function armDemoBack(){ if(csBackArmed) return; csBackArmed = true; try{ history.pushState({csDemo:1}, ""); }catch(e){} }
   // 현재 업로드 단계(choice/capture/prev/context) 판별
   function currentUploadPhase(){
-    const on = ["context","choice","capture","prev"].find(function(k){
-      const el = $({context:"uphContext",choice:"uphChoice",capture:"uphCapture",prev:"uphPrev"}[k]);
+    const on = ["review","context","choice","capture","prev"].find(function(k){
+      const el = $({context:"uphContext",choice:"uphChoice",capture:"uphCapture",prev:"uphPrev",review:"uphReview"}[k]);
       return el && el.style.display !== "none";
     });
     return on || "choice";
@@ -1782,6 +2034,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     else if(id==="screenUpload"){
       // 업로드 안에서도 한 단계씩: 촬영/파일 → (재확인) → 선택 → 설문(또는 설문 결과)
       const ph = currentUploadPhase();
+      // 영상 확인 단계에서 뒤로 = 영상 교체(설문은 유지) — 미리보기 URL도 함께 해제한다
+      if(ph==="review"){ changeVideo(); repush(); return; }
       if(ph==="capture" || ph==="prev"){ showUploadPhase(videoContextPending ? "context" : "choice"); repush(); return; }
       if(ph==="choice" && videoContextPending){ showUploadPhase("context"); repush(); return; }
       if(ph==="context"){
@@ -1820,9 +2074,219 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return;
     }
     $("loading").textContent="";
-    showScreen("screenAnalyze");   // 넣으면 분석 화면으로 전환
-    start(f);
+    // 2026-07-28(#3·#5): 곧바로 분석에 들어가지 않는다.
+    //   먼저 '영상 확인' 단계에서 원본 비율로 보여주고 품질을 점검한 뒤,
+    //   사용자가 [분석 시작]을 누르면 분석한다. 그 전에는 [영상 변경하기]로 교체할 수 있다.
+    enterReview(f);
   }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     분석 시작 전 '영상 확인' 단계  (2026-07-28 · 피드백 #2·#3·#5)
+       · 원본 비율로 미리보기 (세로 영상 잘림 없음)
+       · 회전 메타·가로세로 비율 확인 → 안내 문구를 정확하게
+       · 얼굴/입·턱 검출률·프레임 내 위치·밝기·길이·씹기 가능 프레임 점검
+       · 기준 미달이면 분석하지 않고 재업로드를 먼저 안내(억지 결과 생성 금지)
+     ══════════════════════════════════════════════════════════════════════ */
+  let pendingFile = null;        // 확인 단계에 올라온 파일(아직 분석 안 함)
+  let pendingUrl = null;         // 미리보기 objectURL — 교체·이탈 시 반드시 해제
+  let pendingMeta = null;        // { width, height, orientation, rotation, rotationMismatch, duration }
+  let pendingPre = null;         // 프리플라이트 결과 { ok, reason, metrics }
+  let preflightSeq = 0;          // 연속 교체 시 이전 프리플라이트 결과가 늦게 도착해 덮어쓰는 것 방지
+
+  function releasePending(){
+    if(pendingUrl){ try{ URL.revokeObjectURL(pendingUrl); }catch(e){} pendingUrl = null; }
+    const rv = $("reviewVideo");
+    if(rv){ try{ rv.pause(); }catch(e){} try{ rv.removeAttribute("src"); rv.load(); }catch(e){} }
+  }
+
+  function pfBox(cls, html){
+    const el = $("pfState"); if(!el) return;
+    el.className = "pfstate " + cls;
+    el.innerHTML = html;
+  }
+  function reviewMetaHtml(meta, pre){
+    if(!meta || !meta.width) return "";
+    const ORI = { portrait:"세로 영상", landscape:"가로 영상", square:"정사각 영상", unknown:"—" };
+    const out = [`<span>${escapeHtml(ORI[meta.orientation]||"—")} <b>${meta.width}×${meta.height}</b></span>`];
+    if(meta.duration) out.push(`<span>길이 <b>${Math.round(meta.duration)}초</b></span>`);
+    if(meta.rotation != null) out.push(`<span${meta.rotationMismatch?' class="warn"':''}>회전 정보 <b>${meta.rotation}°</b></span>`);
+    if(pre && pre.metrics && pre.metrics.sampled)
+      out.push(`<span>얼굴 검출 <b>${Math.round(pre.metrics.faceRate*100)}%</b></span>`);
+    return out.join("");
+  }
+
+  async function enterReview(file){
+    const seq = ++preflightSeq;
+    releasePending();
+    pendingFile = file; pendingMeta = null; pendingPre = null;
+    showUploadPhase("review");
+    showScreen("screenUpload");
+    $("reviewStart").disabled = true;
+    $("reviewMeta").innerHTML = "";
+    pfBox("checking", `<div class="pf-t">영상을 확인하고 있어요…</div>영상을 열어 아이 얼굴이 잘 보이는지 살펴보는 중이에요.
+      <div class="pfbar"><i id="pfFill"></i></div>`);
+
+    const rv = $("reviewVideo");
+    pendingUrl = URL.createObjectURL(file);
+    rv.src = pendingUrl;
+
+    // 메타데이터(가로·세로·길이) 대기 — 열리지 않는 코덱은 여기서 걸린다
+    const opened = await new Promise(function(res){
+      let settled = false;
+      const done = ok => { if(!settled){ settled = true; res(ok); } };
+      rv.onloadedmetadata = () => done(true);
+      rv.onerror = () => done(false);
+      setTimeout(() => done(!!rv.videoWidth), 8000);
+    });
+    if(seq !== preflightSeq) return;                    // 그 사이 다른 영상으로 교체됨
+
+    if(!opened || !rv.videoWidth || !rv.videoHeight){
+      if(window.csLog) window.csLog("demo_video_decode_fail", { type:file.type, name:file.name, size:file.size, phase:"review" });
+      pendingPre = { tier:TIER.BLOCK, ok:false, canProceed:false, reason:"undecodable", metrics:{}, checks:[] };
+      renderReviewBlocked(pendingPre, null);
+      return;
+    }
+
+    // 세로 영상도 잘리지 않게 미리보기 박스를 원본 비율로
+    const box = rv.parentElement;
+    if(box) box.style.aspectRatio = rv.videoWidth + " / " + rv.videoHeight;
+
+    pendingMeta = await probeVideo(file, rv);
+    if(seq !== preflightSeq) return;
+    $("reviewMeta").innerHTML = reviewMetaHtml(pendingMeta, null);
+    if(window.csLog) window.csLog("demo_video_meta", {
+      w: pendingMeta.width, h: pendingMeta.height, orientation: pendingMeta.orientation,
+      rotation: pendingMeta.rotation, rotation_mismatch: !!pendingMeta.rotationMismatch,
+      duration: pendingMeta.duration
+    });
+
+    // 프리플라이트 — 표본 프레임으로 얼굴·입·턱·밝기·씹기 가능성 확인
+    let pre;
+    try{
+      await ensure();
+      if(seq !== preflightSeq) return;
+      pre = await runPreflight(rv, fl, {
+        onProgress: function(done, total){
+          if(seq !== preflightSeq) return;
+          const f = $("pfFill"); if(f) f.style.width = Math.round(done/total*100) + "%";
+        }
+      });
+    }catch(e){
+      // 엔진 로드 실패 등 — 품질을 확인할 수 없으면 막지 않고 사용자 판단에 맡긴다(기능 완전 중단 방지)
+      if(window.csLog) window.csLog("demo_preflight_error", { msg:String((e&&e.message)||e).slice(0,200) });
+      pendingPre = { tier:TIER.PASS, ok:true, canProceed:true, reason:"skipped", metrics:{}, checks:[] };
+      $("reviewStart").disabled = false;
+      pfBox("pass", `<div class="pf-t">영상을 열었어요</div>지금은 사전 확인을 건너뛰었어요. 분석을 시작하면 결과에 검출률이 함께 표시돼요.`);
+      return;
+    }
+    if(seq !== preflightSeq) return;
+
+    pendingPre = pre;
+    $("reviewMeta").innerHTML = reviewMetaHtml(pendingMeta, pre);
+    if(window.csLog) window.csLog("demo_preflight", Object.assign({ tier:pre.tier, reason:pre.reason }, pre.metrics));
+
+    // 3단계 판정: 충분 → 정상 / 경계 → 경고 후 진행 가능 / 매우 낮음 → 차단
+    if(pre.tier === TIER.PASS) renderReviewPass(pre);
+    else if(pre.tier === TIER.WARN) renderReviewWarn(pre, pendingMeta);
+    else renderReviewBlocked(pre, pendingMeta);
+  }
+
+  // 항목별 기준값·실측값 — 왜 이렇게 판정됐는지 보여준다(실기기 검증에도 같은 값을 남긴다)
+  function checkListHtml(pre){
+    const rows = (pre.checks || []).filter(c => c.value != null).map(function(c){
+      const isRate = c.key !== "duration" && c.key !== "chewable";
+      const fmt = v => isRate ? Math.round(v*100)+"%" : (v + (c.unit||""));
+      const mark = c.okPass ? "✓" : (c.okBlock ? "△" : "✕");
+      return `<li>${mark} ${escapeHtml(c.label)} <b>${fmt(c.value)}</b> <span style="opacity:.7">(기준 ${fmt(c.pass)}${c.block!=null?` · 차단 ${fmt(c.block)}`:``})</span></li>`;
+    });
+    return rows.length ? `<ul class="pf-list">${rows.join("")}</ul>` : "";
+  }
+
+  function renderReviewPass(pre){
+    const m = pre.metrics || {};
+    $("reviewStart").disabled = false;
+    $("reviewStart").textContent = "이 영상으로 분석 시작 →";
+    pfBox("pass", `<div class="pf-t">✅ 분석할 수 있는 영상이에요</div>`+
+      `아이 얼굴이 표본 프레임의 <b>${Math.round((m.faceRate||0)*100)}%</b>에서 보였고, `+
+      `입·턱도 <b>${Math.round((m.mouthRate||0)*100)}%</b>에서 확인됐어요. 이제 분석을 시작할 수 있어요.`+
+      checkListHtml(pre));
+  }
+
+  /* 경계 수준 — 기준에는 못 미치지만 근거가 아예 없는 정도는 아니다.
+     막지 않고 '무엇이 부족한지 + 결과 신뢰가 낮다'를 명확히 알린 뒤 사용자가 고르게 한다.
+     기본 권장은 재촬영이라, 재업로드 버튼을 먼저 두고 진행 버튼 문구도 톤을 낮춘다. */
+  function renderReviewWarn(pre, meta){
+    const msg = preflightMessage(pre.reason, pre.metrics, meta);
+    $("reviewStart").disabled = false;
+    $("reviewStart").textContent = "그래도 이 영상으로 분석하기 →";
+    pfBox("warn", `<div class="pf-t">△ ${escapeHtml(msg.title)}</div>${msg.body}`+
+      checkListHtml(pre)+
+      `<div style="margin-top:12px;font-size:13px;line-height:1.6;">분석은 진행할 수 있지만 `+
+      `<b>영상 지표의 신뢰가 낮습니다.</b> 더 정확히 보시려면 다시 촬영하는 편이 좋아요.</div>`+
+      `<div class="review-actions" style="margin-top:13px;">`+
+        `<button type="button" class="btn-primary" id="pfReupload">다른 영상으로 다시 올리기 →</button>`+
+      `</div>`);
+    const ru = $("pfReupload");
+    if(ru) ru.addEventListener("click", function(){
+      if(window.csLog) window.csLog("preflight_reupload_click", { reason: pre.reason, tier: pre.tier });
+      changeVideo();
+    });
+  }
+
+  // 품질 미달 — 분석을 진행하지 않고 재업로드를 먼저 안내한다.
+  //   막다른 길을 만들지 않도록, 설문 기반 참고 결과로 갈 수 있는 길을 함께 둔다.
+  function renderReviewBlocked(pre, meta){
+    const msg = preflightMessage(pre.reason, pre.metrics, meta);
+    $("reviewStart").disabled = true;
+    $("reviewStart").textContent = "이 영상으로 분석 시작 →";
+    pfBox("block", `<div class="pf-t">⚠ ${escapeHtml(msg.title)}</div>${msg.body}`+
+      checkListHtml(pre)+
+      `<div style="margin-top:12px;font-size:13px;line-height:1.6;">부정확한 결과를 드리지 않기 위해 <b>이 영상으로는 분석을 진행하지 않아요.</b>`+
+      (lastAnswers ? ` 대신 <b>설문을 바탕으로 한 참고 결과</b>는 지금 바로 보실 수 있어요.` : ``)+`</div>`+
+      `<div class="review-actions" style="margin-top:13px;">`+
+        `<button type="button" class="btn-primary" id="pfReupload">다른 영상으로 다시 올리기 →</button>`+
+        (lastAnswers ? `<button type="button" class="btn-ghost" id="pfSurveyOnly">설문 기반 참고 결과 보기</button>` : ``)+
+      `</div>`);
+    const ru = $("pfReupload");
+    if(ru) ru.addEventListener("click", function(){
+      if(window.csLog) window.csLog("preflight_reupload_click", { reason: pre.reason });
+      changeVideo();
+    });
+    const so = $("pfSurveyOnly");
+    if(so) so.addEventListener("click", function(){
+      if(window.csLog) window.csLog("preflight_survey_only_click", { reason: pre.reason });
+      releasePending(); pendingFile = null;
+      finalizeSurveyOnly(lastAnswers);
+    });
+  }
+
+  /* 영상만 버리고 설문·아이 정보는 그대로 유지한 채 선택 화면으로 (#3) */
+  function changeVideo(){
+    releasePending();
+    pendingFile = null; pendingMeta = null; pendingPre = null;
+    preflightSeq++;                                     // 진행 중 프리플라이트 결과 무효화
+    try{ $("file").value = ""; }catch(e){}
+    try{ $("fileCapture").value = ""; }catch(e){}
+    showUploadPhase(videoContextPending ? "context" : "choice");
+    showScreen("screenUpload");
+  }
+
+  $("reviewChange").addEventListener("click", function(){
+    if(window.csLog) window.csLog("review_change_video", { had_reason: (pendingPre && pendingPre.reason) || null });
+    changeVideo();
+  });
+  $("reviewStart").addEventListener("click", function(){
+    if(!pendingFile || $("reviewStart").disabled) return;
+    const f = pendingFile;
+    if(window.csLog) window.csLog("review_start_analysis", {
+      orientation: (pendingMeta && pendingMeta.orientation) || null,
+      face_rate: (pendingPre && pendingPre.metrics && pendingPre.metrics.faceRate) || null
+    });
+    releasePending();                                   // 미리보기 URL 해제 — 분석은 새 URL로 다시 연다
+    pendingFile = null;
+    showScreen("screenAnalyze");
+    start(f);
+  });
 
   // 파일 선택 공통 처리: iOS 사진보관함이 파일을 못 넘기는 경우(iCloud 원본 미다운로드·
   // HEVC 내보내기 실패·0바이트)를 명확히 안내하고 진단 로그를 남긴다.
@@ -1859,18 +2323,50 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // ── 업로드 단계 전환: 선택 → (촬영 가이드 | 파일 업로드) ──
   function showUploadPhase(which){
-    const map = { choice:"uphChoice", capture:"uphCapture", prev:"uphPrev", context:"uphContext" };
+    const map = { choice:"uphChoice", capture:"uphCapture", prev:"uphPrev", context:"uphContext", review:"uphReview" };
     Object.keys(map).forEach(k=>{ const el=$(map[k]); if(el) el.style.display="none"; });
     const el = $(map[which] || "uphChoice"); if(el) el.style.display="";
     $("loading").textContent="";
   }
+
+  /* ── 촬영 가이드 모달 (#4) ────────────────────────────────────────────
+     기존에는 '지금 촬영' 경로에만 가이드 이미지가 있었고, 앨범에서 고르는 사람은
+     어떤 영상이 분석에 적합한지 알 수 없었다. 두 경로 모두 같은 가이드를 먼저 본다.
+     한 번 본 뒤에는 다시 띄우지 않는다(같은 세션 안에서 반복 노출은 방해). */
+  let guideSeen = false;
+  function openGuide(next){
+    const m = $("guideModal");
+    m.dataset.next = next || "";                        // capture | album
+    m.classList.add("on");
+    if(window.csLog) window.csLog("shoot_guide_open", { from: next || "" });
+  }
+  function closeGuide(){ $("guideModal").classList.remove("on"); }
+  // 가이드를 거쳐 실제 촬영·선택 경로로 보낸다
+  function goCapturePath(){ guideSeen = true; closeGuide(); showUploadPhase("capture"); if(window.csLog) window.csLog("demo_upload_choice", { choice:"capture" }); }
+  function goAlbumPath(){ guideSeen = true; closeGuide(); showUploadPhase("prev"); if(window.csLog) window.csLog("demo_upload_choice", { choice:"prev" }); }
+
+  $("guideCapture").addEventListener("click", goCapturePath);
+  $("guideAlbum").addEventListener("click", goAlbumPath);
+  $("guideClose").addEventListener("click", function(){
+    // 닫기만 눌렀으면 원래 가려던 경로로 보내되, 가이드는 본 것으로 처리한다
+    guideSeen = true;
+    const next = $("guideModal").dataset.next;
+    closeGuide();
+    if(next === "capture") showUploadPhase("capture");
+    else if(next === "album") showUploadPhase("prev");
+  });
+  // 배경 클릭 · ESC 로 닫기
+  $("guideModal").addEventListener("click", function(e){ if(e.target === this) $("guideClose").click(); });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && $("guideModal").classList.contains("on")) $("guideClose").click();
+  });
+
   $("chooseCapture").addEventListener("click", function(){
-    showUploadPhase("capture");
-    if(window.csLog) window.csLog("demo_upload_choice", { choice:"capture" });
+    if(guideSeen) goCapturePath(); else openGuide("capture");
   });
   $("choosePrev").addEventListener("click", function(){
-    showUploadPhase("prev");
-    if(window.csLog) window.csLog("demo_upload_choice", { choice:"prev" });
+    // 앨범 업로드도 촬영 가이드를 먼저 본다 — 저장된 영상이 적합한지 판단할 기준이 필요하다
+    if(guideSeen) goAlbumPath(); else openGuide("album");
   });
   document.querySelectorAll("[data-upback]").forEach(function(b){
     b.addEventListener("click", function(){ showUploadPhase(videoContextPending ? "context" : "choice"); });
@@ -2034,15 +2530,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       selectChild(data || Object.assign({ age_months: age }, row));
     }catch(err){ btn.disabled = false; childMsg("문제가 생겼어요. 다시 시도해 주세요."); }
   });
-  function selectChild(ch){
-    currentChild = ch || null;
+  /* ══════════════════════════════════════════════════════════════════════
+     설문 임시저장 · 이어하기  (2026-07-28 · 피드백 #1)
+       · 각 문항 선택·스텝 이동마다 localStorage 에 자동저장(아이별·사용자별 키)
+       · 다시 들어오면 "작성 중인 설문이 있습니다" → [이어서 작성] / [처음부터 시작]
+       · 최종 제출(기록 저장)이 끝나면 초안 삭제
+       · 영상 파일은 저장하지 않는다 — 영상 단계에서 이탈하면 설문까지만 복원
+     ══════════════════════════════════════════════════════════════════════ */
+  // 초안 키에 쓰는 현재 사용자 id.
+  //   키가 사용자별로 갈리므로 로그아웃 때 지울 필요가 없다 — 다른 계정에서는 애초에 보이지 않고,
+  //   같은 사용자가 다시 로그인하면 작성 중이던 설문을 그대로 이어쓸 수 있다.
+  //   ⚠ 비동기로 읽으므로, 초안을 읽고 쓰기 전에 반드시 ensureDraftUser() 로 확정한다
+  //     (확정 전에 쓰면 키가 '_anon_' 으로 갈려서 이어하기가 깨진다).
+  let draftUserId = null, draftUserResolved = false;
+  async function ensureDraftUser(){
+    if(draftUserResolved) return draftUserId;
+    try{ draftUserId = await currentUserId(); }catch(e){ draftUserId = null; }
+    draftUserResolved = true;
+    return draftUserId;
+  }
+
+  function draftChildId(){ return (currentChild && currentChild.id) || null; }
+  function saveSurveyDraft(patch){
+    const cid = draftChildId(); if(!cid) return;
+    saveDraft(draftUserId, cid, patch);
+  }
+  function clearSurveyDraft(){
+    const cid = draftChildId(); if(!cid) return;
+    clearDraft(draftUserId, cid);
+    if(window.csLog) window.csLog("survey_draft_cleared", { child_id: cid });
+  }
+
+  // 설문 렌더 — restore 가 있으면 그 답변·스텝에서 이어서 시작한다
+  function mountSurvey(ch, restore){
     renderSurvey($("surveyMount"), {                                  // v3 스키마(웹·앱 공용) 단계형 설문 렌더
       ageMonths: ageMonthsOf(ch),
-      onComplete: function(answers){ goUpload(answers); },            // 마지막 스텝 '완료 · 영상 올리기'
-      onSkip: function(){ goUpload(null); }                            // '설문 건너뛰기'
+      restore: restore || null,
+      onProgress: function(state){                                    // 문항 선택·스텝 이동마다 자동저장
+        saveSurveyDraft({ form: state.form, step: state.step, stage: STAGE_SURVEY, hasVideo: false });
+      },
+      onComplete: function(answers){
+        // 설문은 끝났지만 아직 기록으로 저장되진 않았다 → 초안을 '영상 대기' 상태로 남긴다
+        saveSurveyDraft({ stage: STAGE_VIDEO_PENDING, hasVideo: false });
+        goUpload(answers);
+      },
+      onSkip: function(){ goUpload(null); }                            // '설문 건너뛰기'(현재 미노출)
     });
-    if(window.csLog) window.csLog("demo_child_selected", { child_id: (ch&&ch.id)||null });
+  }
+
+  // 이어하기 안내 — 설문 화면 위에 띄우고, 선택 전에는 설문을 만지지 못하게 한다
+  function askResumeDraft(ch, rec){
+    const mount = $("surveyMount");
+    const ago = savedAgo(rec.savedAt);
+    const answered = Object.keys(rec.form || {}).length;
+    const wasDone = rec.stage === STAGE_VIDEO_PENDING;
+    mount.innerHTML =
+      `<div class="resume" id="resumeBox">`+
+        `<div class="rs-t">📝 작성 중인 설문이 있습니다</div>`+
+        `<p class="rs-b">${escapeHtml((ch && ch.name) || "우리 아이")} 설문을 ${escapeHtml(ago)}에 `+
+          (wasDone
+            ? `<b>끝까지 작성</b>하셨어요. 영상만 선택하면 결과를 볼 수 있어요.`
+            : `<b>${rec.step || 1}단계</b>까지 작성하셨어요(답변 ${answered}개).`)+
+          ` 이어서 작성할까요?</p>`+
+        `<p class="rs-n">영상 파일은 저장하지 않아요 — 영상은 다시 선택해 주세요.</p>`+
+        `<div class="rs-a">`+
+          `<button type="button" class="btn-primary" id="resumeGo">이어서 작성</button>`+
+          `<button type="button" class="btn-ghost" id="resumeNew">처음부터 시작</button>`+
+        `</div>`+
+      `</div>`;
     showScreen("screenSurvey");
+    if(window.csLog) window.csLog("survey_draft_prompt", { child_id: ch && ch.id, step: rec.step || 1, stage: rec.stage || STAGE_SURVEY });
+
+    $("resumeGo").addEventListener("click", function(){
+      if(window.csLog) window.csLog("survey_draft_resume", { child_id: ch && ch.id, step: rec.step || 1, stage: rec.stage || STAGE_SURVEY });
+      mountSurvey(ch, { form: rec.form, step: rec.step || 1 });
+      if(wasDone){
+        // 설문은 이미 끝났던 상태 → 답변을 복원해 곧장 영상 선택으로 보낸다
+        const answers = collectAnswers();
+        goUpload(answers);
+        $("loading").textContent = "설문 답변을 불러왔어요. 영상만 다시 선택해 주세요.";
+      }
+    });
+    $("resumeNew").addEventListener("click", function(){
+      if(window.csLog) window.csLog("survey_draft_discard", { child_id: ch && ch.id, step: rec.step || 1 });
+      clearSurveyDraft();
+      mountSurvey(ch, null);
+    });
+  }
+
+  async function selectChild(ch){
+    currentChild = ch || null;
+    if(window.csLog) window.csLog("demo_child_selected", { child_id: (ch&&ch.id)||null });
+    await ensureDraftUser();                       // 초안 키를 확정한 뒤에 읽는다
+    // 이 아이의 임시저장이 남아 있으면 먼저 물어본다(만료·스키마 변경분은 loadDraft 가 폐기)
+    const cid = (ch && ch.id) || null;
+    const d = cid ? loadDraft(draftUserId, cid) : { rec:null, reason:"none" };
+    if(d.rec){ askResumeDraft(ch, d.rec); }
+    else {
+      if(d.reason === "version_mismatch" || d.reason === "expired"){
+        if(window.csLog) window.csLog("survey_draft_dropped", { child_id: cid, reason: d.reason });
+      }
+      mountSurvey(ch, null);
+      showScreen("screenSurvey");
+    }
     try{ window.scrollTo({ top:0, behavior:"smooth" }); }catch(e){}
   }
 
@@ -2087,11 +2677,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   ["dragover","drop"].forEach(ev=>window.addEventListener(ev, e=>{ e.preventDefault(); }));
 
   // ── 보호자 설문 단계 ──
-  function goSurvey(){
-    $("statusTxt").textContent="분석 완료";
-    try{ $("surveyForm").reset(); }catch(e){}
-    showScreen("screenSurvey");
-  }
+  // (2026-07-28) 미사용 goSurvey() 제거. 설문 화면 진입은 selectChild() 가 담당한다.
+  //   goSurvey 는 surveyForm.reset() 으로 답변을 지웠는데, 임시저장·이어하기(#1)와
+  //   재업로드 시 설문 유지(#3) 정책과 정면으로 충돌해 되살리면 안 된다.
 
   // 설문 응답 수집 — survey-v3 스키마 구조(ANSWERS_SHAPE) 그대로 반환(앱과 통합)
   function collectAnswers(){ return collectSurveyAnswers(); }
@@ -2395,16 +2983,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const rule = computeCoaching(cur, lastMetrics, answers);
     if(rule.safetyOn) return;                         // 안전신호는 결정론적으로만 안내(LLM 미개입)
     const sv = (answers && answers.survey) || {}; const l1 = sv.lens01 || {};
+    // 음식 단계(#6): 코드만 보내면 LLM이 이전 단계 조언을 만들어 낸다 →
+    //   사람이 읽는 단계명 + 허용/금지 조언 목록 + 단계 순서를 함께 넘겨 계약을 명시한다.
+    const form = foodFormOf(answers);
     const ctx = {
       possibility: rule.possibility, label: rule.label, safetyOn: false,
       age_months: (answers && answers.child_age_months) || null,
       metrics: { cpm: cur.cpm, chew: cur.chew, quality: cur.quality },
       survey: { concern: sv.concern, food_form: l1.food_form, hard_textures: l1.hard_textures, behavior: l1.behavior, interval: (sv.lens02||{}).interval, retry: (sv.lens04||{}).retry_count, portion: (sv.lens03||{}).portion_gap, meal_time: l1.meal_time },
+      food_stage: stageContract(form),   // 코드 + 단계명 + 순서 + 허용/금지 조언
+      // 알레르기 — recipe-coach 는 이미 받는데 coach 는 못 받아서, LLM 이 알레르기 재료를
+      // 이름으로 권할 수 있었다. 식사 조언에서는 안전 문제라 함께 넘긴다.
+      allergies: (currentChild && currentChild.allergies) || "",
       foods: { liked: (sv.recipe||{}).liked, practice: (sv.recipe||{}).practice },
       concern_text: (answers && answers.concern_text) || ""
     };
     let out = null; try{ out = await fetchCoach(ctx); }catch(e){ out = null; }
-    if(out && out.coach){ lastCoachAi = out.coach; renderReport(cur, answers, out.coach); }
+    if(out && out.coach){
+      // ① 단계 후퇴 조언은 화면에 올리지 않는다 — null 이면 규칙 엔진 결과를 그대로 유지
+      let safe = sanitizeCoachForStage(out.coach, form, rule, window.csLog);
+      // ② 프롬프트에 알레르기를 넣었어도 생성 결과를 신뢰하지 않는다 — 재료를 언급하면 그 줄을 버린다
+      if(safe) safe = sanitizeCoachForAllergy(safe, ctx.allergies, rule);
+      if(safe){ lastCoachAi = safe; renderReport(cur, answers, safe); }
+    }
   }
   // 6.5 · 식감 연결 레시피 — 설문에서 '잘 먹는 음식 + 연습할 음식'을 입력했을 때만 표시.
   //  recipe-coach(Claude) 호출 → 키 없음/오류/오프라인이면 규칙 템플릿(3가지 접근법)으로 폴백.
@@ -2621,6 +3222,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     box.style.display = "";
   }
 
+  /* ── '분석 제한' 안내 (2026-07-28 · 피드백 #5) ────────────────────────
+     업로드 영상은 프리플라이트(video-preflight.js)가 분석 전에 막지만,
+     라이브 촬영은 미리 볼 프레임이 없어 사전 점검을 할 수 없다. 그 경로에서
+     검출이 낮게 나온 경우(low_face), 일반 결과처럼 보이지 않도록 최상단에 명시한다.
+     — 영상 수치는 renderCard/renderConfidence 가 이미 감춘다(신뢰 낮음). */
+  function renderLimitedNotice(cur){
+    const box = $("secLimited");
+    if(!box) return;
+    const limited = cur && (cur.quality === "low_face" || cur.uploadUnreadable);
+    if(!limited){ box.style.display = "none"; box.innerHTML = ""; return; }
+    box.innerHTML =
+      `<div class="lim-t">⚠ 분석 제한 — 일반 결과가 아니에요</div>`+
+      `<p style="margin:0 0 10px">얼굴과 턱이 충분히 보이지 않아 <b>씹는 움직임을 정확히 확인하기 어려웠습니다</b>`+
+      (cur.detect != null ? ` (얼굴 검출 ${cur.detect}%)` : ``)+`. `+
+      `설문을 바탕으로 한 <b>참고 결과만</b> 제공하며, 영상을 다시 올리면 더 자세히 확인할 수 있어요.</p>`+
+      `<p style="margin:0 0 12px;font-size:13px;line-height:1.6;opacity:.9">아래 씹기 횟수·좌우 균형 같은 <b>영상 지표는 표시하지 않았어요</b> — 신뢰할 수 없는 수치를 정상 결과로 보여드리지 않기 위해서예요.</p>`+
+      `<button type="button" class="btn-primary" id="limRetry">다른 영상으로 다시 분석하기 →</button>`;
+    box.style.display = "";
+    const r = $("limRetry");
+    if(r) r.addEventListener("click", function(){
+      if(window.csLog) window.csLog("limited_result_retry_click", { quality: cur.quality, detect: cur.detect });
+      resetAll();
+    });
+  }
+
   // 설문 완료(또는 건너뛰기) → 미리보기(로그인 없이 공개)
   function finalizeResult(answers){
     lastAnswers = answers; lastCoachAi = null;
@@ -2630,6 +3256,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const fbObs2=document.querySelector('#fbBlock input[name="fb_useful"][value="observation"]');
     if(fbObs2 && fbObs2.closest("label")) fbObs2.closest("label").style.display = "";
     renderPreview(lastCur, answers, lastCur.quality);
+    renderLimitedNotice(lastCur);                      // 품질 미달이면 '분석 제한'을 최상단에 명시(#5)
+    const ag=$("again"); if(ag) ag.style.display="";  // 다른 영상으로 다시 분석하기(#3) — reset()이 숨긴 것을 되살린다
     savePrev(lastCur);
     // 상세 분석까지 한 번에 렌더(로그인은 데모 시작 시 이미 완료 → 별도 게이트 불필요)
     renderSafetyTop(lastCur, answers);               // 안전(최상단)
@@ -2658,7 +3286,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    영상 품질 점수·씹기 기능 정상/이상 판단
      표현 규칙: 확정("~부족합니다") 금지 → 가능성("~일 가능성이 있어요")으로만.
      ══════════════════════════════════════════════════════════════════════ */
-  const SQ_FOOD={ ground:"갈아 만든 음식", mashed:"으깬 음식", small_bits:"작은 알갱이", soft:"무른 유아식", regular:"일반 가정식" };
+  const SQ_FOOD = FOOD_LABEL;   // 스키마(FOOD)와 같은 라벨 — 중복 정의하면 단계명이 어긋난다
   const SQ_CEIL={ tofu:"두부·바나나", veg:"푹 익힌 채소", rice_egg:"부드러운 밥·계란", minced_meat:"잘게 조리한 고기", regular:"일반식" };
   const SQ_CAUSE={
     texture:     { t:"특정 식감에서 어려움을 느끼고 있을 가능성", d:"오래 씹어야 하거나 입안에서 흩어지는 음식이 아직 부담스러울 수 있어요. 형태를 한 단계 부드럽게 하면 달라지는지 살펴볼 필요가 있어요." },
@@ -2686,7 +3314,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const rows=[
       ["나이", mo!=null ? mo+"개월" : null],
       ["가장 큰 고민", a.concern_type],
-      ["얼마나 자주", sv.symptom_freq],
+      // 빈도는 코드로 저장(daily5·w34…) → 라벨로 변환. 구버전 행은 한글 라벨이 그대로 들어 있어 원문 사용.
+      ["얼마나 자주", SCHEMA.FREQ_LABEL[sv.symptom_freq] || sv.symptom_freq],
       ["지금 음식 형태", SQ_FOOD[l1.food_form]],
       ["무리 없이 먹는 형태", SQ_CEIL[l1.chew_ceiling]],
       ["어려워하는 식감", hard.length ? hard.join(" · ") : null],
@@ -2834,6 +3463,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       surveyRowId = rowId; lastRowId = rowId;   // 후기 저장·영상 승급 모두 이 행을 가리킨다
       if(window.csLog) window.csLog("survey_only_saved", { possibility: result && result.possibility });
+      clearSurveyDraft();          // 설문 기반 결과도 최종 제출 — 임시저장 삭제(#1)
       return rowId;
     }catch(e){
       if(window.csLog) window.csLog("survey_only_save_error", { msg: String(e) });
@@ -2984,23 +3614,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   $("fbSend").addEventListener("click", saveFeedback);
   $("thanksAgain").addEventListener("click", resetAll);
 
-  // ── 다른 영상 분석 → 처음(업로드) 화면으로 ──
-  function resetAll(){
+  /* ── 영상·분석 상태만 초기화 (설문·아이 정보는 건드리지 않는다) ── */
+  function resetVideoState(){
     running=false; try{video.pause();}catch(e){}
     liveMode=false; stopLiveMedia(); try{ video.srcObject=null; }catch(e){}   // 라이브 카메라·마이크 해제
     const ls=$("liveStop"); if(ls) ls.style.display="none";
     const lh=$("liveHint"); if(lh) lh.style.display="none";
     const prog=$("pfill") && $("pfill").parentElement; if(prog) prog.style.display="";
     try{ video.removeAttribute("src"); video.load(); }catch(e){}
-    $("file").value=""; $("loading").textContent="";
-    lastRowId=null; lastAnswers=null;
-    try{ $("surveyForm").reset(); }catch(e){}
+    releaseAnalysisUrl();                               // 분석용 objectURL 해제
+    releasePending();                                   // 확인 단계 미리보기 URL 해제
+    pendingFile=null; pendingMeta=null; pendingPre=null; preflightSeq++;
+    try{ $("file").value=""; }catch(e){}
+    try{ $("fileCapture").value=""; }catch(e){}
+    $("loading").textContent="";
     try{ document.querySelectorAll('#fbBlock input[type="radio"]').forEach(r=>r.checked=false); }catch(e){}
     $("fbText").value=""; $("fbThanks").style.display="none";
     $("secInterpret").style.display="none"; $("secActions").style.display="none"; $("secConsult").style.display="none";
-    try{ $("fileCapture").value=""; }catch(e){}
-    showUploadPhase("choice");
+  }
+
+  /* ── 다른 영상으로 다시 분석 (2026-07-28 · 피드백 #3) ──────────────────
+     정책: 분석 '전'에는 기존 영상을 교체(changeVideo, 같은 기록)
+           분석 '완료 후'에는 새 분석 버전을 만든다(여기 — lastRowId 를 비워 새 행 생성)
+     어느 쪽이든 **아이 정보와 설문 답변은 유지**한다.
+     (이전 구현은 lastAnswers 를 지워서 설문을 처음부터 다시 받게 만들었다) */
+  function resetAll(){
+    resetVideoState();
+    lastRowId = null;                  // 새 분석 버전으로 저장(이전 기록은 그대로 보관)
+    lastCur = null; lastMetrics = null; lastCoachAi = null;
+    // lastAnswers·currentChild 는 유지 — 설문을 다시 받지 않는다
+    if(window.csLog) window.csLog("demo_reanalyze", { kept_answers: !!lastAnswers, child: (currentChild&&currentChild.id)||null });
+    showUploadPhase(lastAnswers ? "choice" : "choice");
     showScreen("screenUpload");
+    // 설문이 남아 있으면 '영상 없이 설문 결과 보기'도 계속 쓸 수 있게 노출을 유지한다
+    const w=$("skipVidWrap");
+    if(w) w.style.display = lastAnswers ? "" : "none";
   }
   $("again").addEventListener("click", resetAll);
   // 레시피 화면 → 결과로 돌아가기

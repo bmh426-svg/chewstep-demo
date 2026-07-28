@@ -13,13 +13,131 @@ export const CONCERN = [ // 가장 고민되는 식사 문제 (단일선택 = 3�
   { v: "texture", t: "질감 거부" }, { v: "meat", t: "고기 거부" }, { v: "slow", t: "너무 느림" },
   { v: "fast", t: "너무 빨리 삼킴" }, { v: "other", t: "기타" },
 ];
-export const FREQ = ["거의 매 식사", "하루 한 번 정도", "일주일에 몇 번", "가끔", "거의 없음"];
+// 증상 빈도 — 2026-07-28: 주관적 표현("일주일에 몇 번"·"가끔") 제거.
+//   기간+횟수를 함께 제시하고, 저장은 코드(v)로 한다 → 라벨을 고쳐도 집계 기준이 흔들리지 않음.
+//   구버전 응답은 한글 라벨 문자열로 저장돼 있어, 표시할 때 FREQ_LABEL 조회 실패 시 원문을 그대로 쓴다.
+export const FREQ = [
+  { v: "daily5", t: "거의 매일 (주 5회 이상)" },
+  { v: "w34", t: "주 3~4회" },
+  { v: "w12", t: "주 1~2회" },
+  { v: "m12", t: "월 1~2회" },
+  { v: "rare", t: "거의 없음" },
+  { v: "unknown", t: "잘 모르겠음" },
+];
+// 코드 → 표시 라벨 (결과·리포트·관리자 집계 공용)
+export const FREQ_LABEL = FREQ.reduce((m, o) => { m[o.v] = o.t; return m; }, {});
 
 /* ── 관점 01 · 식감과 입자 (아이) ── */
 export const FOOD = [ // 주로 먹는 음식 형태
   { v: "ground", t: "갈아 만든 음식" }, { v: "mashed", t: "으깬 음식" }, { v: "small_bits", t: "작은 알갱이" },
   { v: "soft", t: "무른 유아식" }, { v: "regular", t: "일반 가정식" },
 ];
+// 음식 형태 코드 → 표시 라벨 / 단계 순서(낮을수록 이전 단계)
+export const FOOD_LABEL = FOOD.reduce((m, o) => { m[o.v] = o.t; return m; }, {});
+export const FOOD_ORDER = { ground: 0, mashed: 1, small_bits: 2, soft: 3, regular: 4 };
+
+/* ── 음식 단계별 조언 게이팅 (2026-07-28) ─────────────────────────────
+   문제: '무른 유아식'을 먹이는 보호자에게 "믹서로 갈지 말고 포크로 으깨 알갱이를 남기세요"처럼
+         이미 지나온 단계의 조언이 나갔다. 공통 팁이 단계와 무관하게 삽입된 탓.
+   원칙: 보호자가 선택한 현재 단계보다 이전 단계의 조언은 제공하지 않는다.
+         현재 단계에서 실행할 수 있는 '다음 한 걸음'만 제안한다.
+   구조: next  = 이 단계에서 권할 수 있는 조언의 방향(LLM에 허용 목록으로 전달)
+         avoid = 이 단계에 제시하면 후퇴로 느껴지는 조언(LLM에 금지 목록으로 전달)
+         tips  = 보호자에게 그대로 보여줄 문장(규칙 엔진 폴백용 · 굵게 강조 HTML 허용)
+   규칙 엔진(demo.html RULES)의 개별 팁은 tip.for = [코드…] 로 적용 단계를 직접 지정한다. */
+export const FOOD_ADVICE = {
+  ground: {
+    label: "갈아 만든 음식 (미음·완전히 간 상태)",
+    next: [
+      "완전히 간 상태에서 아주 작은 알갱이를 조금씩 남기기",
+      "믹서 대신 포크로 으깨 입자를 남기기",
+      "가는 정도(곱기)를 며칠에 걸쳐 서서히 줄이기",
+    ],
+    avoid: [
+      "덩어리·깍둑 썰기처럼 씹어야 하는 크기를 바로 제시하기",
+      "질긴 재료(고기 결·나물)를 그대로 제시하기",
+    ],
+    tips: [
+      "믹서로 다시 갈지 말고 <b>포크로 거칠게 으깨</b> 아주 작은 알갱이를 남겨 주세요(다시 갈면 이전 단계로 후퇴).",
+      "가는 정도는 <b>한 번에 바꾸지 말고</b> 3~4일에 걸쳐 조금씩 거칠게 해주세요.",
+    ],
+  },
+  mashed: {
+    label: "으깬 음식",
+    next: [
+      "으깬 정도를 거칠게 바꿔 알갱이 크기를 조금씩 키우기",
+      "으깬 음식에 부드러운 작은 알갱이를 섞어 함께 주기",
+      "손가락으로 눌러 뭉개지는 재료부터 알갱이로 올리기",
+    ],
+    avoid: [
+      "다시 곱게 갈거나 믹서로 되돌리기",
+      "질긴 재료를 그대로 제시하기",
+    ],
+    tips: [
+      "으깨는 정도를 <b>조금 더 거칠게</b> 해서 알갱이 크기를 키워 보세요.",
+      "으깬 음식에 <b>부드러운 작은 알갱이를 섞어</b> 같은 그릇에 담아 주세요.",
+      "손가락으로 눌러 <b>스르륵 뭉개지는 재료</b>부터 알갱이로 올려 보세요.",
+    ],
+  },
+  small_bits: {
+    label: "작은 알갱이",
+    next: [
+      "같은 부드러움을 유지하면서 알갱이 크기만 조금 키우기",
+      "작은 알갱이와 부드러운 덩어리를 한 그릇에 함께 담기",
+      "잇몸으로 으깰 수 있는 재료를 하나씩 늘리기",
+    ],
+    avoid: [
+      "다시 갈거나 완전히 으깨 되돌리기",
+      "알갱이를 남기라는 조언(이미 알갱이 단계)",
+    ],
+    tips: [
+      "부드러움은 그대로 두고 <b>알갱이 크기만</b> 조금 키워 보세요.",
+      "작은 알갱이와 <b>부드러운 덩어리를 한 그릇에</b> 함께 담아 주세요.",
+      "<b>잇몸으로 으깰 수 있는 재료</b>를 한 가지씩 늘려 보세요(푹 익힌 채소·두부).",
+    ],
+  },
+  soft: {
+    label: "무른 유아식",
+    next: [
+      "같은 부드러움 안에서 크기를 조금씩 키우기",
+      "으깬 음식과 작은 덩어리를 함께 제공하기",
+      "씹을 수 있는 부드러운 재료를 하나씩 추가하기",
+      "한 입 크기와 두께를 조절해 씹는 횟수를 늘리기",
+    ],
+    avoid: [
+      "믹서로 갈거나 포크로 으깨 알갱이를 남기라는 조언",
+      "곱게 가는 정도를 조절하라는 조언",
+      "음식을 더 부드럽게·잘게 되돌리라는 조언",
+    ],
+    tips: [
+      "지금의 <b>부드러움은 그대로</b> 두고, 한 입 크기를 조금씩 키워 보세요.",
+      "<b>으깬 음식과 작은 덩어리를 함께</b> 담아, 아이가 고를 수 있게 해주세요.",
+      "<b>씹을 수 있는 부드러운 재료</b>를 한 가지씩 추가해 보세요(푹 익힌 애호박·두부·바나나).",
+      "덩어리는 <b>납작하고 길게</b> 썰어 주세요 — 잇몸으로 누르기 쉬워 씹는 연습이 돼요.",
+    ],
+  },
+  regular: {
+    label: "일반 가정식",
+    next: [
+      "한 입 크기와 두께를 조절하기",
+      "질긴 식재료를 더 부드러운 조리법으로 바꾸기",
+      "선호 음식과 어려운 음식을 한 접시에 조합하기",
+      "씹는 시간이 필요한 재료를 식사 앞쪽에 배치하기",
+    ],
+    avoid: [
+      "갈기·으깨기처럼 이유식 단계로 되돌리는 조언",
+      "알갱이를 남기라는 조언",
+      "음식 형태를 한 단계 낮추라는 조언",
+    ],
+    tips: [
+      "형태를 낮추지 말고 <b>한 입 크기와 두께</b>만 조절해 주세요.",
+      "질긴 재료는 <b>조리법을 바꿔</b> 부드럽게 해주세요(볶음 → 국물에 푹 익히기·다지기).",
+      "<b>좋아하는 음식과 어려운 음식을 한 접시에</b> 담아 번갈아 먹게 해주세요.",
+      "씹는 시간이 필요한 재료는 <b>가장 배고픈 식사 앞쪽</b>에 두세요.",
+    ],
+  },
+};
+
 export const CEILING = [ // 무리 없이 먹는 가장 단단한 음식(씹기 상한)
   { v: "tofu", t: "두부·바나나" }, { v: "veg", t: "푹 익힌 채소" }, { v: "rice_egg", t: "부드러운 밥·계란" },
   { v: "minced_meat", t: "잘게 조리한 고기" }, { v: "regular", t: "일반식" },
@@ -101,6 +219,12 @@ export const STEPS = [
   { key: "wrap", title: "마무리 (선택)", required: [] }, // 하루 일과·서술 전부 선택
 ];
 
+/* ── 스키마 버전 ──
+   설문 임시저장(초안) 호환 판정용. 문항 구조·선택지 코드가 바뀌면 올린다.
+   초안에 저장된 버전이 이 값과 다르면 초안을 폐기하고 처음부터 받는다.
+   v3.1 (2026-07-28): FREQ 코드화(daily5/w34/w12/m12/rare/unknown) + FOOD_ADVICE 단계 게이팅 도입 */
+export const SCHEMA_VERSION = "v3.1";
+
 /* ── 저장(answers) 스키마 ──
    결과·비교 호환을 위해 legacy 2필드(food_texture·concern_type)는 반드시 함께 저장.
    전체 응답은 survey 객체로 저장. */
@@ -111,7 +235,7 @@ export const ANSWERS_SHAPE = {
   survey: {
     age_months: "number|null",
     concern: "CONCERN value(단일)",
-    symptom_freq: "FREQ 값",
+    symptom_freq: "FREQ v(코드) — 표시는 FREQ_LABEL[v], 구버전 행은 한글 라벨 원문",
     want_to_know: "string",
     lens01: { food_form: "FOOD v", chew_ceiling: "CEILING v", hard_textures: "HARD[] (다중)", behavior: "BEHAVIOR", meal_time: "MEALTIME" },
     lens02: { interval: "INTERVAL" },
@@ -125,5 +249,5 @@ export const ANSWERS_SHAPE = {
   safety_alert: "boolean — SAFETY 중 하나라도 '예'",
 };
 
-export const SURVEY_SCHEMA = { CONCERN, FREQ, FOOD, CEILING, HARD, BEHAVIOR, MEALTIME, INTERVAL, PORTION, RETRY, RESPONSE, YN, SETS, SAFETY, STEPS, ANSWERS_SHAPE };
+export const SURVEY_SCHEMA = { CONCERN, FREQ, FREQ_LABEL, FOOD, FOOD_LABEL, FOOD_ORDER, FOOD_ADVICE, CEILING, HARD, BEHAVIOR, MEALTIME, INTERVAL, PORTION, RETRY, RESPONSE, YN, SETS, SAFETY, STEPS, ANSWERS_SHAPE, SCHEMA_VERSION };
 export default SURVEY_SCHEMA;
