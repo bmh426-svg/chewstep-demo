@@ -3,12 +3,19 @@
 import { supabase } from "./supabase.js";
 import { logEvent } from "./journey.js";
 
+// 로그인 시각 기록 — profiles.last_login_at (관리자 사용자 탭 '최근 로그인').
+// 본인 행의 그 컬럼만 갱신하는 SECURITY DEFINER RPC. 실패해도 로그인 흐름은 막지 않는다.
+// (db/migrations/2026-07-28_profiles-activity-columns.sql)
+async function touchLogin() {
+  try { await supabase.rpc("touch_last_login"); } catch (e) { /* 기록 실패는 무시 */ }
+}
+
 // 이메일 로그인. 없는 계정이면 자동 가입까지 한 번에 처리한다.
 export async function emailAuth(email, password) {
   await logEvent("email_auth_submit", {});
   // 1) 우선 로그인 시도
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (!error) return { ok: true, mode: "signin" };
+  if (!error) { await touchLogin(); return { ok: true, mode: "signin" }; }
 
   // 2) 계정이 없으면 가입 시도(로그인 자격 오류일 때만)
   const m = (error.message || "").toLowerCase();
@@ -16,7 +23,7 @@ export async function emailAuth(email, password) {
     const res = await supabase.auth.signUp({ email, password });
     if (res.error) return { ok: false, error: res.error.message };
     // 이메일 확인이 꺼져 있으면 즉시 세션 발급, 켜져 있으면 확인 메일 대기
-    if (res.data.session) return { ok: true, mode: "signup" };
+    if (res.data.session) { await touchLogin(); return { ok: true, mode: "signup" }; }
     return { ok: false, needConfirm: true };
   }
   return { ok: false, error: error.message };

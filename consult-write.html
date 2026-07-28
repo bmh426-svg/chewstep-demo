@@ -145,10 +145,11 @@
       $("gateLogin").href = "/login.html?next=" + encodeURIComponent("/consult-write.html");
       return;
     }
-    // 표시 이름 기본값: 프로필 display_name
+    // 표시 이름 기본값: 프로필 name
+    // (통합 후 qwfsk profiles 는 name 컬럼. display_name 을 고르면 400 이 떠서 기본값이 비어 있었다 — 2026-07-28 수정)
     try {
-      const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", session.user.id).maybeSingle();
-      if (prof && prof.display_name) $("fName").value = prof.display_name;
+      const { data: prof } = await supabase.from("profiles").select("name").eq("id", session.user.id).maybeSingle();
+      if (prof && prof.name) $("fName").value = prof.name;
     } catch (e) {}
 
     hide($("loading")); show($("form"));

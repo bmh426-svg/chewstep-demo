@@ -141,6 +141,10 @@
   const msg = document.getElementById("lmsg");
   function showMsg(html, ok) { msg.className = "lmsg show" + (ok ? " ok" : ""); msg.innerHTML = html; }
 
+  // 로그인 시각 기록 — profiles.last_login_at(관리자 '최근 로그인' 열). 실패해도 로그인은 계속.
+  // 본인 행의 그 컬럼만 갱신하는 SECURITY DEFINER RPC (db/migrations/2026-07-28_profiles-activity-columns.sql)
+  function touchLogin() { return sb.rpc("touch_last_login").then(function(){}, function(){}); }
+
   // 로그인 후: get_my_landing() RPC 로 역할·경로 수신 → NEXT || route 로 이동
   async function routeByRole() {
     const { data, error } = await sb.rpc("get_my_landing");
@@ -214,7 +218,7 @@
         showMsg("가입에 실패했어요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>");
         return;
       }
-      if (data.session) { showMsg("가입 완료 — 이동 중…", true); routeByRole(); return; }
+      if (data.session) { showMsg("가입 완료 — 이동 중…", true); await touchLogin(); routeByRole(); return; }
       // 이메일 확인이 필요한 설정인 경우
       submitBtn.disabled = false;
       showMsg("가입 확인 메일을 보냈어요. 메일의 링크로 인증 후 다시 로그인해 주세요.");
@@ -229,6 +233,7 @@
       return;
     }
     showMsg("로그인 성공 — 이동 중…", true);
+    await touchLogin();
     routeByRole();
   });
 </script>
