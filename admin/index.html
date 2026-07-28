@@ -449,8 +449,9 @@ async function boot(){
     const { data:prof } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     ME = prof;
     $("whoami").textContent = user ? (user.email + (prof ? " · " + (prof.user_type||prof.role||"관리자") : "")) : "";
-    // 최근 로그인 기록(본인 행 last_login_at만 갱신 — 권한변경 트리거에 걸리지 않음)
-    // (통합 후 qwfsk profiles엔 last_login_at 컬럼이 없어 갱신 생략)
+    // 최근 로그인 기록 — RPC가 본인 행 last_login_at 한 컬럼만 갱신한다.
+    // (2026-07-28 db/migrations/2026-07-28_profiles-activity-columns.sql 로 컬럼·RPC 복원)
+    supabase.rpc("touch_last_login").then(()=>{}, ()=>{});
     // 감사 로그: 관리자 로그인 성공
     supabase.rpc("log_audit", { p_action:"login_success", p_target_type:"admin" }).then(()=>{}, ()=>{});
     $("loginWrap").style.display="none";
@@ -707,18 +708,29 @@ function renderUsers(){
   const cnt={}; ALL.forEach(r=>{ if(r.user_id) cnt[r.user_id]=(cnt[r.user_id]||0)+1; });
   // 사람별 단계: 그 계정의 기록 중 가장 진행된 단계 + 설문만/영상 건수
   const ustage={};
+  // 사람별 마지막 분석 시각 — 가입 이후 '이 계정이 살아 있다'는 유일한 신호.
+  // (profiles.last_login_at 은 2026-07-28부터 기록 시작이라 그 전 활동은 분석 시각으로 본다)
+  const ulast={};
   ALL.forEach(r=>{ if(!r.user_id) return;
     const s=stageOf(r), u=ustage[r.user_id]||(ustage[r.user_id]={best:"survey",survey:0,uploaded:0,video:0});
     u[s]++; if(STAGE_RANK[s]>STAGE_RANK[u.best]) u.best=s;
+    const t=+new Date(r.created_at); if(!ulast[r.user_id] || t>ulast[r.user_id]) ulast[r.user_id]=t;
   });
-  $("uCount").textContent = USERS.length+"명";
-  const body = USERS.map(u=>
+  const actAt = u => Math.max(ulast[u.id]||0, u.last_login_at?+new Date(u.last_login_at):0, u.created_at?+new Date(u.created_at):0);
+  const todayN = new Date().toDateString();
+  const isToday = ms => !!ms && new Date(ms).toDateString()===todayN;
+  // 최근 활동(분석·로그인·가입 중 가장 최신) 순 — 새 계정·오늘 움직인 계정이 맨 위로.
+  const rows = USERS.slice().sort((a,b)=> actAt(b)-actAt(a));
+  const todayU = rows.filter(u=>isToday(ulast[u.id])).length;
+  $("uCount").textContent = USERS.length+"명"+(todayU?` · 오늘 분석한 계정 ${todayU}명`:"");
+  const body = rows.map(u=>
     `<tr>`+
     `<td>${esc(u.email||"-")}</td>`+
     `<td>${esc(u.name||u.display_name||"-")}</td>`+
     `<td><span class="pill ${roleCls(u.user_type||u.role)}">${esc(ROLE_LABEL[u.user_type||u.role]||u.user_type||u.role||"부모")}</span></td>`+
     `<td>${u.created_at?fmtDt(u.created_at):"-"}</td>`+
     `<td>${u.last_login_at?fmtDt(u.last_login_at):'<span class="muted">-</span>'}</td>`+
+    `<td>${ulast[u.id]?(isToday(ulast[u.id])?`<b style="color:#5f7a4f">${fmtDt(ulast[u.id])}</b>`:fmtDt(ulast[u.id])):'<span class="muted">-</span>'}</td>`+
     `<td>${(u.is_active!==false)?'<span class="pill ok">활성</span>':'<span class="pill bad">정지</span>'}</td>`+
     `<td>${cnt[u.id]||0}</td>`+
     `<td>${(()=>{ const s=ustage[u.id]; if(!s) return '<span class="muted">기록 없음</span>';
@@ -726,8 +738,8 @@ function renderUsers(){
       return `<span class="pill ${m[1]}">${m[0]}</span> <span class="muted">설문만 ${s.survey} · 영상 ${s.video}`+
              (s.uploaded?` · 분석미완 ${s.uploaded}`:"")+`</span>`; })()}</td>`+
     `</tr>`).join("");
-  $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","활성","분석","단계"]) +
-    (USERS.length?`<tbody style="cursor:default">${body}</tbody>`:`<tbody><tr><td colspan="8"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
+  $("usersTbl").innerHTML = tblHead(["이메일","이름","역할","가입","최근 로그인","최근 분석","활성","분석","단계"]) +
+    (USERS.length?`<tbody style="cursor:default">${body}</tbody>`:`<tbody><tr><td colspan="9"><div class="empty">사용자가 없어요.</div></td></tr></tbody>`);
 }
 
 /* ---------- 감사 로그 (조회 전용, append-only) ---------- */

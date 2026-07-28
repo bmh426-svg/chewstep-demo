@@ -96,6 +96,7 @@
     const email = em.value.trim(), password = pw.value;
     const { error } = await db.auth.signInWithPassword({ email, password });
     if(error){ document.getElementById("loginMsg").textContent = "로그인 실패: " + error.message; return; }
+    db.rpc("touch_last_login").then(()=>{}, ()=>{});   // 최근 로그인 기록(profiles.last_login_at)
     showConsole(true); loadAll();
   }
   async function signOut(){ await db.auth.signOut(); showConsole(false); }
