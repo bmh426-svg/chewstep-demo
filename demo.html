@@ -935,9 +935,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="resultcard" id="resultCard"></div>
     <!-- 2.5 · 여러 기록이 쌓였을 때 변화 추이(계정 기준, DB) -->
     <div class="dsec" id="secTrend" style="display:none"></div>
-    <!-- 3·4 · 가장 먼저 확인해볼 점 / 그렇게 본 이유 -->
+    <!-- 3·4 · (레거시) 가장 먼저 확인해볼 점 / 그렇게 본 이유
+         현재 흐름에서는 렌더되지 않는다 — 위 #secReport 가 대체한다(finalizeResult 참고).
+         남겨 두는 이유: 구조를 바꿀 때 되살릴 수 있게. 내용은 처방 스키마를 함께 쓴다. -->
     <div class="dsec" id="secInterpret" style="display:none"></div>
-    <!-- 5·6 · 다음 식사에서 바꿀 한 가지 / 관찰할 변화 -->
+    <!-- 5·6 · (레거시) 다음 식사에서 바꿀 한 가지 / 관찰할 변화 -->
     <div class="dsec" id="secActions" style="display:none"></div>
     <!-- 6.5 · 식감 연결 레시피 (잘 먹는 음식 + 연습할 음식 입력 시) -->
     <div class="dsec" id="secRecipe" style="display:none"></div>
@@ -1040,6 +1042,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   import { FOOD_ADVICE, FOOD_ORDER, FOOD_LABEL, foodFormOf, gateTips, tipText,
            sanitizeCoachForStage, stageContract,
            filterAllergyTips, mentionsAllergen, allergyTokens } from "./assets/js/stage-gate.js";
+  // 근거 기반 처방(A단계) — 규칙 엔진·LLM 두 경로가 같은 스키마를 내고, 화면은 그 하나만 안다
+  import { factSheet, buildEvidence, assemble, normalize, isUsable, buildReason, buildKeepAsIs } from "./assets/js/coach-schema.js";
+  import { gatePrescription } from "./assets/js/evidence-gate.js";   // 근거 없는 단정 차단
+  // 관찰사실 추출기(B단계) — 입력값 정규화 · 영상 자동추출 · 규칙 · 중간객체
+  import MEALCTX from "./assets/js/meal-context.js";
+  import { extractObservations } from "./assets/js/observe.js";
+  import { buildCoachingInput } from "./assets/js/coaching-input.js";
   import { fetchRecipe } from "./assets/js/recipe.js";
   import { recommendProducts } from "./assets/js/products.js";
   import { IDDSI_ATTRIBUTION } from "./assets/js/iddsi.js";
@@ -1184,6 +1193,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let lastCur = null, lastMetrics = null, lastPrev = null;  // 설문 단계로 넘길 분석 결과 보관
   let lastAnswers = null;                                   // 보호자 설문 응답(미리보기·상세·저장 공용)
   let lastCoachAi = null;                                   // LLM 코칭 결과(있으면 리포트·한장PDF에 반영)
+  let lastCoachingInput = null;                             // B단계 중간객체(관찰사실·규칙 판단) — 저장·LLM 전달용
   let lastRowId = null;                                     // 저장된 demo_responses 행 id(후기 업데이트용)
   // landmark 추출 결과 시계열(원본 영상 미저장 · 얼굴 검출된 프레임만) — Supabase 저장용
   const SERIES_MAX = 4000;
@@ -1426,8 +1436,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     };
     const series = { t: sT, jaw_open: sJo, jaw_left: sJl, jaw_right: sJr, tongue_out: sTo };
     // 영상 정보 설문 — 하나라도 입력됐으면 저장
+    // B단계 — 촬영 맥락(answers.meal)·관찰 태그(answers.tags)만 있는 기록도 저장 대상이다
     const hasAns = answers && (answers.food_texture || answers.food_name || answers.video_segment || answers.vs_usual ||
-                   answers.child_age_months != null || answers.concern_text || answers.capture_date);
+                   answers.child_age_months != null || answers.concern_text || answers.capture_date ||
+                   (answers.meal && Object.keys(answers.meal).length) ||
+                   (Array.isArray(answers.tags) && answers.tags.length));
     const months = (answers && answers.child_age_months != null) ? answers.child_age_months : null;
     try {
       // 행 id를 클라이언트에서 생성 → insert 후 되읽기 없이 후기 UPDATE에 사용(SELECT 정책 불필요)
@@ -1443,8 +1456,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const prevR = lastPrev;
       const deltaPct = (prevR && prevR.cpm>0) ? Math.round((cur.cpm - prevR.cpm)/prevR.cpm*100) : null;
       const coach = computeCoaching(cur, m, answers);
+      /* 저장에도 처방(근거·미확인정보 포함)을 함께 남긴다 — 지난 기록과 비교하거나
+         관리자가 품질을 검수할 때 "무슨 근거로 그 조언이 나갔는지"를 볼 수 있어야 한다.
+         레거시 3키(first_check·action·watch)는 관리자 화면·지난기록이 읽으므로 그대로 유지. */
+      const built = buildPrescription(cur, answers, lastCoachAi);
       const resultObj = {
-        version: "demo-r2",
+        version: "demo-r3",
         status: statusVal,
         confidence: coach.confidence,
         possibility: coach.possibility,
@@ -1452,6 +1469,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         first_check: coach.firstCheck,
         action: coach.action,
         watch: coach.watch,
+        prescription: built.p,
+        coach_source: built.p.source,
+        /* B단계 — 관찰사실(출처·신뢰도)과 규칙 판단을 함께 남긴다.
+           "무슨 사실을 근거로 어떤 규칙이 이 조언을 냈는지"를 재현할 수 있어야
+           검수자가 결과 품질을 판정할 수 있다. observed_facts 는 30개로 자른다. */
+        observed_facts: (built.p.observed_facts || []).slice(0, 30),
+        rule_id: built.p.rule_id || null,
+        allowed_actions: built.p.allowed_actions || [],
+        prohibited_actions: (built.p.prohibited_actions || []).map(x => x && (x.action || x)),
+        safety_flags: built.p.safety_flags || [],
         safety: coach.safetyOn ? ((coach.safety && coach.safety.length) ? coach.safety : true) : null,
         observation: { chews_per_min: cur.cpm, left_pct: cur.leftPct, detect_rate: cur.detect, quality: cur.quality },
         vs_prev: prevR ? { chews_per_min_prev: prevR.cpm, delta_pct: deltaPct } : null
@@ -1691,6 +1718,124 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return { safety, safetyOn, possibility: top, second: second, label:p.label, firstCheck:p.firstCheck, action:action, watch:p.watch, tips:tips.slice(0,5), score, confidence,
              food_form: form, food_stage: stageAdvice ? stageAdvice.label : null };
   }
+  /* ── 처방 조립(A단계) ──────────────────────────────────────────────
+     화면·PDF·저장이 각자 computeCoaching 을 부르고 각자 문장을 조립하던 구조가
+     "같은 말이 여러 번 반복"의 원인이었다. 이제 결과의 뼈대는 여기 한 곳에서만 만든다.
+
+     경로 우선순위
+       ① LLM(coach v6) 결과 → 단계 게이팅 → 알레르기 필터 → 근거 검증 통과 시 사용
+       ② 위 어느 층에서든 걸리면 규칙 엔진 처방(assemble)으로 되돌린다
+     지금 운영 키가 llm_401 이라 실제로는 대부분 ②가 나간다 — 그래서 ②도 근거·미확인정보를
+     갖춘 같은 스키마로 만든다(키가 살아나야 개선되는 구조로 두지 않는다).
+
+     반환: { p: 처방, rule: 규칙엔진 원본, ai: LLM 사용 여부 } */
+  function buildPrescription(cur, answers, ai){
+    const a = answers || {};
+    const rule = computeCoaching(cur, lastMetrics, a);
+    const form = foodFormOf(a);
+    const present = factSheet({ answers: a, cur: cur, metrics: lastMetrics, prev: lastPrev });
+    const stageLabel = (form && FOOD_ADVICE[form]) ? FOOD_ADVICE[form].label : null;
+
+    /* ── B단계 · 관찰사실 → 규칙 → 중간객체 ──────────────────────────
+       영상 시계열에서 '확실한 것만' 뽑고(observe.js), 보호자·교사 입력·태그와 합쳐
+       사실 목록을 만든 뒤(coaching-input.js), 조합 규칙으로 행동을 정한다.
+       규칙이 맞으면 그 행동이 '바꿀 한 가지'가 되고, 안 맞으면 기존 단계 게이팅 결과를 쓴다.
+       영상이 없거나 표본이 부족하면 video 는 null 이 되고 입력·태그만으로 판단한다. */
+    const series = (sT && sT.length) ? { t: sT, jaw_open: sJo, jaw_left: sJl, jaw_right: sJr, tongue_out: sTo } : null;
+    // 이름 주의 — 바깥 `video` 는 <video> 엘리먼트다. 관찰 지표는 videoObs 로 둔다.
+    const videoObs = (series && cur && cur.quality !== "low_face")
+      ? extractObservations({ series: series, summary: {
+          detect_rate: cur.detect, observed_sec: lastMetrics ? lastMetrics.obs : null,
+          duration_sec: (video && isFinite(video.duration)) ? video.duration : null, quality: cur.quality } })
+      : null;
+    const ci = buildCoachingInput({
+      answers: a, video: videoObs, prev: lastPrev, ruleFallback: rule,
+      // cur·metrics 는 시계열이 없는 기록(복원·지난기록)에서 영상 근거의 유일한 통로다
+      cur: cur, metrics: lastMetrics,
+      stageLabel: stageLabel, now: new Date().toISOString(),
+    });
+    lastCoachingInput = ci;
+
+    /* 근거는 중간객체가 이미 합쳐서 준다 —
+       영상 구간(observe.js) → 관찰 태그 → 촬영 맥락 → 설문 응답(A단계 문장 생성기 재사용).
+       순서가 곧 우선순위이고, 상한은 normalize 가 10개로 자른다. */
+    const rulePrescription = () => {
+      const ev = ci.evidence.slice();
+      const p = normalize({
+        source: "rule",
+        primary_action: {
+          title: ci.primary_action.title,
+          reason: buildReason({ evidence: ev, cur: cur, possibility: rule.possibility }),
+          // 규칙이 맞았으면 규칙의 실행 순서, 아니면 단계 게이팅된 기존 팁
+          how_to: (ci.primary_action.how_to && ci.primary_action.how_to.length) ? ci.primary_action.how_to : (rule.tips || []).slice(0, 5),
+        },
+        evidence: ev,
+        keep_as_is: ci.keep_as_is || buildKeepAsIs({ food_form: form }),
+        missing_information: ci.missing_information,
+        next_observation: ci.next_observation,
+        safety_note: ci._safety_note || undefined,
+      });
+      p.rule_id = ci.primary_action.rule_id || null;
+      p.allowed_actions = ci.allowed_actions;
+      p.prohibited_actions = ci.prohibited_actions;
+      p.observed_facts = ci.observed_facts;
+      p.safety_flags = ci.safety_flags;
+      /* 규칙이 낸 행동도 근거 검증을 한 번 더 지난다 — 규칙 조건과 문장 게이트가
+         갈라질 수 있어(예: 규칙은 태그로 통과했는데 문장이 다른 사실을 전제) 이중으로 본다. */
+      const gated = gatePrescription(p, present, rule, window.csLog);
+      return gated || p;
+    };
+    if(rule.safetyOn) return { p: rulePrescription(), rule: rule, ai: false };  // 안전신호는 LLM 미개입
+    if(!ai || !ai.action) return { p: rulePrescription(), rule: rule, ai: false };
+
+    // ① 단계 후퇴 · ② 알레르기 — 기존 두 방어층을 레거시 필드(tips) 위에서 그대로 통과시킨다
+    let safe = sanitizeCoachForStage(ai, form, rule, window.csLog);
+    if(safe) safe = sanitizeCoachForAllergy(safe, (currentChild && currentChild.allergies) || "", rule);
+    if(!safe) return { p: rulePrescription(), rule: rule, ai: false };
+    // 필터가 tips 를 줄였으면 처방 본문(how_to)에도 반영한다 — 둘은 같은 내용의 두 표현이다
+    const synced = Object.assign({}, safe, { source: "ai" });
+    synced.primary_action = Object.assign({}, safe.primary_action || {}, { how_to: safe.tips || [] });
+    // ③ 근거 검증 — 입력에 없는 사실을 전제로 한 조언·지어낸 근거를 걸러낸다
+    let p = gatePrescription(normalize(synced), present, rule, window.csLog);
+    if(!p || !isUsable(p)){
+      if(window.csLog) window.csLog("coach_prescription_fallback", { reason: p ? "no_evidence" : "unfounded" });
+      return { p: rulePrescription(), rule: rule, ai: false };
+    }
+    /* ④ (B단계) 금지 행동 검사 — 규칙·가드가 막은 행동을 LLM 이 문장으로 되살렸는지 본다.
+       coaching_input.prohibited_actions 의 라벨은 사람 말이라 문장 대조에는 쓰지 않고,
+       evidence-gate 의 문장 규칙(같은 근거 조건을 쓴다)이 이미 ③에서 걸렀다.
+       여기서는 규칙이 정한 '바꿀 한 가지'가 통째로 다른 종류로 바뀌었는지만 확인한다. */
+    if(ci.primary_action.rule_id && p.primary_action.title){
+      const ruleWords = String(ci.primary_action.title).replace(/[^가-힣]/g, "");
+      const aiWords = String(p.primary_action.title).replace(/[^가-힣]/g, "");
+      let shared = 0;
+      for(let i=0; i<ruleWords.length-1; i++){ if(aiWords.indexOf(ruleWords.substr(i,2)) >= 0) shared++; }
+      const overlap = ruleWords.length > 2 ? shared/(ruleWords.length-1) : 1;
+      if(overlap < 0.25){
+        if(window.csLog) window.csLog("coach_action_replaced", { rule_id: ci.primary_action.rule_id, overlap: Math.round(overlap*100) });
+        return { p: rulePrescription(), rule: rule, ai: false };   // 규칙이 정한 행동을 지킨다
+      }
+    }
+    // 규칙 판단 결과(추적·저장용)를 처방에 함께 실어 둔다
+    p.rule_id = ci.primary_action.rule_id || null;
+    p.allowed_actions = ci.allowed_actions;
+    p.prohibited_actions = ci.prohibited_actions;
+    p.observed_facts = ci.observed_facts;
+    p.safety_flags = ci.safety_flags;
+    // LLM 이 근거를 빠뜨렸어도 규칙 엔진이 만든 관찰 사실은 남긴다(근거 칸이 비면 일반론으로 읽힌다)
+    if(p.evidence.length < 2){
+      const ruleEv = buildEvidence({ answers: a, cur: cur, present: present, stageLabel: stageLabel });
+      const seen = {}; p.evidence.forEach(e => { seen[e.ref] = 1; });
+      p.evidence = p.evidence.concat(ruleEv.filter(e => !seen[e.ref]).slice(0, 4 - p.evidence.length));
+    }
+    return { p: p, rule: rule, ai: true };
+  }
+
+  /* 처방 문장을 화면에 올릴 때의 신뢰 규칙 —
+     규칙 엔진 문구는 프로젝트가 쓴 것이라 <b> 강조를 허용하고,
+     LLM 생성문은 반드시 escape 한다(생성 결과를 HTML 로 신뢰하지 않는다). */
+  function pTxt(p, s){ return (p && p.source === "ai") ? escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s); }
+
   // 안전 덮어쓰기 배너(§5) — legacy 코드 배열이 있으면 태그로, 없으면(safety_alert) 일반 안내
   function safetyBannerHtml(safety){
     const list = Array.isArray(safety) ? safety.filter(Boolean) : [];
@@ -2607,8 +2752,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(wasDone){
         // 설문은 이미 끝났던 상태 → 답변을 복원해 곧장 영상 선택으로 보낸다
         const answers = collectAnswers();
-        goUpload(answers);
-        $("loading").textContent = "설문 답변을 불러왔어요. 영상만 다시 선택해 주세요.";
+        if(surveyComplete(answers)){
+          goUpload(answers);
+          $("loading").textContent = "설문 답변을 불러왔어요. 영상만 다시 선택해 주세요.";
+        } else {
+          // 필수 응답 검사 이전에 저장된 초안 → 빈 문항이 있으므로 설문에서 채우게 한다
+          if(window.csLog) window.csLog("survey_draft_incomplete", { child_id: ch && ch.id });
+        }
       }
     });
     $("resumeNew").addEventListener("click", function(){
@@ -2683,6 +2833,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // 설문 응답 수집 — survey-v3 스키마 구조(ANSWERS_SHAPE) 그대로 반환(앱과 통합)
   function collectAnswers(){ return collectSurveyAnswers(); }
+
+  /* 설문이 결과를 만들 만큼 채워졌는가 (2026-07-29)
+     설문 화면은 스텝마다 필수 응답을 막지만(survey-render.js validateStep),
+     '이어서 작성' 초안은 그 검사가 없던 시절에 저장된 것일 수 있다.
+     빈 응답으로 결과를 만들면 점수가 모두 0이 되어 근거 없는 일반 조언이 나가므로 여기서 한 번 더 본다.
+     (조건부 심화문항은 스키마가 필요해 제외 — 화면 검사가 담당) */
+  function surveyComplete(a){
+    const sv = a && a.survey; if(!sv) return false;
+    const l1 = sv.lens01 || {}, sf = sv.safety || {};
+    if(!sv.concern || !sv.symptom_freq) return false;
+    if(!l1.food_form || !l1.chew_ceiling || !l1.behavior || !l1.meal_time) return false;
+    if(!Array.isArray(l1.hard_textures) || !l1.hard_textures.length) return false;
+    if(!(sv.lens02||{}).interval || !(sv.lens03||{}).portion_gap) return false;
+    if(!(sv.lens04||{}).retry_count || !(sv.lens05||{}).refusal_response) return false;
+    if(!sf.s1 || !sf.s2 || !sf.s3) return false;
+    return true;
+  }
 
   // ── 설문 라벨(사람이 읽는 문구) ──
   const TEX_LABEL = { thin:"묽은 음식", mashed:"으깬·부드러운 음식", soft_solid:"부드러운 고형식", regular:"일반식", mixed:"여러 질감" };
@@ -2816,55 +2983,52 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return h;
   }
   // ai: coach LLM 결과가 있으면 원인·팁을 대체(+AI 맞춤 배지)
+  /* 고민 중심 코칭 리포트 — 결과 화면의 본문(#secReport).
+     A단계(2026-07-29) 개편: '가장 먼저 확인해볼 점 / 오늘 저녁 팁 / 미니 체크' 세 블록을
+     처방 5블록(prescriptionHtml) 하나로 합쳤다.
+       · 세 블록은 같은 내용(핵심 행동)을 표현만 바꿔 세 번 보여주고 있었다
+         → 보호자는 정보량이 많다고 느끼지만 실제 새 내용은 적다(사용자 지적).
+       · 미니 체크는 tips 문장을 잘라 만든 것이라 근거도 순서도 없었다
+         → next_observation(셀 수 있는 관찰 항목)이 그 역할을 대신한다.
+     남긴 것: 핵심 한 줄 · 관찰된 모습(수치) · 신호 비교 · 사레 안전 문구. */
   function renderReport(cur, answers, ai){
     const box = $("secReport"); if(!box) return;
     const a = answers || {};
-    const coach = computeCoaching(cur, lastMetrics, a);
-    const poss = coach.possibility;
-    const useAi = !!(ai && ai.action);
-    const badge = useAi ? '<span class="rp-ai">AI 맞춤</span>' : '';
-    const firstCheck = useAi ? escapeHtml(ai.firstCheck || coach.firstCheck) : coach.firstCheck;
-    const tips = useAi ? ((ai.tips && ai.tips.length) ? ai.tips : [ai.action]).map(escapeHtml)
-                       : ((coach.tips && coach.tips.length) ? coach.tips : [coach.action]);
+    const built = buildPrescription(cur, a, ai);
+    const poss = built.rule.possibility;
     const core = REPORT.core[poss] || REPORT.core.unclear;
     const normal = REPORT.normal[poss] || REPORT.normal.unclear;
     const concernLabel = a.concern_type || null;
     const li = arr => arr.map(s => `<div class="row"><span class="dot"></span><span>${escapeHtml(s)}</span></div>`).join("");
-    // 며칠 미니 체크 — 팁에서 핵심만 뽑아 3개
-    const shortTip = t => String(t).replace(/<[^>]+>/g,"").split(/\s—\s|\(|\.\s|\. /)[0].trim();
-    const checks = [];
-    const plainTips = tips.map(shortTip).filter(Boolean);
-    if(plainTips[0]) checks.push(["오늘 저녁", plainTips[0]]);
-    if(plainTips[1]) checks.push(["내일", plainTips[1]]);
-    checks.push(["살펴보기", "아이가 뱉는 횟수·씹는 시간이 조금씩 달라지는지 관찰하기"]);
     box.style.display = "";
     const dl = $("reportDl"); if(dl) dl.style.display = "";
     box.innerHTML =
       `<div class="rp-core"><span class="d"></span><span class="t"><b>핵심 한 줄</b> · ${escapeHtml(core)}</span></div>`+
       (concernLabel ? `<span class="rp-chip">보호자 고민 · ${escapeHtml(concernLabel)}</span>` : "")+
       (a.concern_text ? `<p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 4px;line-height:1.55;">“${escapeHtml(a.concern_text)}”</p>` : "")+
-      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">1</span> 이번에 관찰된 모습</div>${reportMetricsHtml(cur)}</div>`+
-      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">2</span> 가장 먼저 확인해볼 점${badge}</div><div class="rp-diag"><p>${firstCheck}</p></div></div>`+
-      `<div class="rp-sol"><div class="lab">💡 오늘 저녁 바로 시도할 팁</div><ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul></div>`+
+      // ★ 결론을 맨 위로 — 보호자가 "그래서 오늘 무엇을 바꿀지"를 스크롤 끝에서 찾지 않게
+      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">1</span> 이번 영상에서 가장 먼저 바꿀 한 가지`+
+        `${built.ai ? '<span class="rp-ai">AI 맞춤</span>' : ''}</div>`+
+        `${prescriptionHtml(built, { heading:false, safety:false })}</div>`+
+      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">2</span> 이번에 관찰된 모습(수치)</div>${reportMetricsHtml(cur)}</div>`+
       `<div class="rp-sec"><div class="rp-seclabel"><span class="n">3</span> 이런 신호는 어떤가요?</div><div class="rp-grid">`+
         `<div class="rp-sig ok"><div class="lab">이건 정상이에요</div>${li(normal)}</div>`+
         `<div class="rp-sig warn"><div class="lab">이럴 땐 상담 받아보세요</div>${li(REPORT.consult)}</div>`+
       `</div></div>`+
       `<div class="rp-safe"><div class="lab">사레가 걸렸을 때</div>${li(REPORT.safe)}</div>`+
-      `<div class="rp-sec"><div class="rp-seclabel"><span class="n">4</span> 며칠만 해볼까요? · 미니 체크</div>`+
-        `<div class="rp-check">${checks.map(c=>`<div class="item"><span class="cb"></span><span class="tx"><span class="d">${escapeHtml(c[0])}</span> ${escapeHtml(c[1])}</span></div>`).join("")}</div></div>`+
-      `<p class="rp-note">※ 발달 단계 진단이 아니라, 오늘 관찰과 입력을 바탕으로 한 <b>참고용 코칭</b>이에요. 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의해 주세요.</p>`;
+      `<p class="rp-note">※ ${escapeHtml(built.p.safety_note)} 발달 단계 진단이 아니라, 오늘 관찰과 입력을 바탕으로 한 <b>참고용 코칭</b>이에요.</p>`;
   }
 
   // ── 한 장 리포트(PDF) — 핵심만 A4 한 장, 새 창에서 인쇄/저장 ──
   function onePagerHtml(recipe){
     const cur = lastCur || {}, a = lastAnswers || {};
     const rLiked = (recipeInput && recipeInput.liked) || "", rPractice = (recipeInput && recipeInput.practice) || "";
-    const coach = computeCoaching(cur, lastMetrics, a);
-    const ai = lastCoachAi;
+    const built = buildPrescription(cur, a, lastCoachAi);
+    const p = built.p, coach = built.rule;
     const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-    const firstCheck = (ai && ai.firstCheck) ? esc(ai.firstCheck) : (coach.firstCheck || "");
-    const tips = (ai && ai.tips && ai.tips.length) ? ai.tips.map(esc) : ((coach.tips && coach.tips.length) ? coach.tips : [coach.action]);
+    // 화면과 같은 신뢰 규칙 — 규칙 엔진 문구는 <b> 허용, 생성문은 escape
+    const pt = s => (p.source === "ai") ? esc(s) : String(s==null?"":s);
+    const tips = (p.primary_action.how_to && p.primary_action.how_to.length) ? p.primary_action.how_to : [p.primary_action.title];
     const core = REPORT.core[coach.possibility] || REPORT.core.unclear;
     const concern = a.concern_type || "";
     const name = (currentChild && currentChild.name) || "우리 아이";
@@ -2873,8 +3037,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(cur.quality==="low_face") metric = "영상 검출이 낮아 설문 답변을 중심으로 정리했어요.";
     else if(cur.quality==="audio") metric = `씹기(소리 기준) 약 ${cur.chew||0}회 관찰`;
     else { const cpm=cur.cpm||0; const lp=(cur.leftPct!=null)?cur.leftPct:50; metric = `씹기 속도 ${cpm}회/분 · 좌우 균형 ${lp}:${100-lp} · 총 ${cur.chew||0}회`; }
-    const tipLi = tips.map(t=>`<li>${t}</li>`).join("");
+    const tipLi = tips.map(t=>`<li>${pt(t)}</li>`).join("");
     const consultLi = REPORT.consult.map(s=>`<li>${esc(s)}</li>`).join("");
+    // 근거·미확인 항목 — 한 장 리포트에도 남긴다(공유·보관용 문서에서 근거가 빠지면 단정으로 읽힌다)
+    const EVL = { video:"영상", survey:"설문", tag:"태그", stage:"단계", history:"지난기록" };
+    const evLi = p.evidence.map(e=>`<li><b>${EVL[e.source]||e.source}</b> · ${pt(e.text)}</li>`).join("");
+    const missLi = p.missing_information.map(m=>esc(m.label)).join(" · ");
     return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chewstep 식사 코칭 리포트 — ${esc(name)}</title><style>`+
       `@page{size:A4;margin:14mm}*{box-sizing:border-box;margin:0;padding:0}`+
       `body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#3f382f;background:#fff;line-height:1.55;padding:20px}`+
@@ -2898,8 +3066,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `<div class="core"><b>핵심 한 줄</b> · ${esc(core)}</div>`+
       (concern?`<span class="chip">보호자 고민 · ${esc(concern)}</span>`:"")+
       `<div class="lab">이번에 관찰된 모습</div><div class="obs">${esc(metric)}</div>`+
-      `<div class="lab">가장 먼저 확인해볼 점${ai?" (AI 맞춤)":""}</div><div class="diag">${firstCheck}</div>`+
-      `<div class="sol"><div class="lab" style="color:#a55b0e;margin-top:0">💡 오늘 저녁 바로 시도할 팁</div><ul>${tipLi}</ul></div>`+
+      `<div class="lab">가장 먼저 바꿀 한 가지${built.ai?" (AI 맞춤)":""}</div><div class="diag"><b>${pt(p.primary_action.title)}</b></div>`+
+      (p.primary_action.reason ? `<div class="lab">그렇게 판단한 근거</div><div class="diag" style="font-size:13px">${pt(p.primary_action.reason)}</div>` : "")+
+      (evLi ? `<div class="obs" style="margin-top:6px"><ul style="padding-left:18px;margin:0;font-size:12.5px">${evLi}</ul></div>` : "")+
+      `<div class="sol"><div class="lab" style="color:#a55b0e;margin-top:0">💡 다음 식사에서 해볼 방법</div><ol style="padding-left:18px;margin:0">${tipLi}</ol></div>`+
+      (p.keep_as_is ? `<div class="lab">이번에는 바꾸지 않아도 되는 것</div><div class="obs">${pt(p.keep_as_is)}</div>` : "")+
+      (missLi ? `<div class="lab">추가로 확인할 생활 요인</div><div class="obs">${missLi} — 입력되지 않아 이번 결과에서는 판단하지 않았어요.</div>` : "")+
       ((recipe && recipe.menu) ? (
         `<div class="lab">🍳 식감 연결 레시피${(rLiked&&rPractice)?` — ${esc(rLiked)} + ${esc(rPractice)}`:""}</div>`+
         `<div class="sol"><div style="font-weight:800;color:#5f7a4f;margin-bottom:4px">${esc(recipe.menu)}</div>`+
@@ -2960,22 +3132,70 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `<p class="disc">하나의 영상만으로 원인을 확정할 수는 없어요. 여러 번의 식사를 함께 보면 더 분명해져요.</p>`;
     box.style.display = "";
   }
+  /* 처방 5블록(A단계) — 결과의 결론부. 리포트(#secReport) 맨 위와 레거시 섹션이 함께 쓴다.
+       1 이번에 바꿀 한 가지   2 그렇게 판단한 근거   3 다음 식사에서 해볼 방법
+       4 이번에는 바꾸지 않아도 되는 것   5 추가로 확인할 생활 요인(미입력)
+     5번이 핵심 — 받지 않은 정보로 단정하지 않았다는 사실을 숨기지 않고 밝힌다.
+     근거가 0개면 그것이 곧 '일반적인 문장'이므로 근거 블록을 비우는 대신 그 사실을 적는다.
+     HTML 만 돌려준다(어느 섹션에 넣을지는 호출부가 정한다). */
+  /* 근거 출처 배지 — '입력한 사실 / 영상이 관찰한 것 / 해석'이 섞이지 않게 층을 표시한다(B단계 ③).
+     fact_source(누가 말한 사실인가)가 있으면 그것을 우선한다 — 같은 '태그'라도
+     보호자가 고른 것과 교사·검수자가 확인한 것은 무게가 다르다. */
+  const EV_SRC_LABEL = { video:"영상 관찰", survey:"보호자 입력", tag:"관찰 태그", stage:"음식 단계", history:"지난 기록" };
+  const EV_FACT_LABEL = { guardian_input:"보호자 입력", teacher_check:"교사 확인", reviewer_tag:"검수자 확인", video_metric:"영상 관찰", history:"지난 기록" };
+  function evSrcLabel(e){
+    return (e && e.fact_source && EV_FACT_LABEL[e.fact_source]) || EV_SRC_LABEL[e && e.source] || (e && e.source) || "";
+  }
+  function prescriptionHtml(built, opts){
+    const o = opts || {};
+    const p = built.p;
+    const T = s => pTxt(p, s);
+    const badge = built.ai ? aiBadge() : "";
+    const evHtml = p.evidence.length
+      ? `<ul style="margin:6px 0 0;padding-left:0;list-style:none;">`+
+        p.evidence.map(e =>
+          `<li style="display:flex;gap:8px;align-items:flex-start;margin:5px 0;font-size:13.5px;line-height:1.6;">`+
+          `<span style="flex:none;margin-top:1px;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:800;background:rgba(130,154,109,.14);color:var(--brand-deep,#5f7a4f);">${escapeHtml(evSrcLabel(e))}</span>`+
+          `<span>${T(e.text)}</span></li>`).join("")+`</ul>`
+      : `<p style="margin:6px 0 0;font-size:13.5px;color:var(--ink-soft);">이번에는 근거로 쓸 수 있는 관찰·응답이 많지 않아, 아래 방법은 일반적인 출발점이에요. 다음 촬영에서 정보를 조금 더 알려주시면 이 아이에게 맞춘 근거로 설명해 드릴 수 있어요.</p>`;
+    const how = (p.primary_action.how_to && p.primary_action.how_to.length)
+      ? p.primary_action.how_to : [p.primary_action.title];
+    /* 아직 확인하지 못한 정보 — 무엇이 없어서 어떤 조언을 하지 않았는지까지 밝힌다(B단계 ④).
+       blocked_action 이 있으면 "이 정보가 없어 이런 조언은 하지 않았다"를 보여준다. */
+    const missHtml = p.missing_information.length
+      ? `<div class="dsub" style="margin-top:16px;background:#f6f2ea;border-radius:12px;padding:12px 14px;">`+
+        `<div style="font-weight:800;font-size:13px;margin-bottom:5px;">아직 확인하지 못한 정보</div>`+
+        `<p style="margin:0 0 7px;font-size:13px;line-height:1.6;color:var(--ink-soft);">`+
+        `다음 항목은 <b>입력되지 않아 이번 결과에서는 판단하지 않았어요.</b> 다음 촬영 때 함께 알려주시면 식사 환경까지 연결해 볼 수 있어요.</p>`+
+        `<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.65;">`+
+        p.missing_information.map(m => `<li><b>${escapeHtml(m.label)}</b>${m.unlocks ? ` — ${escapeHtml(m.unlocks)}` : ""}`+
+          (m.blocked_action ? `<br><span style="font-size:12px;color:var(--ink-faint,#889)">이 정보가 없어 “${escapeHtml(m.blocked_action)}”는 이번에 제안하지 않았어요.</span>` : "")+
+          `</li>`).join("")+
+        `</ul></div>`
+      : "";
+    return ""+
+      (o.heading === false ? "" : `<h4 style="margin-top:0">${o.title || "이번 영상에서 가장 먼저 바꿀 한 가지"}${badge}</h4>`)+
+      `<p style="margin:0 0 14px;font-weight:800;font-size:15.5px;line-height:1.55;color:var(--brand-deep,#5f7a4f);">${T(p.primary_action.title)}</p>`+
+      `<div style="font-weight:800;font-size:13px;margin-bottom:2px;">그렇게 판단한 근거</div>`+
+      (p.primary_action.reason ? `<p style="margin:4px 0 0;font-size:13.5px;line-height:1.65;">${T(p.primary_action.reason)}</p>` : "")+
+      evHtml+
+      `<div style="font-weight:800;font-size:13px;margin:16px 0 2px;">다음 식사에서 해볼 방법</div>`+
+      `<ol style="margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7;">${how.map(t=>`<li style="margin:3px 0;">${T(t)}</li>`).join("")}</ol>`+
+      (p.keep_as_is
+        ? `<div style="margin-top:16px;border-left:3px solid rgba(130,154,109,.5);padding:2px 0 2px 11px;">`+
+          `<div style="font-weight:800;font-size:13px;margin-bottom:3px;">이번에는 바꾸지 않아도 되는 것</div>`+
+          `<p style="margin:0;font-size:13.5px;line-height:1.65;color:var(--ink-soft);">${T(p.keep_as_is)}</p></div>`
+        : "")+
+      missHtml+
+      `<p class="disc" style="margin-top:14px;"><b>${p.next_observation.period}</b>에서 관찰할 항목 — `+
+      `${p.next_observation.items.map(i=>`<b>${T(i)}</b>`).join(" · ")}. `+
+      `같은 조건(비슷한 시간대·음식·촬영 각도)에서 한 번 더 찍으면 <b>지난 기록과 비교</b>해 드려요.</p>`+
+      (o.safety === false ? "" : `<p class="disc" style="margin-top:6px;font-size:11.5px;">※ ${escapeHtml(p.safety_note)}</p>`);
+  }
+  // (레거시 섹션) 현재 흐름에서는 호출되지 않는다 — #secReport 가 처방을 렌더한다.
   function renderActions(cur, answers, ai){
-    const box = $("secActions");
-    const rule = computeCoaching(cur, lastMetrics, answers);
-    const useAi = !!(ai && ai.action);
-    const action = useAi ? escapeHtml(ai.action) : rule.action;
-    const watch = useAi ? escapeHtml(ai.watch || rule.watch) : rule.watch;
-    const tips = useAi
-      ? ((ai.tips && ai.tips.length) ? ai.tips : [ai.action]).map(escapeHtml)
-      : ((rule.tips && rule.tips.length) ? rule.tips : [rule.action]);
-    const badge = useAi ? aiBadge() : "";
-    box.innerHTML = `<h4>다음 식사에서 바꿀 한 가지${badge}</h4>`+
-      `<p style="margin:0 0 10px;font-weight:800;color:var(--brand-deep,#5f7a4f);">${action}</p>`+
-      `<div style="font-weight:700;font-size:13px;margin-bottom:4px;">지금 바로 해볼 수 있는 것</div>`+
-      `<ul>${tips.map(a=>`<li>${a}</li>`).join("")}</ul>`+
-      `<p class="disc" style="margin-top:10px;">이 변화를 살펴보세요 — <b>${watch}</b>. 같은 조건(비슷한 시간대·음식·촬영 각도)에서 한 번 더 찍으면 <b>지난 기록과 비교</b>해 드려요.</p>`+
-      `<p class="disc" style="margin-top:6px;font-size:11.5px;">※ 참고용 코칭이에요. 사레·삼킴 곤란·체중 감소 등 걱정되는 신호가 반복되면 소아과·섭식 전문가와 상의해 주세요.</p>`;
+    const box = $("secActions"); if(!box) return;
+    box.innerHTML = prescriptionHtml(buildPrescription(cur, answers, ai));
     box.style.display = "";
   }
   // 결과를 LLM(coach 함수)으로 개인화 — 키 있을 때만 동작, 없거나 오류/안전신호면 규칙엔진 그대로.
@@ -2986,11 +3206,55 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // 음식 단계(#6): 코드만 보내면 LLM이 이전 단계 조언을 만들어 낸다 →
     //   사람이 읽는 단계명 + 허용/금지 조언 목록 + 단계 순서를 함께 넘겨 계약을 명시한다.
     const form = foodFormOf(answers);
+    /* ── 근거 전달(A단계) ────────────────────────────────────────────
+       v5 까지는 여기서 8개 필드를 보냈는데 엣지함수 프롬프트는 그중 3개만 문장으로 만들었다.
+       조건부 심화문항(SETS)·안전응답·chew_ceiling·영상 세부지표는 아예 보내지도 않았다.
+       → LLM 이 아이에 대해 3가지만 아는 상태로 "맞춤 조언"을 써야 했다(일반론의 원인).
+       이제 받은 사실을 전부 보낸다. 코드값만 보내면 LLM 이 뜻을 모르므로 **표시 라벨을 함께**
+       보낸다(concern_label·food_form_label·symptom_freq_label·deep_labels).
+       라벨은 survey-v3-schema.js 가 유일한 출처다 — 여기서 문구를 새로 쓰지 않는다. */
+    const lbl = (list, v) => { const o = (list||[]).find(x => x.v === v); return o ? o.t : (v || null); };
+    const deepQ = {};
+    (SCHEMA.SETS[sv.concern] || []).forEach(q => { deepQ[q.id] = q.q; });
     const ctx = {
       possibility: rule.possibility, label: rule.label, safetyOn: false,
       age_months: (answers && answers.child_age_months) || null,
       metrics: { cpm: cur.cpm, chew: cur.chew, quality: cur.quality },
-      survey: { concern: sv.concern, food_form: l1.food_form, hard_textures: l1.hard_textures, behavior: l1.behavior, interval: (sv.lens02||{}).interval, retry: (sv.lens04||{}).retry_count, portion: (sv.lens03||{}).portion_gap, meal_time: l1.meal_time },
+      // 영상 관찰 — 신뢰할 수 있는 지표만 넣는다(검출이 낮으면 지표 자체를 근거로 쓰지 않는다)
+      observation: (cur.quality === "low_face") ? { quality: cur.quality } : {
+        cpm: cur.cpm, chew: cur.chew, quality: cur.quality,
+        left_pct: (cur.quality === "audio") ? null : cur.leftPct,
+        observed_sec: (lastMetrics && lastMetrics.obs) ? Math.round(lastMetrics.obs) : null,
+      },
+      prev_cpm: (lastPrev && lastPrev.cpm > 0) ? lastPrev.cpm : null,
+      survey: {
+        concern: sv.concern, concern_label: (answers && answers.concern_type) || lbl(SCHEMA.CONCERN, sv.concern),
+        symptom_freq: sv.symptom_freq, symptom_freq_label: SCHEMA.FREQ_LABEL[sv.symptom_freq] || sv.symptom_freq,
+        food_form: l1.food_form, food_form_label: SCHEMA.FOOD_LABEL[l1.food_form] || l1.food_form,
+        chew_ceiling: l1.chew_ceiling, chew_ceiling_label: lbl(SCHEMA.CEILING, l1.chew_ceiling),
+        hard_textures: l1.hard_textures, behavior: l1.behavior, meal_time: l1.meal_time,
+        interval: (sv.lens02||{}).interval, portion_gap: (sv.lens03||{}).portion_gap,
+        retry_count: (sv.lens04||{}).retry_count, refusal_response: (sv.lens05||{}).refusal_response,
+        // 조건부 심화문항 — 고민에 딱 붙는 관찰 사실이라 가장 값진 근거다(v5 는 전달하지 않았다)
+        deep: sv.deep || {}, deep_labels: deepQ,
+      },
+      // 촬영 맥락·관찰 태그 — 코드값 정의는 meal-context.js(B단계 ①)
+      meal: (answers && answers.meal) || null,
+      tags: (answers && answers.tags) || null,
+      /* ★ B단계 ⑤ — 관찰사실·규칙 판단이 끝난 중간객체를 그대로 넘긴다.
+         이게 있으면 엣지함수는 '표현만' 한다(행동을 새로 만들지 않는다).
+         용량을 줄이려고 사실 목록은 30개로 자른다(프롬프트에서도 30개까지 쓴다). */
+      coaching_input: lastCoachingInput ? {
+        observed_facts: (lastCoachingInput.observed_facts || []).slice(0, 30),
+        primary_action: lastCoachingInput.primary_action,
+        allowed_actions: lastCoachingInput.allowed_actions,
+        prohibited_actions: lastCoachingInput.prohibited_actions,
+        missing_information: lastCoachingInput.missing_information,
+        next_observation: lastCoachingInput.next_observation,
+        safety_flags: lastCoachingInput.safety_flags,
+        keep_as_is: lastCoachingInput.keep_as_is,
+        evidence: lastCoachingInput.evidence,
+      } : null,
       food_stage: stageContract(form),   // 코드 + 단계명 + 순서 + 허용/금지 조언
       // 알레르기 — recipe-coach 는 이미 받는데 coach 는 못 받아서, LLM 이 알레르기 재료를
       // 이름으로 권할 수 있었다. 식사 조언에서는 안전 문제라 함께 넘긴다.
@@ -3000,11 +3264,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     };
     let out = null; try{ out = await fetchCoach(ctx); }catch(e){ out = null; }
     if(out && out.coach){
-      // ① 단계 후퇴 조언은 화면에 올리지 않는다 — null 이면 규칙 엔진 결과를 그대로 유지
-      let safe = sanitizeCoachForStage(out.coach, form, rule, window.csLog);
-      // ② 프롬프트에 알레르기를 넣었어도 생성 결과를 신뢰하지 않는다 — 재료를 언급하면 그 줄을 버린다
-      if(safe) safe = sanitizeCoachForAllergy(safe, ctx.allergies, rule);
-      if(safe){ lastCoachAi = safe; renderReport(cur, answers, safe); }
+      /* 방어층 3개(① 단계 후퇴 ② 알레르기 ③ 근거 검증)는 buildPrescription 안에서 순서대로
+         적용된다 — 화면·PDF·저장이 모두 같은 관문을 지나게 하려고 한곳으로 모았다.
+         어느 층에서든 걸리면 규칙 엔진 처방이 그대로 유지된다(생성 결과를 신뢰하지 않는다). */
+      const built = buildPrescription(cur, answers, out.coach);
+      if(built.ai){ lastCoachAi = out.coach; renderReport(cur, answers, out.coach); }
+      else if(window.csLog) window.csLog("coach_rejected_all_layers", { possibility: rule.possibility });
     }
   }
   // 6.5 · 식감 연결 레시피 — 설문에서 '잘 먹는 음식 + 연습할 음식'을 입력했을 때만 표시.
