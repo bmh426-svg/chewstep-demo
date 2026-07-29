@@ -2607,8 +2607,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(wasDone){
         // 설문은 이미 끝났던 상태 → 답변을 복원해 곧장 영상 선택으로 보낸다
         const answers = collectAnswers();
-        goUpload(answers);
-        $("loading").textContent = "설문 답변을 불러왔어요. 영상만 다시 선택해 주세요.";
+        if(surveyComplete(answers)){
+          goUpload(answers);
+          $("loading").textContent = "설문 답변을 불러왔어요. 영상만 다시 선택해 주세요.";
+        } else {
+          // 필수 응답 검사 이전에 저장된 초안 → 빈 문항이 있으므로 설문에서 채우게 한다
+          if(window.csLog) window.csLog("survey_draft_incomplete", { child_id: ch && ch.id });
+        }
       }
     });
     $("resumeNew").addEventListener("click", function(){
@@ -2683,6 +2688,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // 설문 응답 수집 — survey-v3 스키마 구조(ANSWERS_SHAPE) 그대로 반환(앱과 통합)
   function collectAnswers(){ return collectSurveyAnswers(); }
+
+  /* 설문이 결과를 만들 만큼 채워졌는가 (2026-07-29)
+     설문 화면은 스텝마다 필수 응답을 막지만(survey-render.js validateStep),
+     '이어서 작성' 초안은 그 검사가 없던 시절에 저장된 것일 수 있다.
+     빈 응답으로 결과를 만들면 점수가 모두 0이 되어 근거 없는 일반 조언이 나가므로 여기서 한 번 더 본다.
+     (조건부 심화문항은 스키마가 필요해 제외 — 화면 검사가 담당) */
+  function surveyComplete(a){
+    const sv = a && a.survey; if(!sv) return false;
+    const l1 = sv.lens01 || {}, sf = sv.safety || {};
+    if(!sv.concern || !sv.symptom_freq) return false;
+    if(!l1.food_form || !l1.chew_ceiling || !l1.behavior || !l1.meal_time) return false;
+    if(!Array.isArray(l1.hard_textures) || !l1.hard_textures.length) return false;
+    if(!(sv.lens02||{}).interval || !(sv.lens03||{}).portion_gap) return false;
+    if(!(sv.lens04||{}).retry_count || !(sv.lens05||{}).refusal_response) return false;
+    if(!sf.s1 || !sf.s2 || !sf.s3) return false;
+    return true;
+  }
 
   // ── 설문 라벨(사람이 읽는 문구) ──
   const TEX_LABEL = { thin:"묽은 음식", mashed:"으깬·부드러운 음식", soft_solid:"부드러운 고형식", regular:"일반식", mixed:"여러 질감" };
