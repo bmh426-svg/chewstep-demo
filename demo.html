@@ -780,6 +780,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div class="vmeta" id="reviewMeta"></div>
       <div class="pfstate checking" id="pfState"></div>
+      <!-- C단계 · 이번 식사 정보 (분석 시작 전) — meal-context.js MEAL_FIELDS 로 렌더된다.
+           이 값이 없으면 "주먹밥이 커서 오래 물고 있었다" 같은 구체 처방을 만들 근거가 없다.
+           필수 4문항 + 나머지는 접어 둔다. 모든 문항에 '잘 모르겠음' 이 있어 막다른 길이 없다. -->
+      <div id="mealCtxBox" style="display:none"></div>
       <div class="review-actions">
         <button type="button" class="btn-primary" id="reviewStart" disabled>이 영상으로 분석 시작 →</button>
         <button type="button" class="btn-ghost" id="reviewChange">영상 변경하기</button>
@@ -923,6 +927,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="secSurvey" style="display:none"></div>
     <!-- (영상 추가 후) 처음 설문 결과와 무엇이 달라졌는지 비교 -->
     <div class="sq-cmp" id="secCompare" style="display:none"></div>
+    <!-- C단계 · 촬영 직후 관찰 태그 — 영상만으로는 확정할 수 없는 모습(머금음·뱉음·자리 이탈)을
+         보호자·교사가 골라 넣는 자리. 고르면 근거가 늘어 리포트가 즉시 다시 그려진다. -->
+    <div id="tagChips" style="display:none"></div>
     <!-- ★ 고민 중심 코칭 리포트 (STEP 디자인) — 아래 개별 dsec들을 대체 -->
     <div id="secReport" style="display:none"></div>
     <div id="reportDl" style="display:none;margin-top:12px;text-align:center;">
@@ -1831,6 +1838,154 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return { p: p, rule: rule, ai: true };
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     C단계 · 이번 식사 정보(촬영 직전) + 관찰 태그(촬영 직후)
+     ──────────────────────────────────────────────────────────────────────
+     B단계 규칙은 answers.meal · answers.tags 가 있어야 발동한다. 그 값을 받는 화면이 여기다.
+       · 폼 정의는 meal-context.js MEAL_FIELDS 하나에서만 온다(여기서 문항을 새로 쓰지 않는다)
+       · 필수는 4개(음식명·형태·한 조각 크기·식사 전 섭취) — 나머지는 접어 둔다.
+         "30초 안에 끝나야 매 촬영마다 받을 수 있다"가 설계 기준이다.
+       · 모든 선택형에 '잘 모르겠음' 이 있어 막다른 길이 없다.
+         단, unknown 은 사실로 저장되지 않으므로(factSheet) 그 조언은 그대로 차단된다.
+     ══════════════════════════════════════════════════════════════════════ */
+  const MEAL_REQUIRED = ["food_name", "food_shape", "bite_size", "pre_intake_kind"];
+  let pendingMeal = {};                       // 확인 단계에서 입력 중인 값(정규화 전)
+  let lastTags = [];                          // 결과 화면에서 고른 관찰 태그
+
+  function mealFieldHtml(f){
+    const cur = pendingMeal[f.key];
+    const req = MEAL_REQUIRED.indexOf(f.key) >= 0;
+    const head = `<div style="font-weight:800;font-size:13.5px;margin-bottom:6px;">${escapeHtml(f.label)}`+
+      (req ? ` <span style="color:#c0562f;font-size:11.5px;">필수</span>` : ` <span style="color:var(--ink-faint,#889);font-size:11.5px;">선택</span>`)+`</div>`;
+    if(f.text)
+      return `<div class="mc-q" data-key="${f.key}" style="margin:0 0 14px;">${head}`+
+        `<input type="text" class="mc-input" data-key="${f.key}" maxlength="${f.max||40}" placeholder="${escapeHtml(f.placeholder||"")}" value="${escapeHtml(cur||"")}"`+
+        ` style="width:100%;font:500 14px/1.5 var(--sans);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none;"/></div>`;
+    const type = f.multi ? "checkbox" : "radio";
+    const chosen = Array.isArray(cur) ? cur : (cur != null ? [cur] : []);
+    const opts = f.list.map(o =>
+      `<label style="display:inline-flex;align-items:center;gap:5px;margin:0 8px 7px 0;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;background:#fff;">`+
+      `<input type="${type}" name="mc_${f.key}" value="${o.v}" data-key="${f.key}"${chosen.indexOf(o.v)>=0?" checked":""} style="margin:0;"/>`+
+      `<span>${escapeHtml(o.t)}</span></label>`).join("");
+    return `<div class="mc-q" data-key="${f.key}" style="margin:0 0 14px;">${head}<div>${opts}</div></div>`;
+  }
+
+  function renderMealForm(){
+    const box = $("mealCtxBox"); if(!box) return;
+    // 조건부 문항(when)은 조건이 맞을 때만 보여준다 — 안 먹었는데 경과시간을 묻지 않는다
+    const visible = MEALCTX.MEAL_FIELDS.filter(f => {
+      if(!f.when) return true;
+      const w = f.when, v = pendingMeal[w.key];
+      return w.not ? (v != null && w.not.indexOf(v) < 0) : (w.in ? w.in.indexOf(v) >= 0 : true);
+    });
+    const req = visible.filter(f => MEAL_REQUIRED.indexOf(f.key) >= 0 || (f.when && MEAL_REQUIRED.indexOf(f.when.key) >= 0));
+    const opt = visible.filter(f => req.indexOf(f) < 0);
+    box.innerHTML =
+      `<div style="margin:16px 0 0;padding:15px 16px;background:#f9f6f0;border:1px solid var(--line);border-radius:14px;">`+
+      `<div style="font-weight:800;font-size:14.5px;margin-bottom:3px;">이번 식사에 대해 알려주세요</div>`+
+      `<p style="margin:0 0 13px;font-size:13px;line-height:1.6;color:var(--ink-soft);">`+
+      `영상은 아이의 <b>턱 움직임</b>까지만 볼 수 있어요. 음식이 무엇이고 얼마나 큰 조각이었는지는 `+
+      `알려주셔야 <b>“무엇을 어떻게 바꿀지”</b>를 말씀드릴 수 있어요. 30초면 끝나요.</p>`+
+      req.map(mealFieldHtml).join("")+
+      `<details style="margin-top:2px;"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--brand-deep,#5f7a4f);">`+
+      `더 알려주기 (선택 ${opt.length}개 · 식사 환경까지 함께 봐드려요)</summary>`+
+      `<div style="margin-top:12px;">${opt.map(mealFieldHtml).join("")}</div></details>`+
+      `<div id="mcErr" style="display:none;margin-top:10px;background:#fdeeee;border:1px solid #f3cfcf;color:#a03c39;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.55;"></div>`+
+      `</div>`;
+    box.style.display = "";
+    // 값 변경 → pendingMeal 갱신. 조건부 문항이 바뀌면 다시 그린다.
+    box.querySelectorAll("input").forEach(el => {
+      const ev = (el.type === "text") ? "input" : "change";
+      el.addEventListener(ev, function(){
+        const k = el.dataset.key, f = MEALCTX.MEAL_FIELD_MAP[k];
+        if(el.type === "text") pendingMeal[k] = el.value;
+        else if(f && f.multi){
+          const sel = Array.prototype.slice.call(box.querySelectorAll(`input[name="mc_${k}"]:checked`)).map(x => x.value);
+          pendingMeal[k] = sel;
+        } else pendingMeal[k] = el.value;
+        const q = el.closest(".mc-q"); if(q) q.style.outline = "";
+        const e = $("mcErr"); if(e) e.style.display = "none";
+        // 조건부 문항의 기준값이 바뀌면 표시 여부가 달라진다 → 재렌더(포커스 유지 불필요한 라디오만)
+        if(el.type !== "text" && MEALCTX.MEAL_FIELDS.some(x => x.when && x.when.key === k)) renderMealForm();
+      });
+    });
+  }
+
+  /* 필수 문항 검사 — 미응답 문항을 표시하고 이름을 나열한다(설문 필수응답과 같은 방식). */
+  function mealFormValid(){
+    const miss = MEAL_REQUIRED.filter(k => {
+      const v = pendingMeal[k];
+      return v == null || (Array.isArray(v) ? v.length === 0 : String(v).trim() === "");
+    });
+    const box = $("mealCtxBox"), err = $("mcErr");
+    if(box) box.querySelectorAll(".mc-q").forEach(q => { q.style.outline = ""; });
+    if(!miss.length) return true;
+    miss.forEach(k => {
+      const q = box && box.querySelector(`.mc-q[data-key="${k}"]`);
+      if(q){ q.style.outline = "2px solid #f3cfcf"; q.style.outlineOffset = "4px"; q.style.borderRadius = "8px"; }
+    });
+    if(err){
+      err.innerHTML = `아직 ${miss.length}개 문항이 비어 있어요. 이 답변이 결과의 근거가 돼요.<br>`+
+        miss.map(k => "· " + escapeHtml((MEALCTX.MEAL_FIELD_MAP[k]||{}).label || k)).join("<br>");
+      err.style.display = "";
+    }
+    // 접혀 있는 곳에 미응답이 있으면 펼친다(보이지 않는 곳을 막으면 원인을 알 수 없다)
+    const det = box && box.querySelector("details");
+    if(det && miss.some(k => det.querySelector(`.mc-q[data-key="${k}"]`))) det.open = true;
+    if(window.csLog) window.csLog("meal_ctx_blocked", { missing: miss });
+    return false;
+  }
+  // 정규화해서 answers 에 실어 준다(목록 밖 코드·조건 불충족 필드는 여기서 버려진다)
+  function collectMeal(){
+    const n = MEALCTX.normalizeMeal(pendingMeal);
+    if(n.dropped.length && window.csLog) window.csLog("meal_ctx_dropped", { dropped: n.dropped.map(d => d.key) });
+    return n.meal;
+  }
+
+  /* ── 촬영 직후 관찰 태그 ──
+     영상이 확정할 수 없는 것만 묻는다(meal-context.js TAG_ONLY_FACTS).
+     고르면 근거가 늘어나므로 리포트를 즉시 다시 그린다 — 무엇이 달라지는지 바로 보인다. */
+  function renderTagChips(answers){
+    const box = $("tagChips"); if(!box) return;
+    const chips = MEALCTX.TAGS.map(t =>
+      `<label style="display:inline-flex;align-items:center;gap:6px;margin:0 7px 8px 0;padding:8px 13px;border:1px solid ${lastTags.indexOf(t.v)>=0?"var(--brand,#829a6d)":"var(--line)"};background:${lastTags.indexOf(t.v)>=0?"rgba(130,154,109,.12)":"#fff"};border-radius:999px;font-size:13.5px;cursor:pointer;">`+
+      `<input type="checkbox" value="${t.v}" data-tag="1"${lastTags.indexOf(t.v)>=0?" checked":""} style="margin:0;"/>`+
+      `<span>${escapeHtml(t.t)}</span></label>`).join("");
+    box.innerHTML =
+      `<div style="margin:0 0 16px;padding:15px 16px;background:#fff;border:1px dashed var(--line);border-radius:14px;">`+
+      `<div style="font-weight:800;font-size:14.5px;margin-bottom:3px;">영상에서 이런 모습이 있었나요?</div>`+
+      `<p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:var(--ink-soft);">`+
+      `삼킴·뱉음·머금음처럼 <b>영상만으로는 확정할 수 없는 것</b>은 보신 분이 알려주셔야 해요. `+
+      `고르시면 그 내용을 근거에 반영해 결과를 다시 정리해 드려요. <b>해당 없으면 비워 두셔도 돼요.</b></p>`+
+      `<div>${chips}</div></div>`;
+    box.style.display = "";
+    box.querySelectorAll("input[data-tag]").forEach(el => el.addEventListener("change", function(){
+      lastTags = Array.prototype.slice.call(box.querySelectorAll("input[data-tag]:checked")).map(x => x.value);
+      const a = lastAnswers || answers || {};
+      a.tags = MEALCTX.normalizeTags(lastTags, { source: "guardian_input", now: new Date().toISOString() }).tags;
+      lastAnswers = a;
+      if(window.csLog) window.csLog("observation_tags_change", { tags: lastTags });
+      lastCoachAi = null;                       // 근거가 바뀌었으니 이전 LLM 결과는 버린다
+      renderTagChips(a);                        // 칩 상태 갱신
+      renderReport(lastCur, a);                 // 리포트 즉시 재생성(규칙이 다시 평가된다)
+      enrichCoach(lastCur, a);                  // 새 근거로 문장 다듬기 재요청
+      updateSavedAnswers(a);                    // 저장된 기록에도 반영
+    }));
+  }
+  /* 태그는 결과를 본 뒤에 고르므로, 이미 저장된 행에 뒤늦게 반영한다.
+     실패해도 화면은 그대로 둔다(저장 실패가 결과 열람을 막지 않는다). */
+  async function updateSavedAnswers(answers){
+    if(!lastRowId) return;
+    try{
+      const built = buildPrescription(lastCur, answers, lastCoachAi);
+      await supabase.from("demo_responses").update({
+        answers: answers,
+        result: Object.assign({}, { version:"demo-r3", prescription: built.p,
+          rule_id: built.p.rule_id || null, observed_facts: (built.p.observed_facts||[]).slice(0,30) }),
+      }).eq("id", lastRowId);
+    }catch(e){ /* 저장 실패는 무시 — 화면은 이미 갱신됐다 */ }
+  }
+
   /* 처방 문장을 화면에 올릴 때의 신뢰 규칙 —
      규칙 엔진 문구는 프로젝트가 쓴 것이라 <b> 강조를 허용하고,
      LLM 생성문은 반드시 escape 한다(생성 결과를 HTML 로 신뢰하지 않는다). */
@@ -2422,10 +2577,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
   $("reviewStart").addEventListener("click", function(){
     if(!pendingFile || $("reviewStart").disabled) return;
+    /* C단계 — 이번 식사 정보(필수 4문항)를 받고 나서 분석을 시작한다.
+       이 값 없이 분석하면 결과는 다시 '일반적인 문장'으로 돌아간다(B단계 규칙이 발동하지 못함).
+       미응답이면 문항을 표시하고 여기서 멈춘다. */
+    if(!mealFormValid()){
+      const b = $("mealCtxBox"); if(b) b.scrollIntoView({ behavior:"smooth", block:"center" });
+      return;
+    }
     const f = pendingFile;
     if(window.csLog) window.csLog("review_start_analysis", {
       orientation: (pendingMeta && pendingMeta.orientation) || null,
-      face_rate: (pendingPre && pendingPre.metrics && pendingPre.metrics.faceRate) || null
+      face_rate: (pendingPre && pendingPre.metrics && pendingPre.metrics.faceRate) || null,
+      meal_filled: Object.keys(collectMeal()).length
     });
     releasePending();                                   // 미리보기 URL 해제 — 분석은 새 URL로 다시 연다
     pendingFile = null;
@@ -2472,6 +2635,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     Object.keys(map).forEach(k=>{ const el=$(map[k]); if(el) el.style.display="none"; });
     const el = $(map[which] || "uphChoice"); if(el) el.style.display="";
     $("loading").textContent="";
+    /* 확인 단계에 들어오면 '이번 식사 정보' 폼을 띄운다(C단계).
+       영상을 교체해도 입력값은 유지한다 — 같은 식사를 다시 찍은 경우가 대부분이다. */
+    if(which === "review") renderMealForm();
+    else { const b = $("mealCtxBox"); if(b) b.style.display = "none"; }
   }
 
   /* ── 촬영 가이드 모달 (#4) ────────────────────────────────────────────
@@ -3514,6 +3681,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // 설문 완료(또는 건너뛰기) → 미리보기(로그인 없이 공개)
   function finalizeResult(answers){
+    /* C단계 — 확인 단계에서 받은 '이번 식사 정보'와 결과 화면에서 고른 태그를 answers 에 싣는다.
+       coach-schema.factSheet 이 answers.meal / answers.tags 를 읽으므로,
+       여기서 실어 주는 것만으로 근거·규칙·차단·미확인정보가 전부 반응한다. */
+    if(answers){
+      const meal = collectMeal();
+      if(Object.keys(meal).length) answers.meal = meal;
+      if(lastTags.length) answers.tags = MEALCTX.normalizeTags(lastTags, { source:"guardian_input", now:new Date().toISOString() }).tags;
+      if(window.csLog) window.csLog("meal_ctx_saved", { fields: Object.keys(meal), tags: lastTags });
+    }
     lastAnswers = answers; lastCoachAi = null;
     // 설문 기반 결과 전용 블록은 영상 결과에서 감춘다(같은 화면을 재사용하므로)
     sqShow("secSurvey", false); sqShow("secAddVideo", false); sqShow("detailDivider", true);
@@ -3526,6 +3702,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     savePrev(lastCur);
     // 상세 분석까지 한 번에 렌더(로그인은 데모 시작 시 이미 완료 → 별도 게이트 불필요)
     renderSafetyTop(lastCur, answers);               // 안전(최상단)
+    renderTagChips(answers);                          // C단계 · 촬영 직후 관찰 태그(고르면 리포트 재생성)
     renderReport(lastCur, answers);                   // ★ 고민 중심 코칭 리포트(관찰·원인·팁·신호·안전 통합)
     renderRecipe(answers);                            // 6.5 식감 연결 레시피(선택 입력 시, 비동기)
     renderProducts(lastCur, answers);                 // 6.7 연습 준비물(제품 추천) — 안전/판단제한이면 자동 비노출
@@ -3739,7 +3916,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function finalizeSurveyOnly(answers){
     lastAnswers = answers; lastCur = null; lastMetrics = null; lastCoachAi = null;
     // 영상 기반 블록은 모두 감춘다(씹기 수치·품질·추이·비교)
-    ["resultCard","secReport","reportDl","secConcern","secInterpret","secActions","secTrend","secCompare"].forEach(id=>sqShow(id,false));
+    //   tagChips 도 감춘다 — 영상을 보지 않았으므로 '영상에서 이런 모습이 있었나요'를 물을 수 없다
+    ["resultCard","secReport","reportDl","secConcern","secInterpret","secActions","secTrend","secCompare","tagChips"].forEach(id=>sqShow(id,false));
     const v=$("verdict"); if(v){ v.className="verdict"; v.innerHTML=""; }
     // 영상 단계가 없으므로 STEP 표기·'상세 분석' 구분선은 설문 흐름에 맞춘다
     const eb=$("resultEyebrow"); if(eb) eb.textContent = "STEP 2 / 2 · 결과";

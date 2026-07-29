@@ -120,8 +120,11 @@ export function buildObservedFacts(input) {
     const code = (t && (t.code || t)) || null;
     if (!code || !M.TAG_LABEL[code]) return;
     const src = (t && FACT_SOURCES.indexOf(t.source) >= 0) ? t.source : "guardian_input";
+    /* key 는 반드시 "tag.<code>" — coach-schema.factSheet 이 태그를 그 이름으로 담기 때문이다.
+       bare code("pocketing")로 두면 evidence[].ref 검증(verifyEvidence)이 입력에서 찾지 못해
+       **가장 값진 근거인 태그가 조용히 버려진다**(2026-07-29 C단계 검증에서 실제로 잡힘). */
     push(facts, {
-      key: code, value: true, label: M.TAG_LABEL[code], display: M.TAG_LABEL[code],
+      key: "tag." + code, value: true, code: code, label: M.TAG_LABEL[code], display: M.TAG_LABEL[code],
       source: src, confidence: CONF[src] || 0.8,
       observed_at: (t && t.observed_at) || now, by: (t && t.by) || null,
     });
@@ -216,7 +219,7 @@ export function buildEvidenceFromFacts(facts, opts) {
   }
   /* ② 관찰 태그 — 누가 확인했는지 밝힌다. 태그는 사람이 본 사실이라 가장 강한 근거다. */
   const WHO = { guardian_input: "보호자", teacher_check: "교사", reviewer_tag: "검수자" };
-  (facts || []).filter((f) => M.TAG_LABEL[f.key]).forEach((f) => {
+  (facts || []).filter((f) => f.code && M.TAG_LABEL[f.code]).forEach((f) => {
     add(f, `${WHO[f.source] || "관찰자"}가 <b>${f.label}</b>라고 확인해 주셨어요.`);
   });
   /* ③ 촬영 맥락(보호자 입력) */
@@ -263,8 +266,9 @@ export function buildCoachingInput(input) {
   /* 안전 — 설문 안전문항(safety_alert)과 사레 태그. 안전은 규칙보다 먼저 본다. */
   const safety_flags = [];
   if (a.safety_alert) safety_flags.push({ code: "survey_safety", label: "안전 확인 문항에 주의가 필요한 응답", source: "guardian_input" });
+  // 사실 키는 "tag.<code>" 다(위 buildObservedFacts 주석 참고) — bare code 로 찾으면 사레 신호를 놓친다
   M.SAFETY_TAGS.forEach((code) => {
-    const f = facts.find((x) => x.key === code);
+    const f = facts.find((x) => x.key === "tag." + code);
     if (f) safety_flags.push({ code: code, label: M.TAG_LABEL[code], source: f.source });
   });
 
