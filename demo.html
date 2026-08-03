@@ -1061,6 +1061,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   import { IDDSI_ATTRIBUTION } from "./assets/js/iddsi.js";
   import { fetchCoach } from "./assets/js/coach.js";
   import { AudioChewDetector } from "./assets/js/audio-chew.js";
+  import { fuseChewEvents } from "./assets/js/chew-fusion.js";
   // 영상 확인(#2·#5) — 원본 비율·회전 확인 + 분석 전 품질 게이팅
   import { probeVideo } from "./assets/js/video-meta.js";
   import { runPreflight, preflightMessage, TIER, THRESHOLDS } from "./assets/js/video-preflight.js";
@@ -1196,7 +1197,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let startPerf = 0, currentFacing = "environment";
   let chewAudio = 0, lastChewT = -1e9;          // 오디오 fallback 카운트 + 마지막 씹은 시각
   const AUDIO_PRIME = 4.0;                        // 직전 이 시간(초) 내 씹기 이력 있을 때만 오디오 신뢰
-  let fileAudioChew = 0, audioAnalysisPromise = null;  // 업로드 영상 오프라인 소리 분석 결과·진행 promise
+  let fileAudioChew = 0, fileAudioTimes = [], audioAnalysisPromise = null;  // 업로드 영상 오프라인 소리 분석 결과·진행 promise
+  let videoChewTimes = [];                             // 영상 저작 후보 완료 시각(초)
   let lastCur = null, lastMetrics = null, lastPrev = null;  // 설문 단계로 넘길 분석 결과 보관
   let lastAnswers = null;                                   // 보호자 설문 응답(미리보기·상세·저장 공용)
   let lastCoachAi = null;                                   // LLM 코칭 결과(있으면 리포트·한장PDF에 반영)
@@ -1212,7 +1214,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     JAW=[]; faces=0; frames=0; chew=0; state="closed"; openCnt=0;
     sumL=0; sumR=0; toCnt=0; maxJaw=0; firstT=null; lastT=0; lastSampleT=-1;
     sumJo=0; sumMc=0; sT=[]; sJo=[]; sJl=[]; sJr=[]; sTo=[];
-    chewAudio=0; lastChewT=-1e9; fileAudioChew=0; audioAnalysisPromise=null;
+    chewAudio=0; lastChewT=-1e9; fileAudioChew=0; fileAudioTimes=[]; videoChewTimes=[]; audioAnalysisPromise=null;
     octx.clearRect(0,0,overlay.width,overlay.height);
     wctx.clearRect(0,0,wave.width,wave.height);
     $("verdict").className="verdict";
@@ -1251,7 +1253,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(jo>=OPEN) openCnt++;
       let chewed=false;
       if(state==="closed" && jo>=OPEN) state="open";
-      else if(state==="open" && jo<=CLOSE){ state="closed"; if(t - lastChewT >= MIN_CHEW_DT){ chew++; chewed=true; lastChewT=t; } }
+      else if(state==="open" && jo<=CLOSE){ state="closed"; if(t - lastChewT >= MIN_CHEW_DT){ chew++; chewed=true; lastChewT=t; videoChewTimes.push(t); } }
       drawFace(res.faceLandmarks && res.faceLandmarks[0], chewed);
       $("mJaw").textContent = jo.toFixed(2);
       // landmark 추출 결과 시계열 기록(얼굴 검출 프레임만, 상한까지)
@@ -1337,10 +1339,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   async function finish(){
     if(!running) return; running=false;
+    let endingAudioChew = 0, endingAudioTimes = [];
     // 업로드 소리 분석이 아직이면 잠깐 대기(대개 재생시간 내 이미 끝남)
     if(audioAnalysisPromise){ try{ await Promise.race([audioAnalysisPromise, new Promise(r=>setTimeout(r,2500))]); }catch(e){} }
     // 라이브 촬영이었으면 카메라·마이크 정리 + UI 원복
     if(liveMode){
+      if(audioDet){ endingAudioChew = audioDet.chew || 0; endingAudioTimes = (audioDet.eventTimes || []).slice(); }
       stopLiveMedia(); liveMode=false;
       const ls=$("liveStop"); if(ls) ls.style.display="none";
       const lh=$("liveHint"); if(lh) lh.style.display="none";
@@ -1351,7 +1355,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const detect = frames? (faces/frames*100):0;
     const obs = Math.max(0, lastT-(firstT||0));
     // 소리 기반 독립 카운트: 업로드=오프라인 분석(fileAudioChew), 라이브=영상에 이미 퓨전되어 0
-    const audioChew = fileAudioChew || (audioDet ? (audioDet.chew||0) : 0);
+    const audioChew = fileAudioChew || endingAudioChew || (audioDet ? (audioDet.chew||0) : 0);
+    const audioTimes = fileAudioTimes.length ? fileAudioTimes : (endingAudioTimes.length ? endingAudioTimes : (audioDet && audioDet.eventTimes ? audioDet.eventTimes : []));
     const lr = sumL+sumR;
     const leftPct = lr>1e-6? Math.round(sumL/lr*100):50;
     const videoWeak = (faces===0 || detect<20);
@@ -1359,9 +1364,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     //  - 영상 충분 → high/medium/low_motion (기존 영상 기반)
     //  - 영상 약함 + 소리로 씹기 잡힘 → "audio"(소리 기반 씹기 횟수 사용)
     //  - 영상·소리 모두 약함 → "low_face"(검출률 낮음 표시 + 보호자 고민/체크리스트 기반 결과)
-    let q, chewFinal = chew, cpmFinal = obs>1? (chew/obs*60):0;
+    const fusion = fuseChewEvents(videoChewTimes, audioTimes, { allowRhythmicAudioOnly: videoWeak });
+    let q, chewFinal = fusion.count, cpmFinal = obs>1? (fusion.count/obs*60):0;
     if(videoWeak){
-      if(audioChew>=3){ q="audio"; chewFinal=audioChew; cpmFinal = obs>1? (audioChew/obs*60):0; }
+      if(fusion.count>=3){ q="audio"; }
       else { q="low_face"; }
     } else if(maxJaw<0.08 || (openCnt/Math.max(1,frames)*100)<2){ q="low_motion"; }
     else if(detect>=65 && obs>=20){ q="high"; }
@@ -1370,7 +1376,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // 업로드 영상인데 영상 프레임도(얼굴0) 소리도(0) 아무것도 못 읽음 → 아이폰 .mov/HEVC일 가능성
     const uploadUnreadable = lastWasFile && faces===0 && (audioChew||0)===0;
     const cur = { date:new Date().toLocaleDateString('ko-KR'), cpm:+cpmFinal.toFixed(1),
-                  chew:chewFinal, detect:Math.round(detect), leftPct, quality:q, chewAudio:audioChew, uploadUnreadable:uploadUnreadable };
+                  chew:chewFinal, detect:Math.round(detect), leftPct, quality:q, chewAudio:audioChew,
+                  chewVideo:videoChewTimes.length, fusion:fusion, uploadUnreadable:uploadUnreadable };
     // 분석 결과를 보관(설문 후 결과 렌더/저장에 사용)
     lastCur = cur;
     lastMetrics = { detect, obs, cpm:cpmFinal, leftPct };
@@ -1422,10 +1429,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const r3 = v => Math.round(v*1000)/1000;
     const dur = (video.duration && isFinite(video.duration)) ? +video.duration.toFixed(2) : null;
     const metrics = {
-      algo: `hysteresis-open${OPEN}-close${CLOSE}-v2-relaxed${chewAudio ? "+audiofallback" : ""}`,
+      algo: `hysteresis-open${OPEN}-close${CLOSE}-v3-event-fusion`,
       quality: cur.quality,
       samples: sT.length,
-      chew_count: chew,
+      chew_count: cur.chew,
+      chew_video_count: cur.chewVideo == null ? videoChewTimes.length : cur.chewVideo,
+      chew_fused_count: cur.chew,
+      chew_fusion_matched: cur.fusion ? cur.fusion.matched : 0,
+      chew_audio_only_accepted: cur.fusion ? cur.fusion.audioOnlyAccepted : 0,
+      chew_audio_rejected: cur.fusion ? cur.fusion.rejectedAudio : 0,
       chew_audio_fallback: chewAudio,   // 🔎 얼굴 가림 구간에서 오디오로 이어받은 횟수(라이브 퓨전)
       chew_audio_total: (cur.chewAudio||0),  // 🔎 소리 기반 독립 카운트(업로드 영상에서 얼굴 약해도 소리로 감지)
       chews_per_min: cur.cpm,
@@ -1441,7 +1453,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       duration_sec: dur,
       thresholds: { open: OPEN, close: CLOSE, tongue_out: 0.3 }
     };
-    const series = { t: sT, jaw_open: sJo, jaw_left: sJl, jaw_right: sJr, tongue_out: sTo };
+    const series = { t: sT, jaw_open: sJo, jaw_left: sJl, jaw_right: sJr, tongue_out: sTo,
+      video_chew_events: videoChewTimes.map(v => +v.toFixed(3)),
+      audio_chew_events: (cur.fusion && cur.fusion.audioTimes) || [],
+      fused_chew_events: (cur.fusion && cur.fusion.events) || [] };
     // 영상 정보 설문 — 하나라도 입력됐으면 저장
     // B단계 — 촬영 맥락(answers.meal)·관찰 태그(answers.tags)만 있는 기록도 저장 대상이다
     const hasAns = answers && (answers.food_texture || answers.food_name || answers.video_segment || answers.vs_usual ||
@@ -2149,6 +2164,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // 영상 프레임 루프(MediaPipe)와 독립 → 메인스레드 부하 무관·결정적. iOS도 decodeAudioData 지원.
   async function analyzeFileAudio(file){
     fileAudioChew = 0;
+    fileAudioTimes = [];
     if(!file) return 0;
     let ctx = null;
     try{
@@ -2163,6 +2179,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
       const det = new AudioChewDetector();
       fileAudioChew = await det.analyzeBuffer(buf);
+      fileAudioTimes = det.eventTimes.slice();
       return fileAudioChew;
     }catch(e){
       // 오디오 트랙 없음/코덱 미지원 등 → 소리 분석 생략(영상·설문 기반으로 진행)
