@@ -22,6 +22,9 @@
   .field{ margin-bottom:18px; }
   .field label{ display:block; font-size:13.5px; font-weight:700; color:var(--ink); margin-bottom:7px; }
   .field .hint{ font-weight:500; color:var(--ink-soft); }
+  /* 입력칸 아래 안내문(라벨 속 인라인 hint 와 구분) */
+  .field p.hint{ margin:7px 0 0; font-size:12.5px; line-height:1.6; }
+  .field p.hint b{ color:var(--brand-deep); font-weight:800; }
   .field input[type=text], .field input[type=number], .field select, .field textarea{
     width:100%; border:1px solid var(--line); border-radius:12px; padding:12px 14px;
     font-size:15px; font-family:inherit; color:var(--ink); background:#fff; box-sizing:border-box; }
@@ -103,6 +106,9 @@
     <div class="field">
       <label for="fTitle">제목</label>
       <input type="text" id="fTitle" maxlength="120" placeholder="예: 15개월 아이가 고기를 자꾸 뱉어요" required />
+      <!-- 2026-07-29: 목록이 '제목만' 보여주는 방식으로 바뀌면서, 비공개 글도 제목은 목록에 뜬다.
+           글을 쓰기 전에 알아야 하는 사실이라 입력칸 바로 아래에 둔다. -->
+      <p class="hint">비공개로 남기더라도 <b>제목은 상담 목록에 보여요</b>(내용은 나와 간호사만 볼 수 있어요). 아이 이름처럼 알리고 싶지 않은 정보는 제목에 넣지 말아 주세요.</p>
     </div>
 
     <div class="field">

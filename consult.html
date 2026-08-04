@@ -50,9 +50,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .consult-top:empty{ display:none; }
   .consult-write-btn{ font-size:14px; padding:10px 18px; border-radius:12px; }
   .c-adminflag{ font-size:12.5px; font-weight:700; color:var(--brand-deep); background:var(--brand-tint); padding:6px 12px; border-radius:999px; }
-  /* 목록 */
-  .consult-list{ max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
-  .c-empty{ max-width:760px; margin:0 auto; text-align:center; color:var(--ink-soft); font-size:14.5px; padding:28px 0; }
+  /* 목록 — 제목 한 줄(2026-07-29). 본문·답변은 상세 화면(consult-view.html)에서 읽는다. */
+  .consult-list{ max-width:760px; margin:0 auto; border:1px solid var(--line); border-radius:16px; background:#fff; box-shadow:var(--shadow-sm); overflow:hidden; }
+  .c-listhead{ display:flex; align-items:center; gap:10px; padding:11px 20px; background:var(--surface,#faf8f3); border-bottom:1px solid var(--line); font-size:12.5px; font-weight:800; color:var(--ink-soft); }
+  .c-listhead-r{ margin-left:auto; }
+  .c-row{ display:flex; align-items:center; gap:9px; padding:15px 20px; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; transition:background .12s; }
+  .c-row:last-of-type{ border-bottom:0; }
+  a.c-row:hover{ background:var(--brand-tint); }
+  a.c-row:hover .c-rt{ color:var(--brand-deep); text-decoration:underline; }
+  .c-rmain{ display:flex; align-items:center; gap:8px; min-width:0; flex:1 1 auto; }
+  .c-rmeta{ display:flex; align-items:center; gap:8px; flex:none; margin-left:auto; }
+  .c-row .c-rt{ font-size:15.5px; font-weight:700; color:var(--ink); letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .c-lock{ flex:none; font-size:14px; line-height:1; }
+  .c-mine{ flex:none; font-size:11px; font-weight:800; color:var(--brand-deep); background:var(--brand-tint); padding:3px 8px; border-radius:999px; }
+  .c-row.locked{ cursor:default; }
+  .c-row.locked .c-rt{ color:var(--ink-soft); }
+  .c-row .c-badge{ flex:none; }
+  /* 행에서는 날짜가 배지 오른쪽에 붙는다(카드용 margin-left:auto 를 끈다) */
+  .c-row .c-date{ flex:none; margin-left:0; min-width:78px; text-align:right; }
+  /* 게이트·빈 목록·오류 안내는 목록 테두리 없이(박스 속 박스 방지) */
+  .consult-list.plain{ border:0; background:none; box-shadow:none; overflow:visible; }
+  .c-listnote{ padding:13px 20px; margin:0; background:var(--surface,#faf8f3); border-top:1px solid var(--line); font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
+  .c-empty{ max-width:760px; margin:0 auto; text-align:center; color:var(--ink-soft); font-size:14.5px; padding:28px 20px; }
   .c-card{ border:1px solid var(--line); border-radius:16px; background:#fff; box-shadow:var(--shadow-sm); padding:18px 22px; }
   .c-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
   .c-cat{ font-size:12px; font-weight:800; padding:4px 10px; border-radius:999px; background:var(--future-tint); color:var(--future); }
@@ -85,7 +104,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .c-gate p{ font-size:14px; color:var(--ink-2); line-height:1.7; margin:0 0 18px; }
   .c-gate .btn{ font-size:15px; padding:12px 26px; }
   .c-gate-sub{ margin-top:16px !important; font-size:13px !important; color:var(--ink-soft) !important; }
-  @media (max-width:560px){ .c-card{ padding:16px 18px; } .c-date{ width:100%; margin-left:0; } .nurse-intro{ flex-direction:column; text-align:center; } .nurse-intro .ni-txt{ text-align:center; } }
+  @media (max-width:560px){
+    .c-card{ padding:16px 18px; }
+    .c-card .c-date{ width:100%; margin-left:0; }
+    /* 좁은 화면: 제목 줄 + 상태·날짜 줄 */
+    .c-row{ flex-wrap:wrap; padding:13px 16px; row-gap:6px; }
+    .c-rmain{ flex:1 1 100%; }
+    .c-row .c-rt{ white-space:normal; }
+    .c-rmeta{ margin-left:0; }
+    .c-listhead, .c-listnote{ padding-left:16px; padding-right:16px; }
+    .nurse-intro{ flex-direction:column; text-align:center; }
+    .nurse-intro .ni-txt{ text-align:center; }
+  }
 </style>
 </head>
 <body>
