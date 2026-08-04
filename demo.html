@@ -1755,7 +1755,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const a = answers || {};
     const rule = computeCoaching(cur, lastMetrics, a);
     const form = foodFormOf(a);
-    const present = factSheet({ answers: a, cur: cur, metrics: lastMetrics, prev: lastPrev });
+    const present = factSheet({ answers: a, cur: cur, metrics: lastMetrics, prev: lastPrev, video: null });
     const stageLabel = (form && FOOD_ADVICE[form]) ? FOOD_ADVICE[form].label : null;
 
     /* ── B단계 · 관찰사실 → 규칙 → 중간객체 ──────────────────────────
@@ -1777,6 +1777,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       stageLabel: stageLabel, now: new Date().toISOString(),
     });
     lastCoachingInput = ci;
+    /* 영상 지표(observe.js) ref 를 present 에 포함시킨다 —
+       빠뜨리면 '씹기 구간 3번'·'무저작 8.4초' 같은 근거가 검증에서 통째로 버려진다. */
+    const presentV = factSheet({ answers: a, cur: cur, metrics: lastMetrics, prev: lastPrev, video: videoObs });
 
     /* 근거는 중간객체가 이미 합쳐서 준다 —
        영상 구간(observe.js) → 관찰 태그 → 촬영 맥락 → 설문 응답(A단계 문장 생성기 재사용).
@@ -1787,7 +1790,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         source: "rule",
         primary_action: {
           title: ci.primary_action.title,
-          reason: buildReason({ evidence: ev, cur: cur, possibility: rule.possibility }),
+          reason: buildReason({ evidence: ev, cur: cur, possibility: rule.possibility,
+                                interpretation: ci.primary_action.reason_hint }),
           // 규칙이 맞았으면 규칙의 실행 순서, 아니면 단계 게이팅된 기존 팁
           how_to: (ci.primary_action.how_to && ci.primary_action.how_to.length) ? ci.primary_action.how_to : (rule.tips || []).slice(0, 5),
         },
@@ -1804,7 +1808,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       p.safety_flags = ci.safety_flags;
       /* 규칙이 낸 행동도 근거 검증을 한 번 더 지난다 — 규칙 조건과 문장 게이트가
          갈라질 수 있어(예: 규칙은 태그로 통과했는데 문장이 다른 사실을 전제) 이중으로 본다. */
-      const gated = gatePrescription(p, present, rule, window.csLog);
+      const gated = gatePrescription(p, presentV, rule, window.csLog);
       return gated || p;
     };
     if(rule.safetyOn) return { p: rulePrescription(), rule: rule, ai: false };  // 안전신호는 LLM 미개입
@@ -1818,7 +1822,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const synced = Object.assign({}, safe, { source: "ai" });
     synced.primary_action = Object.assign({}, safe.primary_action || {}, { how_to: safe.tips || [] });
     // ③ 근거 검증 — 입력에 없는 사실을 전제로 한 조언·지어낸 근거를 걸러낸다
-    let p = gatePrescription(normalize(synced), present, rule, window.csLog);
+    let p = gatePrescription(normalize(synced), presentV, rule, window.csLog);
     if(!p || !isUsable(p)){
       if(window.csLog) window.csLog("coach_prescription_fallback", { reason: p ? "no_evidence" : "unfounded" });
       return { p: rulePrescription(), rule: rule, ai: false };

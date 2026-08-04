@@ -166,6 +166,10 @@ export function factMap(facts) {
     const k = String(f.key).replace(/^video\./, "");
     if (m[k] === undefined) m[k] = f.value;
   });
+  /* 태그가 하나라도 있으면 'tags' 도 채워진 것으로 본다.
+     이게 없으면 태그를 골랐는데도 미확인 목록이 "관찰 태그를 알려주세요"를 계속 요구한다
+     (사실 키는 tag.<code> 라서 'tags' 라는 키는 만들어지지 않는다). */
+  if (Object.keys(m).some((k) => k.indexOf("tag.") === 0)) m.tags = true;
   return m;
 }
 
@@ -280,10 +284,14 @@ export function buildCoachingInput(input) {
   /* primary_action — 규칙이 맞으면 규칙의 행동, 아니면 기존 규칙엔진(단계 게이팅된) 행동.
      규칙이 없을 때 억지로 구체적인 문장을 만들지 않는다(그것이 일반론의 출발점이다). */
   const fb = o.ruleFallback || {};
+  /* reason_hint — 규칙이 정한 '왜 그 행동인가'. 화면은 이걸 buildReason 의 interpretation 으로 넘긴다.
+     넘기지 않으면 A단계 possibility(4축) 해석이 붙어, 행동과 근거가 어긋난다
+     (예: '한 입 크기를 줄이세요' 행동에 '식사 간격을 맞추세요' 해석 — 앱 검증에서 실제로 잡혔다). */
   const primary = top
-    ? { title: top.action.title, how_to: top.action.how_to.slice(0, 4), rule_id: top.id, rule_label: top.label }
+    ? { title: top.action.title, how_to: top.action.how_to.slice(0, 4), rule_id: top.id, rule_label: top.label,
+        reason_hint: top.reason || "" }
     : { title: fb.action || "비슷한 조건에서 한 번 더 기록해, 반복되는 모습인지 확인해 보세요.",
-        how_to: (fb.tips || []).slice(0, 3), rule_id: null, rule_label: null };
+        how_to: (fb.tips || []).slice(0, 3), rule_id: null, rule_label: null, reason_hint: "" };
 
   /* ── missing_information ──
      두 목록을 합친다.
@@ -333,6 +341,7 @@ export function buildCoachingInput(input) {
       how_to: primary.how_to,
       rule_id: primary.rule_id,
       rule_label: primary.rule_label,
+      reason_hint: primary.reason_hint,
     },
     allowed_actions: resolved.allowed_actions,
     prohibited_actions: resolved.prohibited_actions,

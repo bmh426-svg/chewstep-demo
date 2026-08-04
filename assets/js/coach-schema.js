@@ -157,6 +157,19 @@ export function factSheet(input) {
   //   (없으면 LLM 이 이 ref 로 인용한 근거가 클라이언트 재검증에서 통째로 버려진다)
   if (o.metrics && o.metrics.obs > 0 && cur && cur.quality !== "low_face")
     put("video.observed_sec", Math.round(o.metrics.obs));
+  /* 시계열에서 뽑은 관찰 지표(observe.js 결과) — B단계.
+     ★ 이걸 넣지 않으면 '씹기 구간 3번'·'무저작 8.4초' 같은 **영상 근거가 통째로 버려진다**.
+       evidence[].ref 검증(verifyEvidence)이 present 에서 ref 를 찾지 못하기 때문이다.
+       (2026-07-29 앱 검증에서 실제로 잡혔다 — 화면에 영상 근거가 하나도 남지 않았다) */
+  const vid = o.video;
+  if (vid && vid.enough_samples) {
+    ["usable_video_ratio", "observed_sec", "processed", "skipped", "effective_fps",
+     "face_segments", "face_segment_count", "chew_count", "chews_per_min",
+     "chew_bursts", "chew_burst_count", "chew_burst_mean_sec", "chew_burst_max_sec",
+     "chews_per_burst_mean", "long_processing", "long_processing_count", "long_processing_max_sec",
+    ].forEach((k) => put("video." + k, vid[k]));
+    if (vid.laterality && vid.laterality.left_pct != null) put("video.laterality", vid.laterality.tendency);
+  }
   if (o.prev && o.prev.cpm > 0) put("history.cpm_prev", o.prev.cpm);
   return present;
 }
@@ -345,6 +358,9 @@ export function buildReason(input) {
   const o = input || {};
   const ev = o.evidence || [];
   const cur = o.cur || null;
+  /* ★ 규칙이 발동했으면 그 규칙의 해석을 쓴다(interpretation).
+     possibility 기반 해석은 A단계의 4가지 축이라, B단계 규칙이 정한 행동과 어긋날 수 있다.
+     실제로 '한 입 크기를 줄이세요' 행동에 '식사 간격을 맞추세요' 해석이 붙는 것을 앱 검증에서 잡았다. */
   const vid = ev.find((e) => e.source === "video");
   const svy = ev.filter((e) => e.source === "survey");
   const plain = (s) => String(s || "").replace(/<[^>]+>/g, "");
@@ -360,8 +376,8 @@ export function buildReason(input) {
     lead = "알려주신 답변을 근거로 봤어요.";
   else
     lead = "이번에는 근거로 쓸 수 있는 관찰·응답이 많지 않았어요.";
-  const interp = REASON_BY_POSSIBILITY[o.possibility] || REASON_BY_POSSIBILITY.unclear;
-  return plain(lead) + " " + interp;
+  const interp = o.interpretation || REASON_BY_POSSIBILITY[o.possibility] || REASON_BY_POSSIBILITY.unclear;
+  return plain(lead) + " " + plain(interp);
 }
 
 /* ── 바꾸지 않아도 되는 것 ─────────────────────────────────────────
