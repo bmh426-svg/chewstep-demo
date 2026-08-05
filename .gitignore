@@ -18,3 +18,6 @@ start-demo.bat
 
 .vercel
 .env*
+
+# Supabase CLI 로컬 연결 상태(머신 고유 · 커밋 불필요)
+supabase/.temp/

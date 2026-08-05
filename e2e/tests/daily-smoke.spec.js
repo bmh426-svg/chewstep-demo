@@ -9,7 +9,10 @@ const BASE = process.env.BASE_URL || "https://chewstep.com";
 const SUPA_URL = process.env.SUPABASE_URL || "https://qwfskemfsrkmlrdttvqy.supabase.co";
 const ANON = process.env.SUPABASE_ANON_KEY || "sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH";
 const E2E_EMAIL = process.env.E2E_EMAIL || "chewstep.e2e@gmail.com";
-const E2E_PW = process.env.E2E_PASSWORD || "chewstep-e2e-1234";
+// 비밀번호는 기본값을 두지 않는다 — 이 저장소는 공개다.
+// 로컬은 E2E_PASSWORD 환경변수, CI 는 GitHub Actions 시크릿으로 넣는다.
+const E2E_PW = process.env.E2E_PASSWORD;
+if (!E2E_PW) throw new Error("환경변수 E2E_PASSWORD 가 없다 — 데모 계정 비밀번호를 넣고 다시 실행한다.");
 const E2E_USER_ID = process.env.E2E_USER_ID || "9d1799f0-af75-4683-ba7a-38efe1055925"; // chewstep.e2e (qwfsk)
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE || ""; // 정리용(GitHub Actions 시크릿). 없으면 정리 스킵.
 
