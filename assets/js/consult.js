@@ -7,6 +7,10 @@
 //   이제 목록은 제목 한 줄이고, 제목을 누르면 상세(consult-view.html?id=…)로 들어가 읽는다.
 //   본문·답변·관리자 답변폼·삭제는 전부 상세 화면(consult-view.js)이 담당한다.
 //
+// 2026-08-06 변경 — 한 줄에 보이는 것: 제목 · 답변상태 · 조회수 · 게시일시(분까지).
+//   조회수는 '읽은 사람 수'다 — 같은 사람이 새로고침해도 늘지 않는다(상세 진입 시 1인 1회 기록).
+//   집계 정의: db/migrations/2026-08-06_consultation-view-count.sql
+//
 // 비공개 글 처리
 //   목록은 consultation_titles() RPC 로 받는다(제목·상태만 돌려주고 body·answer 는 애초에 없다).
 //   남의 비공개 글도 '제목 + 🔒'로 보이지만 링크가 아니라 눌러도 들어갈 수 없고,
@@ -19,9 +23,11 @@ function esc(s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 }
+// 게시일시 — 날짜와 시각(분)까지. 좁은 화면에서는 CSS 로 두 줄로 접힌다.
 function fmtDate(iso) {
   const d = new Date(iso), p = (n) => String(n).padStart(2, "0");
-  return d.getFullYear() + "." + p(d.getMonth() + 1) + "." + p(d.getDate());
+  return d.getFullYear() + "." + p(d.getMonth() + 1) + "." + p(d.getDate()) +
+         " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
 
 let CTX = { session: null, uid: null, isAdmin: false };
@@ -61,7 +67,7 @@ function renderGate() {
   }
 }
 
-/* 목록 한 줄 — 제목 + (비공개면 자물쇠) + 답변상태 + 날짜.
+/* 목록 한 줄 — 제목 + (비공개면 자물쇠) + 답변상태 + 조회수 + 게시일시.
    읽을 수 있으면 <a>(상세로 이동), 읽을 수 없으면 <div>(눌러도 반응 없음 + 안내 툴팁). */
 function rowHtml(r) {
   const lock = r.is_public
@@ -71,9 +77,15 @@ function rowHtml(r) {
   const state = r.answered
     ? '<span class="c-badge done">답변완료</span>'
     : '<span class="c-badge wait">답변대기</span>';
+  const views = Number(r.view_count) || 0;   // 함수가 없던 시절 캐시된 응답 대비 0 으로 떨어뜨린다
   const inner =
     '<span class="c-rmain">' + lock + '<span class="c-rt">' + esc(r.title) + "</span>" + mine + "</span>" +
-    '<span class="c-rmeta">' + state + '<span class="c-date">' + fmtDate(r.created_at) + "</span></span>";
+    '<span class="c-rmeta">' + state +
+      '<span class="c-views" title="읽은 사람 수(같은 사람의 재열람은 세지 않아요)">' +
+        '<span aria-hidden="true">👁</span> ' + views +
+        '<span class="sr-only">조회수 ' + views + "</span>" +
+      "</span>" +
+      '<span class="c-date">' + fmtDate(r.created_at) + "</span></span>";
 
   if (r.can_read) {
     return '<a class="c-row" href="/consult-view.html?id=' + encodeURIComponent(r.id) + '">' + inner + "</a>";
@@ -101,7 +113,7 @@ async function loadList() {
   }
   list.className = "consult-list";
   list.innerHTML =
-    '<div class="c-listhead"><span>제목</span><span class="c-listhead-r">상태 · 날짜</span></div>' +
+    '<div class="c-listhead"><span>제목</span><span class="c-listhead-r">상태 · 조회수 · 게시일시</span></div>' +
     data.map(rowHtml).join("") +
     '<p class="c-listnote">🔒 는 글쓴이가 비공개로 남긴 상담이에요 — 제목만 보이고 내용은 글쓴이와 간호사만 볼 수 있어요.</p>';
 }

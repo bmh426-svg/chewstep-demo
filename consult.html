@@ -66,8 +66,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .c-row.locked{ cursor:default; }
   .c-row.locked .c-rt{ color:var(--ink-soft); }
   .c-row .c-badge{ flex:none; }
-  /* 행에서는 날짜가 배지 오른쪽에 붙는다(카드용 margin-left:auto 를 끈다) */
-  .c-row .c-date{ flex:none; margin-left:0; min-width:78px; text-align:right; }
+  /* 조회수 — '읽은 사람 수'(1인 1회). 숫자 폭이 흔들리지 않게 tabular-nums + 최소폭 */
+  .c-views{ flex:none; font-size:12.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; min-width:44px; text-align:right; }
+  .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  /* 행에서는 게시일시가 조회수 오른쪽에 붙는다(카드용 margin-left:auto 를 끈다) */
+  .c-row .c-date{ flex:none; margin-left:0; min-width:116px; text-align:right; }
   /* 게이트·빈 목록·오류 안내는 목록 테두리 없이(박스 속 박스 방지) */
   .consult-list.plain{ border:0; background:none; box-shadow:none; overflow:visible; }
   .c-listnote{ padding:13px 20px; margin:0; background:var(--surface,#faf8f3); border-top:1px solid var(--line); font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
@@ -112,6 +115,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .c-rmain{ flex:1 1 100%; }
     .c-row .c-rt{ white-space:normal; }
     .c-rmeta{ margin-left:0; }
+    /* 좁은 화면에서는 최소폭을 풀어 상태·조회수·게시일시가 한 줄에 들어가게 한다 */
+    .c-row .c-date{ min-width:0; }
+    .c-views{ min-width:0; }
     .c-listhead, .c-listnote{ padding-left:16px; padding-right:16px; }
     .nurse-intro{ flex-direction:column; text-align:center; }
     .nurse-intro .ni-txt{ text-align:center; }

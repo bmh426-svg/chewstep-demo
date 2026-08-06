@@ -27,6 +27,7 @@ const POST_ID = qs.get("id") || "";
 
 let CTX = { uid: null, isAdmin: false };
 let ROW = null;
+let VIEWS = null;      // 조회수(읽은 사람 수) — consultation_view RPC 가 돌려준다. null 이면 표시하지 않는다.
 
 async function loadCtx() {
   try {
@@ -79,7 +80,9 @@ function renderPost(r) {
 
   $("cvBody").innerHTML =
     '<article class="c-card cv-card">' +
-      '<div class="c-top">' + cat + state + priv + '<span class="c-date">' + fmtDate(r.created_at) + "</span></div>" +
+      '<div class="c-top">' + cat + state + priv +
+        (VIEWS != null ? '<span class="c-views" title="읽은 사람 수(같은 사람의 재열람은 세지 않아요)">👁 ' + VIEWS + "</span>" : "") +
+        '<span class="c-date">' + fmtDate(r.created_at) + "</span></div>" +
       '<h2 class="cv-title">' + esc(r.title) + "</h2>" +
       '<div class="c-meta">' + who + age + "</div>" +
       '<div class="c-body cv-body">' + nl2br(r.body) + "</div>" +
@@ -136,6 +139,17 @@ async function load() {
     return;
   }
   ROW = data;
+
+  // 열람 기록 + 조회수 — 여기까지 왔다는 건 RLS 가 열람을 허락했다는 뜻이다.
+  // 한 사람은 몇 번 들어와도 1로 세므로(DB 쪽 on conflict), 새로고침으로 부풀지 않는다.
+  // 답변 저장 후 다시 그릴 때는 이미 받은 값을 쓴다(VIEWS === null 일 때만 호출).
+  if (VIEWS === null) {
+    try {
+      const { data: v } = await supabase.rpc("consultation_view", { p_id: POST_ID });
+      if (typeof v === "number") VIEWS = v;
+    } catch (e) { /* 조회수는 부가 정보 — 실패해도 본문 읽기를 막지 않는다 */ }
+  }
+
   document.title = data.title + " | 1:1 식습관 상담 | Chewstep";
   renderPost(data);
 }
