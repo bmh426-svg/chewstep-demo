@@ -111,11 +111,15 @@ async function loadList() {
     list.innerHTML = '<p class="c-empty">아직 상담 글이 없어요. 위 <b>상담 글쓰기</b>로 첫 상담을 남겨보세요.</p>';
     return;
   }
+  // 자물쇠 안내문은 목록에 비공개 글이 실제로 있을 때만 — 없는 기호를 설명하면 오히려 헷갈린다.
+  const hasLocked = data.some((r) => !r.is_public);
   list.className = "consult-list";
   list.innerHTML =
     '<div class="c-listhead"><span>제목</span><span class="c-listhead-r">상태 · 조회수 · 게시일시</span></div>' +
     data.map(rowHtml).join("") +
-    '<p class="c-listnote">🔒 는 글쓴이가 비공개로 남긴 상담이에요 — 제목만 보이고 내용은 글쓴이와 간호사만 볼 수 있어요.</p>';
+    (hasLocked
+      ? '<p class="c-listnote">🔒 는 글쓴이가 비공개로 남긴 상담이에요 — 제목만 보이고 내용은 글쓴이와 간호사만 볼 수 있어요.</p>'
+      : "");
 }
 
 (async function init() {
