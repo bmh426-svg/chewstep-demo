@@ -19,6 +19,19 @@ Chewstep은 식사 영상에서 씹기 활동·좌우 균형·턱/입 움직임�
 - [도입 사례](https://chewstep.com/institutions/cases/)
 - [로그인](https://chewstep.com/login.html): 역할별 자동 이동 — 기관 보호자→리포트, 교사→담당 반, 원장→기관 관리
 
+## 식사·저작 가이드 (근거 기반 정보 게시판)
+아이 식사에 대한 흔한 믿음을 공개된 연구·지침에 뱄추어 살텔보는 글 모음입니다. 인욨한 자료의 대상·표본·설계와 저자가 밝힌 한계를 본문에 함까 적고, 근거가 충분하지 않은 내용은 "아직 분명하지 않은 것"으로 따로 표시합니다.
+- [가이드 목록](https://chewstep.com/guide/)
+- [우리 아이만 츠소를 안 맔는 것 같다](https://chewstep.com/guide/korea-vegetables.html): 질볅관리잭 2023 국밑건강통계 — 과일·츠소 권장량 충족 6~11세 13.7% · 전국 유아 800명 영양지수에서 '교홍' 51.00점이 제일 낮음
+- [이유식은 개월 수에 맞춘 단계를 올리면 된다](https://chewstep.com/guide/korea-guideline.html): 질볅관리잭 이유기보출식 안내 — 생후 10개월까지 덩어리·고형식 도입 권고, 입자 크기 mm 기준은 없음
+- [돌이 지나면 알아서 씏게 된다](https://chewstep.com/guide/texture-timing.html): 영국 ALSPAC 7,821명 — 9개월 이후 덩어리 도입군은 만 7세에도 과일·츠소를 덜 섭처함(관찰 연구)
+- [급하게 옥어도 잘 옥기만 하면 괜찮다](https://chewstep.com/guide/eating-speed.html): 일본 5~6세 4,451명 — 잘 안 씏는 아이 과체중 오즐미 2.12배(단면 연구)
+- [어릴 때 안 옥어도 크면 다 옥는다](https://chewstep.com/guide/picky-persistent.html): Generation R 4,018명 — 편식 굤적 4가지, 지속군 4%. 성장에 유의한 영향은 확인되지 않음
+- [식습관은 어릴 때 잡아야 한다](https://chewstep.com/guide/habit-tracks.html): 한란드 1,768명 21년 추적 — 상위 1/5 유지 41%(우연이라면 20%), 나머지 59%는 이동
+- [이가 났으니 이제 씏을 수 있다](https://chewstep.com/guide/chewing-develops.html): 질감별 저작 성숙 시점 — 퓨레 6개월·부드러운 고형식 8개월, 회전 저작은 30개월에도 미형성
+- [대충 삼켜도 소화는 된다](https://chewstep.com/guide/chewing.html): 저작과 소화·영양 — 근거의 확실성은 낮음~매우 낮음, 대부분 성인 연구
+- [단계별 mm 기준을 지켜야 한다](https://chewstep.com/guide/food-texture.html): WHO 지침은 입자 크기 수치 기준을 정하지 않음
+
 ## AI가 하지 않는 것 (경계)
 - 의료 진단, 자폐/발달장애 판별, 알레르기 진단, 영양 처방을 하지 않습니다.
 - "나아지고 있다"는 표현은 관찰된 식사 행동 지표의 변화를 뜻하며, 건강·발달의 의학적 호전을 뜻하지 않습니다.
