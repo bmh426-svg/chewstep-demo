@@ -70,6 +70,21 @@
   }
 }
 </script>
+<!-- FAQPage: 아래 본문에 실제로 보이는 문답만 기재(보이지 않는 내용 기재는 구조화 데이터 위반).
+     전문은 /faq.html 10문답, 홈에는 그중 5개를 동일 문구로 노출한다. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"이유식 입자를 올린 뒤 아이가 안 먹기 시작했어요. 무엇을 확인해야 하나요?","acceptedAnswer":{"@type":"Answer","text":"식감·입자 난이도, 식사 전 간격, 음식 형태 등을 함께 살펴볼 수 있습니다. 다만 영상만으로 원인을 확정할 수는 없어요. Chewstep은 가장 먼저 확인할 가능성과 다음 식사에서 시도할 행동을 제안합니다."}},
+    {"@type":"Question","name":"고기를 입에 넣었다가 뱉는 이유를 영상으로 알 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"영상만으로 뱉는 이유를 자동으로 판정하지는 않습니다. 영상에서는 입·턱의 열림·닫힘 움직임을 관찰하고, 보호자 입력과 함께 가능성을 살펴봅니다."}},
+    {"@type":"Question","name":"영상은 어디에 저장되나요?","acceptedAnswer":{"@type":"Answer","text":"원본 영상은 사용자의 브라우저에서 분석되며 서버에 저장되지 않습니다. 서버에는 영상에서 계산된 움직임 지표와 보호자 입력, 분석 결과·피드백만 저장될 수 있습니다."}},
+    {"@type":"Question","name":"분석 결과는 의료 진단인가요?","acceptedAnswer":{"@type":"Answer","text":"아니요. 참고용 식사 코칭이며 의료 진단·질병 판별·치료·영양 처방·정상/이상 판정을 제공하지 않습니다."}},
+    {"@type":"Question","name":"몇 개월부터 사용할 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"현재 대상은 이유식·유아식 시기의 아이입니다."}}
+  ]
+}
+</script>
 
 <link rel="stylesheet" href="/assets/css/app.css" />
 <link rel="stylesheet" href="/assets/css/site.css" />
@@ -215,6 +230,22 @@
   .fc-btn.kakao { background:#FEE500; border-color:#FEE500; color:#3C1E1E; }
   .fc-btn.kakao:hover { border-color:#f4d900; box-shadow:0 6px 16px rgba(254,229,0,.4); }
 
+  /* 읽을거리 본문 — 홈의 크롤링 가능한 본문 텍스트를 확보하는 산문 블록.
+     .hub-center 가 text-align:center 이므로 여기서 좌측 정렬로 되돌린다. */
+  .home-read { text-align:left; max-width:760px; margin:0 auto; }
+  .home-read p { font-size:15.5px; line-height:1.8; color:var(--ink-soft); margin:0 0 16px; }
+  .home-read p b { color:var(--ink-2); }
+  .home-read h3 { font-size:17px; color:var(--ink); margin:30px 0 10px; }
+  .home-read ul { margin:0 0 18px; padding:0; list-style:none; }
+  .home-read ul li { position:relative; padding-left:20px; font-size:15px; line-height:1.75;
+    color:var(--ink-soft); margin-bottom:8px; }
+  .home-read ul li::before { content:""; position:absolute; left:4px; top:11px; width:6px; height:6px;
+    border-radius:50%; background:var(--brand); }
+  .home-read .faq { margin:20px auto 0; }
+  .home-read .more { display:inline-flex; align-items:center; gap:6px; margin-top:4px;
+    font-weight:800; font-size:14px; color:var(--brand-deep); text-decoration:none; }
+  .home-read .more:hover { text-decoration:underline; }
+
   @media (max-width:720px){
     .steps { flex-direction:column; align-items:stretch; }
     .step-arrow { align-self:center; transform:rotate(90deg); margin:2px 0; }
@@ -236,7 +267,6 @@
         <a href="/parents/" class="lnk">서비스 소개</a>
         <a href="/how.html" class="lnk">이용 방법</a>
         <a href="/faq.html" class="lnk">자주 묻는 질문</a>
-        <a href="/products.html" class="lnk">상품</a>
         <a href="/consult.html" class="lnk consult">상담하기</a>
         <a href="/login.html" class="lnk login">로그인</a>
         <a href="/institutions/" class="inst-cta">기관 도입 안내</a>
@@ -333,6 +363,60 @@
           </div>
           <p class="rd-note">※ 예시 화면이에요. 실제 결과는 아이의 영상·설문에 따라 달라집니다.</p>
           <a href="/demo.html" class="rd-cta">안먹는 이유 확인하기 →</a>
+        </div>
+
+        <!-- ===== 읽을거리 본문 =====
+             모든 문장은 이미 검수된 /faq.html·결과 예시에서 가져온다. 새 주장·수치·효과를 만들지 않는다. -->
+        <div class="sec-head reveal">
+          <div class="k">밥태기 바로 알기</div>
+          <h2>무엇을 보고, 무엇을 보지 않나요?</h2>
+        </div>
+        <div class="home-read reveal">
+          <p>‘밥태기’는 잘 먹던 아이가 갑자기 밥을 거부하는 시기를 보호자들이 부르는 말입니다.
+            이유식에서 유아식으로 넘어가며 음식의 <b>입자와 식감</b>이 달라지는 시기에도 자주 쓰입니다.</p>
+          <p>Chewstep은 그 이유를 <b>단정하지 않습니다.</b> 대신 영상에서 관찰되는 것과
+            보호자가 이미 알고 있는 것을 나란히 놓고 함께 살펴봅니다.</p>
+
+          <h3>영상에서 관찰하는 것</h3>
+          <ul>
+            <li>입과 턱의 열림·닫힘 움직임 — 정확한 씹기 횟수를 단정하지 않고 ‘씹기 추정 움직임’으로 표현합니다.</li>
+            <li>그 움직임의 속도와 좌우 균형.</li>
+          </ul>
+
+          <h3>보호자가 알려주는 것</h3>
+          <ul>
+            <li>아이 월령</li>
+            <li>마지막 식사 이후의 간격</li>
+            <li>음식의 형태 — 입자 크기와 질감</li>
+            <li>오늘 가장 답답했던 식사 고민</li>
+          </ul>
+
+          <p>이 둘을 합쳐 <b>가장 먼저 확인해볼 가능성 한 가지</b>와
+            <b>다음 식사에서 시도할 행동 한 가지</b>를 제안합니다.
+            원인을 확정하거나 정상·이상을 판정하지는 않습니다.</p>
+
+          <h3>이런 상황에서 살펴볼 수 있어요</h3>
+          <ul>
+            <li>이유식 입자를 올린 뒤부터 갑자기 안 먹기 시작했을 때</li>
+            <li>고기를 입에 넣었다가 삼키지 못하고 뱉을 때</li>
+            <li>부드럽게·잘게 하면 잘 먹는데, 질긴 음식은 오래 씹다가 뱉을 때</li>
+          </ul>
+
+          <div class="callout">
+            <b>이럴 땐 병원과 상담하세요.</b> 매 식사마다 사레나 기침이 반복되거나,
+            체중이 늘지 않거나 줄어드는 경우에는 소아청소년과 등 전문가와 상담하시기 바랍니다.
+            Chewstep은 의료 진단·질병 판별·치료·영양 처방을 제공하지 않습니다.
+          </div>
+
+          <h3>자주 묻는 질문</h3>
+          <div class="faq">
+            <details><summary>이유식 입자를 올린 뒤 아이가 안 먹기 시작했어요. 무엇을 확인해야 하나요?</summary><div class="a">식감·입자 난이도, 식사 전 간격, 음식 형태 등을 함께 살펴볼 수 있습니다. 다만 영상만으로 원인을 확정할 수는 없어요. Chewstep은 가장 먼저 확인할 가능성과 다음 식사에서 시도할 행동을 제안합니다.</div></details>
+            <details><summary>고기를 입에 넣었다가 뱉는 이유를 영상으로 알 수 있나요?</summary><div class="a">영상만으로 뱉는 이유를 자동으로 판정하지는 않습니다. 영상에서는 입·턱의 열림·닫힘 움직임을 관찰하고, 보호자 입력과 함께 가능성을 살펴봅니다.</div></details>
+            <details><summary>영상은 어디에 저장되나요?</summary><div class="a">원본 영상은 사용자의 브라우저에서 분석되며 서버에 저장되지 않습니다. 서버에는 영상에서 계산된 움직임 지표와 보호자 입력, 분석 결과·피드백만 저장될 수 있습니다.</div></details>
+            <details><summary>분석 결과는 의료 진단인가요?</summary><div class="a">아니요. 참고용 식사 코칭이며 의료 진단·질병 판별·치료·영양 처방·정상/이상 판정을 제공하지 않습니다.</div></details>
+            <details><summary>몇 개월부터 사용할 수 있나요?</summary><div class="a">현재 대상은 이유식·유아식 시기의 아이입니다.</div></details>
+          </div>
+          <a href="/faq.html" class="more">자주 묻는 질문 전체 보기 →</a>
         </div>
       </div>
     </div>
