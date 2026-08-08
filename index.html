@@ -277,7 +277,7 @@
   <main class="hub-main" id="main">
     <img class="hero-art" src="/assets/img/hero-family.png" alt="" aria-hidden="true" />
     <div class="wrap">
-      <div class="hero-copy reveal">
+      <div class="hero-copy reveal" data-journey-section="hero">
         <span class="hub-eyebrow"><span class="dot"></span> 이유식·유아식 식사 코칭</span>
         <h1>밥태기도 <span class="accent">이유가 있습니다</span></h1>
         <p class="sub lead"><span class="ln"><b>3분 식사 영상</b>으로</span>
@@ -297,7 +297,7 @@
 
       <div class="hub-center">
         <div class="sec-head reveal">
-          <div class="k">이렇게 진행돼요</div>
+          <div class="k" data-journey-section="how-3steps">이렇게 진행돼요</div>
           <h2>3단계면 충분해요</h2>
         </div>
         <div class="steps">
@@ -321,7 +321,7 @@
         </div>
 
         <div class="sec-head reveal">
-          <div class="k">분석 리포트 미리보기</div>
+          <div class="k" data-journey-section="report-preview">분석 리포트 미리보기</div>
           <h2>딱 한 장으로 정리되는 우리 아이 식습관</h2>
         </div>
         <div class="result-demo reveal">
@@ -368,7 +368,7 @@
         <!-- ===== 읽을거리 본문 =====
              모든 문장은 이미 검수된 /faq.html·결과 예시에서 가져온다. 새 주장·수치·효과를 만들지 않는다. -->
         <div class="sec-head reveal">
-          <div class="k">밥태기 바로 알기</div>
+          <div class="k" data-journey-section="scope">밥태기 바로 알기</div>
           <h2>무엇을 보고, 무엇을 보지 않나요?</h2>
         </div>
         <div class="home-read reveal">
@@ -423,7 +423,7 @@
   </main>
 
   <!-- 기관용 보조 진입점 (띠배너) -->
-  <section class="inst-band">
+  <section class="inst-band" data-journey-section="for-centers">
     <div class="wrap">
       <div class="txt">
         <b>어린이집·기관이신가요?</b>
@@ -463,5 +463,11 @@
 </script>
   <script type="module" src="/assets/js/auth-nav.js"></script>
   <script src="/assets/js/inquiry.js"></script>
+  <!-- 여정 기록 — 홈에 계측이 없어서 '홈 → 데모' 전환율을 계산할 수 없었다.
+       (2026-08-08 로그 분석: 데모 유입 116세션이 홈에서 왔는데 홈 page_view 는 0건) -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>
