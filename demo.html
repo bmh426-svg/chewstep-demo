@@ -2516,8 +2516,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `<a class="pr-btn${isSet?" solid":""}" data-pid="${escapeHtml(p.id)}" href="products.html#${escapeHtml(p.id)}">자세히 보기 →</a></div>`+
     `</div>`;
   }
+  // 상품 추천 기능 플래그 — 2026-08-08 백로그 보류.
+  // 상품 페이지(products.html)를 비공개로 돌리면서 결과 리포트의 추천도 함께 내린다.
+  // 재오픈 시: 이 값을 true 로 바꾸고 products.html 의 noindex 해제 + sitemap 재등록.
+  const PRODUCT_RECO_ENABLED = false;
+
   function renderProducts(cur, answers){
     const box = $("secProducts");
+    if(!PRODUCT_RECO_ENABLED){ box.style.display="none"; box.innerHTML=""; return; }
     const coach = computeCoaching(cur, lastMetrics, answers);
     const a = answers || {};
     const sv = a.survey || {};
