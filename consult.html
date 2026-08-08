@@ -37,7 +37,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link rel="stylesheet" href="assets/css/app.css" />
 <link rel="stylesheet" href="assets/css/site.css" />
 <style>
-  .page-hero{ background:radial-gradient(60% 55% at 85% 8%,rgba(130,154,109,.06),transparent 70%),var(--bg); padding:64px 0 36px; text-align:center; }
+  /* 히어로와 목록 사이 여백 — 기본 section(96px)은 이 화면에선 너무 벌어져 직접 좁힌다 */
+  .page-hero{ background:radial-gradient(60% 55% at 85% 8%,rgba(130,154,109,.06),transparent 70%),var(--bg); padding:64px 0 26px; text-align:center; }
+  .consult-section{ padding:0 0 72px; }
   .page-hero h1{ color:var(--ink); font-size:clamp(30px,4.4vw,46px); line-height:1.2; letter-spacing:-.03em; font-weight:800; margin:16px 0 14px; }
   .page-hero .lead{ margin:0 auto; text-align:center; max-width:620px; }
   /* 간호사 소개 배지 */
@@ -48,6 +50,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* 상단 액션 바 */
   .consult-top{ max-width:760px; margin:0 auto 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
   .consult-top:empty{ display:none; }
+  /* 목록 아래 가운데 — 비로그인 로그인 버튼 자리 */
+  .consult-bottom{ max-width:760px; margin:18px auto 0; display:flex; justify-content:center; }
+  .consult-bottom:empty{ display:none; }
   .consult-write-btn{ font-size:14px; padding:10px 18px; border-radius:12px; }
   .c-adminflag{ font-size:12.5px; font-weight:700; color:var(--brand-deep); background:var(--brand-tint); padding:6px 12px; border-radius:999px; }
   /* 목록 — 제목 한 줄(2026-07-29). 본문·답변은 상세 화면(consult-view.html)에서 읽는다. */
@@ -64,6 +69,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .c-lock{ flex:none; font-size:14px; line-height:1; }
   .c-mine{ flex:none; font-size:11px; font-weight:800; color:var(--brand-deep); background:var(--brand-tint); padding:3px 8px; border-radius:999px; }
   .c-row.locked{ cursor:default; }
+  /* 비로그인이 공개글을 누르면 상세가 아니라 로그인으로 간다 — 제목 색으로 '열 수 있는 글'임은 유지 */
+  a.c-row.need-login .c-rt{ color:var(--ink); }
   .c-row.locked .c-rt{ color:var(--ink-soft); }
   .c-row .c-badge{ flex:none; }
   /* 조회수 — '읽은 사람 수'(1인 1회). 숫자 폭이 흔들리지 않게 tabular-nums + 최소폭 */
@@ -171,12 +178,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
   </section>
 
-  <section>
+  <section class="consult-section">
     <div class="wrap">
       <div id="consultTop" class="consult-top"></div>
       <div class="consult-list" id="consultList" aria-live="polite">
         <p class="c-empty">상담을 불러오는 중…</p>
       </div>
+      <!-- 비로그인일 때 '로그인하고 상담하기'가 여기(목록 아래 가운데)에 들어간다 -->
+      <div id="consultBottom" class="consult-bottom"></div>
     </div>
   </section>
 </main>

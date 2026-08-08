@@ -11,6 +11,12 @@
 //   조회수는 '읽은 사람 수'다 — 같은 사람이 새로고침해도 늘지 않는다(상세 진입 시 1인 1회 기록).
 //   집계 정의: db/migrations/2026-08-06_consultation-view-count.sql
 //
+// 2026-08-08 변경 — 목록(제목)은 로그인 없이 볼 수 있다.
+//   전에는 비로그인이면 목록 자리에 로그인 게이트만 띄웠다. 이제 제목 목록은 그대로 보여주고,
+//   '내용 읽기·글쓰기'에만 로그인을 요구한다. 비로그인은 어떤 글도 can_read=false 로 내려오므로
+//   행을 눌러도 상세가 아니라 로그인 화면으로 간다(로그인 후 그 글로 되돌아온다).
+//   함수 권한 변경(anon execute): db/migrations/2026-08-08_consultation-titles-public.sql
+//
 // 비공개 글 처리
 //   목록은 consultation_titles() RPC 로 받는다(제목·상태만 돌려주고 body·answer 는 애초에 없다).
 //   남의 비공개 글도 '제목 + 🔒'로 보이지만 링크가 아니라 눌러도 들어갈 수 없고,
@@ -40,35 +46,38 @@ async function loadCtx() {
   } catch (e) { /* 비로그인 */ }
 }
 
-// 상단: 로그인 사용자에게 글쓰기 버튼(+관리자 안내)
-function renderTop() {
-  const top = document.getElementById("consultTop");
-  if (!top) return;
-  top.innerHTML =
-    '<a class="btn btn-primary consult-write-btn" href="/consult-write.html">✏️ 상담 글쓰기</a>' +
-    (CTX.isAdmin ? '<span class="c-adminflag">관리자 · 모든 상담을 보고 답변할 수 있어요</span>' : '');
+// 로그인 화면으로 보내는 주소 — 로그인 뒤 원래 보려던 곳으로 되돌아온다.
+function loginHref(next) {
+  return "/login.html?next=" + encodeURIComponent(next);
 }
 
-// 비로그인: 상담은 로그인해야 이용 가능 → 로그인 게이트 표시
-function renderGate() {
+/* 버튼 자리
+   로그인 사용자 — 목록 위(오른쪽)에 글쓰기 버튼(+관리자 안내).
+   비로그인    — 목록 아래 가운데에 '로그인하고 상담하기'. 목록을 먼저 훑고 나서
+                 상담을 남기고 싶어질 때 손이 가는 자리다. */
+function renderTop() {
   const top = document.getElementById("consultTop");
-  const list = document.getElementById("consultList");
+  const bottom = document.getElementById("consultBottom");
   if (top) top.innerHTML = "";
-  if (list) {
-    list.className = "consult-list plain";
-    list.innerHTML =
-      '<div class="c-gate">' +
-        '<div class="c-gate-emoji">👩‍⚕️🔒</div>' +
-        '<h3>상담은 로그인 후 이용할 수 있어요</h3>' +
-        '<p>아이 식습관 정보를 안전하게 보호하기 위해, 1:1 상담은 로그인한 보호자만 작성·열람할 수 있어요.</p>' +
-        '<a class="btn btn-primary" href="/login.html?next=/consult.html">로그인하고 상담하기</a>' +
-        '<p class="c-gate-sub">계정이 없으신가요? <a href="/login.html?next=/consult.html">이메일로 간편 가입</a></p>' +
-      "</div>";
+  if (bottom) bottom.innerHTML = "";
+  if (!CTX.uid) {
+    if (bottom) {
+      bottom.innerHTML =
+        '<a class="btn btn-primary consult-write-btn" href="' + loginHref("/consult.html") + '">로그인하고 상담하기</a>';
+    }
+    return;
+  }
+  if (top) {
+    top.innerHTML =
+      '<a class="btn btn-primary consult-write-btn" href="/consult-write.html">✏️ 상담 글쓰기</a>' +
+      (CTX.isAdmin ? '<span class="c-adminflag">관리자 · 모든 상담을 보고 답변할 수 있어요</span>' : '');
   }
 }
 
 /* 목록 한 줄 — 제목 + (비공개면 자물쇠) + 답변상태 + 조회수 + 게시일시.
-   읽을 수 있으면 <a>(상세로 이동), 읽을 수 없으면 <div>(눌러도 반응 없음 + 안내 툴팁). */
+   읽을 수 있으면 <a>(상세로 이동), 읽을 수 없으면 <div>(눌러도 반응 없음 + 안내 툴팁).
+   비로그인은 공개글이라도 can_read=false 다 → 상세 대신 로그인 화면으로 보내되,
+   next 에 그 글의 주소를 담아 로그인 직후 바로 그 상담이 열리게 한다. */
 function rowHtml(r) {
   const lock = r.is_public
     ? ""
@@ -87,8 +96,18 @@ function rowHtml(r) {
       "</span>" +
       '<span class="c-date">' + fmtDate(r.created_at) + "</span></span>";
 
+  const viewHref = "/consult-view.html?id=" + encodeURIComponent(r.id);
+
   if (r.can_read) {
-    return '<a class="c-row" href="/consult-view.html?id=' + encodeURIComponent(r.id) + '">' + inner + "</a>";
+    return '<a class="c-row" href="' + viewHref + '">' + inner + "</a>";
+  }
+  // 비로그인 + 공개글 — 읽을 수 있는 글이므로 막지 않고 로그인 문을 열어준다.
+  if (!CTX.uid && r.is_public) {
+    return (
+      '<a class="c-row need-login" href="' + loginHref(viewHref) + '" title="로그인하면 내용을 볼 수 있어요">' +
+        inner +
+      "</a>"
+    );
   }
   return (
     '<div class="c-row locked" aria-disabled="true" title="글쓴이가 비공개로 남긴 상담이라 내용을 볼 수 없어요">' +
@@ -108,7 +127,9 @@ async function loadList() {
   if (error) { list.className = "consult-list plain"; list.innerHTML = '<p class="c-empty">상담 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>'; return; }
   if (!data || !data.length) {
     list.className = "consult-list plain";
-    list.innerHTML = '<p class="c-empty">아직 상담 글이 없어요. 위 <b>상담 글쓰기</b>로 첫 상담을 남겨보세요.</p>';
+    list.innerHTML = CTX.uid
+      ? '<p class="c-empty">아직 상담 글이 없어요. 위 <b>상담 글쓰기</b>로 첫 상담을 남겨보세요.</p>'
+      : '<p class="c-empty">아직 상담 글이 없어요. <a href="' + loginHref("/consult-write.html") + '">로그인</a>하면 첫 상담을 남길 수 있어요.</p>';
     return;
   }
   // 자물쇠 안내문은 목록에 비공개 글이 실제로 있을 때만 — 없는 기호를 설명하면 오히려 헷갈린다.
@@ -124,7 +145,6 @@ async function loadList() {
 
 (async function init() {
   await loadCtx();
-  if (!CTX.uid) { renderGate(); return; }   // 로그인 필수
-  renderTop();
-  await loadList();
+  renderTop();          // 로그인 여부에 따라 글쓰기 버튼 / 로그인 안내
+  await loadList();     // 목록(제목)은 로그인 없이도 보여준다
 })();
