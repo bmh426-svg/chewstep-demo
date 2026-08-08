@@ -1042,7 +1042,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script type="module">
   import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
   import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
-  import { mountAuthUI } from "./assets/js/auth.js";
+  import { mountAuthUI, ensureAnonSession, isPermanentUser } from "./assets/js/auth.js";
   import { renderSurvey, collectSurveyAnswers } from "./assets/js/survey-render.js";
   import SCHEMA from "./assets/js/survey-v3-schema.js";   // FREQ_LABEL · FOOD_ADVICE · SCHEMA_VERSION
   // 음식 단계 게이팅(#6) — 현재 단계보다 이전 단계의 조언을 내보내지 않는다
@@ -1106,31 +1106,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   })();
   function openLogin(){ if(authUI && authUI.openLogin) authUI.openLogin(); }
   let pendingResult = null;   // 미로그인으로 보류된 '결과 표시' 동작 — 로그인 성공 시 실행
+  /* 결과는 '정식 계정'에만 보여준다. 익명 세션은 uid 가 있어도 통과시키지 않는다 —
+     익명은 아이 등록·설문을 로그인 없이 하기 위한 장치일 뿐, 게이트를 없애려는 게 아니다.
+     (여기가 이제 유일한 로그인 요구 지점이다. 시작 화면 자동 노출은 제거됨.) */
   async function gateResult(run){
     try{
-      const uid = await currentUserId();
-      if(uid){ run(); return; }
+      if(await isPermanentUser()){ run(); return; }
     }catch(e){}
     pendingResult = run;      // 로그인 필요 → 보류 후 로그인 창
     openLogin();
   }
-  // 로그인 성공하면 보류된 동작 실행 / 아니면 바로 '아이 선택' 화면으로
+  /* 정식 로그인이 되면 보류된 '결과 표시'를 실행한다.
+     주의 — 익명→정식 승급은 SIGNED_IN 이 아니라 USER_UPDATED 로 온다. 둘 다 받아야 한다.
+     익명 세션 발급(SIGNED_IN + is_anonymous)은 로그인이 아니므로 무시한다. */
   supabase.auth.onAuthStateChange(function(event, session){
-    if(event==="SIGNED_IN" && session && session.user){
-      if(pendingResult){ const r = pendingResult; pendingResult = null; r(); }
-      else if(document.querySelector("#screenIntro.active") || !document.querySelector(".screen.active")){
-        // 인트로에서 막 로그인한 경우만 이동(설문·분석 중이면 방해하지 않음)
-        armDemoBack(); showScreen("screenChild"); loadChildren();
-      }
+    var u = session && session.user;
+    if(!u || u.is_anonymous) return;
+    if(event!=="SIGNED_IN" && event!=="USER_UPDATED") return;
+    if(pendingResult){ const r = pendingResult; pendingResult = null; r(); return; }
+    if(document.querySelector("#screenIntro.active") || !document.querySelector(".screen.active")){
+      // 인트로에서 막 로그인한 경우만 이동(설문·분석 중이면 방해하지 않음)
+      armDemoBack(); showScreen("screenChild"); loadChildren();
     }
   });
-  // 개인용 데모는 '로그인 먼저'. 미로그인 → 로그인 모달. 이미 로그인 → 인트로 건너뛰고 '아이 선택' 화면으로.
+  /* 진입 시 — 묻지 않고 익명 세션을 발급받아 바로 '아이 선택'으로 보낸다.
+     로그인은 결과를 볼 때(gateResult)만 요구한다.
+     익명 로그인이 대시보드에서 꺼져 있으면 예전처럼 로그인부터 요구한다(배포 안전장치). */
   (async function(){
     try{
-      const uid = await currentUserId();
-      if(!uid){ openLogin(); return; }
+      const st = await ensureAnonSession();
+      if(!st.ok){ openLogin(); return; }
       armDemoBack(); showScreen("screenChild"); loadChildren();
-    }catch(e){}
+    }catch(e){ openLogin(); }
   })();
 
   let fl = null;

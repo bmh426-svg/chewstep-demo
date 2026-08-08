@@ -38,6 +38,18 @@
 .cs-inp:focus{ border-color:var(--cs-brand); box-shadow:0 0 0 3px rgba(130,154,109,.12); }
 .cs-email{ background:linear-gradient(145deg,var(--cs-brand),var(--cs-brand-deep)); color:#fff; margin-bottom:0; }
 .cs-oauth:disabled{ opacity:.6; cursor:default; transform:none; }
+/* 오타 도메인 교정 제안 — "혹시 name@gmail.com 인가요? [이 주소로 바꾸기]"
+   경고가 아니라 제안이므로 빨강이 아닌 안내색을 쓴다. */
+.cs-fix{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:space-between;
+  background:#fdf6e7; border:1px solid #f0e0b8; border-radius:12px; padding:10px 12px; font-size:12.5px; color:#7a5c1e; }
+.cs-fix[hidden]{ display:none; }
+/* 한글은 단어 단위로 유지하고(keep-all), 긴 이메일 주소만 필요할 때 끊는다(anywhere).
+   break-all 로 두면 "인가 / 요?" 처럼 한글이 갈라진다. */
+.cs-fix-t{ flex:1; min-width:0; word-break:keep-all; overflow-wrap:anywhere; line-height:1.45; }
+.cs-fix-btn{ flex:none; border:1px solid #d9c48a; background:#fff; color:#7a5c1e; border-radius:8px;
+  padding:6px 10px; font:700 12px/1 var(--cs-font); cursor:pointer; }
+.cs-fix-btn:hover{ background:#fffaf0; }
+.cs-fix-btn:focus-visible{ outline:2px solid var(--cs-brand); outline-offset:2px; }
 .cs-emsg{ font-size:12.5px; line-height:1.5; min-height:1px; text-align:center; }
 .cs-emsg.err{ color:#d9534f; }
 .cs-emsg.ok{ color:var(--cs-brand-deep); }
