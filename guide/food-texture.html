@@ -11,11 +11,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<!-- ⚠ 검수 대기 중이므로 noindex. 소아과 간호사 검수 완료 후
-     (1) 아래 robots 줄을 "index, follow" 로 바꾸고
-     (2) sitemap.xml·llms.txt 에 등록하고
-     (3) 본문 상단 '검수 상태' 배지를 검수 완료로 갱신한다. -->
-<meta name="robots" content="noindex" />
+<!-- 공개 문서. 검색 노출(index) + sitemap.xml·llms.txt 등록 완료.
+     내용을 고치면 본문 하단 최종 수정일과 sitemap 의 lastmod 를 함께 갱신한다. -->
+<meta name="robots" content="index, follow" />
 
 <title>"단계별 mm 기준을 지켜야 한다" — 국제 지침은 무엇을 정하고 있을까요? | Chewstep</title>
 <meta name="description" content="이유식 입자를 올리자 아이가 안 먹기 시작했나요? WHO 2023 보완식 지침과 ESPGHAN의 8~10개월 권고, 2024년 코호트 연구를 근거로 무엇이 확인된 사실이고 무엇이 아직 확실하지 않은지 구분해 정리했습니다." />
@@ -81,7 +79,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .crumb{ font-size:13px; color:var(--ink-soft); margin-bottom:6px; }
   .crumb a{ color:var(--ink-soft); text-decoration:none; } .crumb a:hover{ color:var(--brand-deep); }
 
-  /* 검수 상태 배지 — 근거 기반 원칙: 검수 전 문서임을 독자에게 숨기지 않는다 */
+  /* 배지 — 공개 문서 안내는 .doc-flag (guide.css) 를 사용한다 */
   .review-flag{ display:flex; gap:10px; align-items:flex-start; background:var(--amber-tint,#fdf4e6);
     border:1px solid rgba(200,150,60,.35); border-radius:12px; padding:13px 16px; margin:18px 0 0;
     font-size:13.5px; line-height:1.6; color:var(--ink-2); max-width:52em; }
@@ -166,10 +164,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <h1>"단계별 mm 기준을 지켜야 한다" — 국제 지침은 무엇을 정하고 있을까요?</h1>
       <p class="lead">이유식 입자·식감에 대해 <b>WHO 2023 보완식 지침과 ESPGHAN 권고</b>가 실제로 무엇을 정하고
         무엇을 정하지 않는지 살펴봅니다. <b>확인된 내용과 아직 근거가 충분하지 않은 부분을 구분해</b> 적었습니다.</p>
-      <div class="review-flag">
-        <span aria-hidden="true">📋</span>
-        <span><b>검수 대기 중인 문서입니다.</b> 아래 내용은 공개된 국제 지침과 논문을 인용해 작성했으며,
-          소아과 간호사 검수를 마친 뒤 공개될 예정입니다. 최종 수정 2026-08-08.</span>
+      <div class="doc-flag">
+        <span aria-hidden="true">📄</span>
+        <span><b>출처를 밝힌 정보 문서입니다.</b> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
+          본문에 함께 적었고, 글 끝에 출처를 모두 공개했습니다. 최종 수정 2026-08-09.</span>
       </div>
     </div>
   </section>
