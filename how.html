@@ -349,5 +349,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   else{var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.12,rootMargin:'0px 0px -40px 0px'});rz.forEach(function(e){io.observe(e);});}
 </script>
 <script src="assets/js/inquiry.js"></script>
+  <!-- 여정 기록 — 홈·데모 사이 어디서 새는지 보려면 이 페이지도 계측돼 있어야 한다. -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>

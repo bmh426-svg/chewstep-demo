@@ -1292,6 +1292,9 @@ function renderVisitors(){
   VIS_EV.forEach(e=>{ if(e.user_id && exclUids.has(e.user_id) && e.anon_id) exclAnon.add(e.anon_id); });
 
   const rows = VIS_EV.filter(e=>{
+    // meta.is_test 는 소스(journey.js)가 직접 찍은 표식이라 가장 믿을 만하다.
+    // user_agent 정규식은 그 표식이 없던 2026-08-08 이전 로그를 위한 보조 수단.
+    if(exBot && e.meta && e.meta.is_test) return false;
     if(exBot && VIS_BOT_RE.test(e.user_agent||"")) return false;
     if(e.user_id && exclUids.has(e.user_id)) return false;
     if(e.anon_id && exclAnon.has(e.anon_id)) return false;
@@ -1301,7 +1304,7 @@ function renderVisitors(){
 
   // 제외 내역 안내
   const note=$("visExNote");
-  const botCnt = VIS_EV.filter(e=>VIS_BOT_RE.test(e.user_agent||"")).length;
+  const botCnt = VIS_EV.filter(e=>(e.meta && e.meta.is_test) || VIS_BOT_RE.test(e.user_agent||"")).length;
   if(removed>0){
     note.style.display="block";
     note.innerHTML = `방문자 수에서 <b>${removed.toLocaleString()}건</b>의 이벤트를 제외했습니다 — `+

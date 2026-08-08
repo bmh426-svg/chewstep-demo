@@ -7,6 +7,21 @@ supabase.auth.onAuthStateChange((_e, session) => {
   _cachedUserId = session?.user?.id || null;
 });
 
+/* 자동화 트래픽 표식.
+   왜: 2026-08-08 로그 분석에서 전체 377세션 중 208세션(55%)이 verify/ Playwright
+   하네스였다. User-Agent 정규식으로 사후에 걸러냈지만, 그건 분석하는 사람이
+   그 사실을 알고 있어야만 가능하다. 소스에서 표시해 두면 SQL 한 줄로 끝난다.
+   meta.is_test 로 남기므로 이벤트 자체는 그대로 쌓인다(삭제가 아니라 구분). */
+function isAutomated() {
+  try {
+    if (navigator.webdriver) return true;                       // Playwright·Selenium 등
+    if (/headless|playwright|puppeteer|phantom|lighthouse|bot\b|crawl|spider/i.test(navigator.userAgent)) return true;
+    if (localStorage.getItem("cs_is_test") === "1") return true; // 수동 테스트용 스위치
+    return false;
+  } catch (e) { return false; }
+}
+const IS_TEST = isAutomated();
+
 export async function logEvent(eventType, meta) {
   try {
     const uid = _cachedUserId ?? (await currentUserId());
@@ -18,7 +33,8 @@ export async function logEvent(eventType, meta) {
       page: (document.title || "").slice(0, 120),
       path: location.pathname + location.search,
       referrer: document.referrer || null,
-      meta: meta || null,
+      // 자동화 트래픽이면 meta.is_test=true 를 덧붙인다(원래 meta 는 보존).
+      meta: IS_TEST ? { ...(meta || {}), is_test: true } : (meta || null),
       user_agent: navigator.userAgent,
     };
     await supabase.from("journey_events").insert(row);
