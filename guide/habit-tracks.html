@@ -113,7 +113,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <b>확인된 내용과 아직 근거가 충분하지 않은 부분을 구분해</b> 적었습니다.</p>
       <div class="doc-flag">
         <span aria-hidden="true">📄</span>
-        <span><b>출처를 밝힌 정보 문서입니다.</b> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
+        <span><b>출처를 밝힌 정보 문서입니다.</b> <span class="rt">약 6분 읽기.</span> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
           본문에 함께 적었고, 글 끝에 출처를 모두 공개했습니다. 최종 수정 2026-08-09.</span>
       </div>
     </div>
@@ -123,7 +123,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="wrap">
       <div class="prose">
 
-        <div class="tldr">
+        <div class="tldr" data-journey-section="article-tldr">
           <div class="lab">세 줄 요약</div>
           <ul>
             <li>핀란드 3~18세 아동 <b>1,768명</b>을 <b>21년</b> 추적했습니다. 처음 식이패턴 점수
@@ -199,7 +199,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
 
         <h2>4. 아직 분명하지 않은 것</h2>
-        <div class="unknown">
+        <div class="unknown" data-journey-section="article-unknown">
           <div class="lab">근거가 충분하지 않은 주장</div>
           <ul>
             <li><b>"이유식기(0~3세) 식습관이 성인기까지 간다"</b> — 위 21년 추적 연구의 기저 연령은
@@ -243,19 +243,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <a href="/demo.html" class="btn btn-primary">안먹는 이유 확인하기 →</a>
         </div>
 
-        <div class="readnext">
+        <div class="readnext" data-journey-section="article-readnext">
           <div class="lab">이어서 읽기</div>
-          <a href="/guide/texture-timing.html">
-            <span class="t">덩어리 음식을 늦게 시작하면 — 만 7세까지 추적한 연구가 말해주는 것</span>
-            <span class="d">이 글이 다루지 못한 "3세 이전"에 대한 자료입니다. 영국 아동 7,821명 추적.</span>
-          </a>
-          <a href="/guide/picky-persistent.html">
-            <span class="t">수년간의 추적 연구가 말해주는 편식의 실제</span>
+          <a href="/guide/picky-persistent.html" data-journey="readnext:picky-persistent">
+            <span class="t">"어릴 때 안 먹어도 크면 다 먹는다" — 연구에서는 어떻게 말할까요?</span>
             <span class="d">일반 인구 4,018명을 1.5·3·6세에 본 결과, 편식 궤적은 네 가지로 갈렸습니다.</span>
+          </a>
+          <a href="/guide/texture-timing.html" data-journey="readnext:texture-timing">
+            <span class="t">"돌이 지나면 알아서 씹게 된다" — 만 7세까지 추적한 연구는 무엇을 확인했을까요?</span>
+            <span class="d">덩어리 음식 도입이 9개월을 넘긴 아이들은 만 7세에도 과일·채소를 덜 먹었습니다. 영국 아동 7,821명.</span>
+          </a>
+          <a href="/guide/korea-vegetables.html" data-journey="readnext:korea-vegetables">
+            <span class="t">"우리 아이만 채소를 안 먹는 것 같다" — 국내 조사는 어떻게 말할까요?</span>
+            <span class="d">과일·채소 권장량을 채우는 6~11세는 13.7%. 전국 유아 800명 조사에서 가장 낮은 영역도 ‘균형’이었습니다.</span>
           </a>
         </div>
 
-        <div class="refs">
+        <div class="refs" data-journey-section="article-refs">
           <h2>출처</h2>
           <ol>
             <li id="r1">Mikkilä V, Räsänen L, Raitakari OT, Pietinen P, Viikari J. Consistent dietary patterns identified from childhood to adulthood: The Cardiovascular Risk in Young Finns Study. <i>British Journal of Nutrition</i>. 2005;93(6):923-931.
@@ -304,5 +308,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');});});
   }
 </script>
+  <!-- 여정 기록 — 가이드 글에 계측이 없어 체류시간(dwell_ms)이 0건이었다.
+       글이 실제로 읽히는지 보려면 page_leave 의 dwell_ms 와 섹션 도달률이 필요하다. -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>

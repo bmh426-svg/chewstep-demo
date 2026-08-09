@@ -246,6 +246,28 @@
     font-weight:800; font-size:14px; color:var(--brand-deep); text-decoration:none; }
   .home-read .more:hover { text-decoration:underline; }
 
+  /* 홈 → 가이드 동선. 내비 링크만으로는 홈에 먼저 온 사람에게 가이드가 보이지 않았다. */
+  .read-more { max-width:760px; margin:34px auto 0; }
+  .read-more .rm-head { font-size:13px; font-weight:800; color:var(--brand-deep); margin-bottom:12px; }
+  .read-more .rm-list { display:grid; gap:10px; }
+  .read-more a.rm {
+    display:block; border:1px solid var(--line); border-radius:14px; background:#fff;
+    padding:16px 18px; text-decoration:none;
+    transition:border-color .18s, box-shadow .2s, transform .18s cubic-bezier(.2,.7,.3,1);
+  }
+  .read-more a.rm:hover { border-color:var(--brand); box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+  .read-more a.rm .t {
+    display:block; font-size:15.5px; font-weight:700; color:var(--ink);
+    line-height:1.5; margin-bottom:5px; word-break:keep-all;
+  }
+  .read-more a.rm .d { display:block; font-size:13.5px; color:var(--ink-soft); line-height:1.65; word-break:keep-all; }
+  .read-more a.rm .d b { color:var(--brand-deep); }
+  .read-more .rm-all {
+    display:inline-flex; align-items:center; gap:6px; margin-top:14px;
+    font-size:14px; font-weight:700; color:var(--brand-deep); text-decoration:none;
+  }
+  .read-more .rm-all:hover { text-decoration:underline; }
+
   @media (max-width:720px){
     .steps { flex-direction:column; align-items:stretch; }
     .step-arrow { align-self:center; transform:rotate(90deg); margin:2px 0; }
@@ -407,6 +429,27 @@
             <b>이럴 땐 병원과 상담하세요.</b> 매 식사마다 사레나 기침이 반복되거나,
             체중이 늘지 않거나 줄어드는 경우에는 소아청소년과 등 전문가와 상담하시기 바랍니다.
             Chewstep은 의료 진단·질병 판별·치료·영양 처방을 제공하지 않습니다.
+          </div>
+
+          <!-- ===== 가이드 읽을거리 =====
+               카드 문구는 /guide/ 목록의 제목·훅을 그대로 쓴다. 새 주장·수치를 만들지 않는다. -->
+          <div class="read-more" data-journey-section="guide-teaser">
+            <div class="rm-head">이어서 읽어볼 글</div>
+            <div class="rm-list">
+              <a class="rm" href="/guide/korea-vegetables.html" data-journey="guide-teaser:korea-vegetables">
+                <span class="t">"우리 아이만 채소를 안 먹는 것 같다" — 국내 조사는 어떻게 말할까요?</span>
+                <span class="d">과일·채소를 하루 권장량 이상 먹는 <b>6~11세는 13.7%</b>. 50~64세(39.3%)의 3분의 1 수준입니다.</span>
+              </a>
+              <a class="rm" href="/guide/korea-guideline.html" data-journey="guide-teaser:korea-guideline">
+                <span class="t">"이유식은 개월 수에 맞춰 단계를 올리면 된다" — 국내 공식 안내는 무엇을 정하고 있을까요?</span>
+                <span class="d">질병관리청 안내는 <b>생후 10개월까지 덩어리·고형식 도입</b>을 적었습니다. 입자 크기 mm 기준은 없습니다.</span>
+              </a>
+              <a class="rm" href="/guide/picky-persistent.html" data-journey="guide-teaser:picky-persistent">
+                <span class="t">"어릴 때 안 먹어도 크면 다 먹는다" — 연구에서는 어떻게 말할까요?</span>
+                <span class="d">4,018명을 1.5·3·6세에 관찰한 결과 <b>55%는 편식이 없고 32%는 나아졌지만, 4%는 계속</b>이었습니다.</span>
+              </a>
+            </div>
+            <a href="/guide/" class="rm-all" data-journey="guide-teaser:all">가이드 9편 전체 보기 →</a>
           </div>
 
           <h3>자주 묻는 질문</h3>

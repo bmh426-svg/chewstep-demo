@@ -116,7 +116,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <b>아직 근거가 충분하지 않은 부분을 구분해</b> 적었습니다.</p>
       <div class="doc-flag">
         <span aria-hidden="true">📄</span>
-        <span><b>출처를 밝힌 정보 문서입니다.</b> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
+        <span><b>출처를 밝힌 정보 문서입니다.</b> <span class="rt">약 7분 읽기.</span> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
           본문에 함께 적었고, 글 끝에 출처를 모두 공개했습니다. 최종 수정 2026-08-09.</span>
       </div>
     </div>
@@ -126,7 +126,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="wrap">
       <div class="prose">
 
-        <div class="tldr">
+        <div class="tldr" data-journey-section="article-tldr">
           <div class="lab">세 줄 요약</div>
           <ul>
             <li>질병관리청 안내는 <b>6개월 반고형식 → 8개월 손으로 집어먹기 → 12개월 가족 음식</b> 순서를 제시합니다.
@@ -217,7 +217,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <a href="/guide/food-texture.html">국제 지침이 정하지 않는 것</a>)</p>
 
         <h2>4. 아직 분명하지 않은 것</h2>
-        <div class="unknown">
+        <div class="unknown" data-journey-section="article-unknown">
           <div class="lab">근거가 충분하지 않은 주장</div>
           <ul>
             <li><b>한국 아이들이 실제로 언제 덩어리 음식을 시작하는지</b> — 국내 도입 시기 실태를
@@ -263,19 +263,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <a href="/demo.html" class="btn btn-primary">안먹는 이유 확인하기 →</a>
         </div>
 
-        <div class="readnext">
+        <div class="readnext" data-journey-section="article-readnext">
           <div class="lab">이어서 읽기</div>
-          <a href="/guide/texture-timing.html">
+          <a href="/guide/texture-timing.html" data-journey="readnext:texture-timing">
             <span class="t">"돌이 지나면 알아서 씹게 된다" — 만 7세까지 추적한 연구는 무엇을 확인했을까요?</span>
-            <span class="d">이 글의 '10개월'이 왜 중요한지, 영국 아동 7,821명을 만 7세까지 따라간 자료로 봅니다.</span>
+            <span class="d">덩어리 음식 도입이 9개월을 넘긴 아이들은 만 7세에도 과일·채소를 덜 먹었습니다. 영국 아동 7,821명.</span>
           </a>
-          <a href="/guide/korea-vegetables.html">
+          <a href="/guide/korea-vegetables.html" data-journey="readnext:korea-vegetables">
             <span class="t">"우리 아이만 채소를 안 먹는 것 같다" — 국내 조사는 어떻게 말할까요?</span>
-            <span class="d">과일·채소 권장량을 채우는 6~11세는 13.7%. 전국 유아 800명 조사에서 가장 낮은 영역은 '균형'이었습니다.</span>
+            <span class="d">과일·채소 권장량을 채우는 6~11세는 13.7%. 전국 유아 800명 조사에서 가장 낮은 영역도 ‘균형’이었습니다.</span>
+          </a>
+          <a href="/guide/food-texture.html" data-journey="readnext:food-texture">
+            <span class="t">"단계별 mm 기준을 지켜야 한다" — 국제 지침은 무엇을 정하고 있을까요?</span>
+            <span class="d">WHO는 입자 크기에 수치 기준을 정하지 않습니다. 시중의 단계별 mm 표는 지침의 권고가 아닙니다.</span>
           </a>
         </div>
 
-        <div class="refs">
+        <div class="refs" data-journey-section="article-refs">
           <h2>출처</h2>
           <ol>
             <li id="r1">질병관리청. 이유기보충식(이유식). <i>국가건강정보포털</i>. 2026-05-12 갱신.
@@ -333,5 +337,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');});});
   }
 </script>
+  <!-- 여정 기록 — 가이드 글에 계측이 없어 체류시간(dwell_ms)이 0건이었다.
+       글이 실제로 읽히는지 보려면 page_leave 의 dwell_ms 와 섹션 도달률이 필요하다. -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>

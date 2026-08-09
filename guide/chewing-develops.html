@@ -114,7 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <b>확인된 내용과 아직 근거가 충분하지 않은 부분을 구분해</b> 적었습니다.</p>
       <div class="doc-flag">
         <span aria-hidden="true">📄</span>
-        <span><b>출처를 밝힌 정보 문서입니다.</b> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
+        <span><b>출처를 밝힌 정보 문서입니다.</b> <span class="rt">약 7분 읽기.</span> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
           본문에 함께 적었고, 글 끝에 출처를 모두 공개했습니다. 최종 수정 2026-08-09.</span>
       </div>
     </div>
@@ -124,7 +124,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="wrap">
       <div class="prose">
 
-        <div class="tldr">
+        <div class="tldr" data-journey-section="article-tldr">
           <div class="lab">세 줄 요약</div>
           <ul>
             <li><b>질감마다 씹기가 완성되는 시점이 다릅니다.</b> 퓨레는 생후 6개월, 부드러운 고형식은 8개월에
@@ -224,7 +224,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
 
         <h2>4. 아직 분명하지 않은 것</h2>
-        <div class="unknown">
+        <div class="unknown" data-journey-section="article-unknown">
           <div class="lab">근거가 충분하지 않은 주장</div>
           <ul>
             <li><b>"몇 개월에는 몇 mm 입자"</b> — 국제 지침은 이유식 입자 크기에 수치 기준을
@@ -269,19 +269,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <a href="/demo.html" class="btn btn-primary">안먹는 이유 확인하기 →</a>
         </div>
 
-        <div class="readnext">
+        <div class="readnext" data-journey-section="article-readnext">
           <div class="lab">이어서 읽기</div>
-          <a href="/guide/texture-timing.html">
-            <span class="t">덩어리 음식을 늦게 시작하면 — 만 7세까지 추적한 연구가 말해주는 것</span>
-            <span class="d">질감 도입이 늦어지면 무엇이 남는지를 영국 아동 7,821명 추적 자료로 봅니다.</span>
+          <a href="/guide/texture-timing.html" data-journey="readnext:texture-timing">
+            <span class="t">"돌이 지나면 알아서 씹게 된다" — 만 7세까지 추적한 연구는 무엇을 확인했을까요?</span>
+            <span class="d">덩어리 음식 도입이 9개월을 넘긴 아이들은 만 7세에도 과일·채소를 덜 먹었습니다. 영국 아동 7,821명.</span>
           </a>
-          <a href="/guide/eating-speed.html">
-            <span class="t">씹는 정도와 식사 속도, 그리고 체중 — 대규모 조사가 확인한 것</span>
-            <span class="d">일본 전국 5~6세 4,451명 조사 — 씹는 정도와 식사 속도, 그리고 체중.</span>
+          <a href="/guide/eating-speed.html" data-journey="readnext:eating-speed">
+            <span class="t">"급하게 먹어도 잘 먹기만 하면 괜찮다" — 씹는 정도에 대해 연구는 어떻게 말할까요?</span>
+            <span class="d">일본 전국 5~6세 4,451명 조사에서 잘 씹지 않는 아이의 과체중 오즈비는 2.12배였습니다.</span>
+          </a>
+          <a href="/guide/food-texture.html" data-journey="readnext:food-texture">
+            <span class="t">"단계별 mm 기준을 지켜야 한다" — 국제 지침은 무엇을 정하고 있을까요?</span>
+            <span class="d">WHO는 입자 크기에 수치 기준을 정하지 않습니다. 시중의 단계별 mm 표는 지침의 권고가 아닙니다.</span>
           </a>
         </div>
 
-        <div class="refs">
+        <div class="refs" data-journey-section="article-refs">
           <h2>출처</h2>
           <ol>
             <li id="r1">Le Révérend BJD, Edelson LR, Loret C. Anatomical, functional, physiological and behavioural aspects of the development of mastication in early childhood. <i>British Journal of Nutrition</i>. 2014;111(3):403-414.
@@ -334,5 +338,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');});});
   }
 </script>
+  <!-- 여정 기록 — 가이드 글에 계측이 없어 체류시간(dwell_ms)이 0건이었다.
+       글이 실제로 읽히는지 보려면 page_leave 의 dwell_ms 와 섹션 도달률이 필요하다. -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>

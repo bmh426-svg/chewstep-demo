@@ -114,7 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <b>확인된 내용과 아직 근거가 충분하지 않은 부분을 구분해</b> 적었습니다.</p>
       <div class="doc-flag">
         <span aria-hidden="true">📄</span>
-        <span><b>출처를 밝힌 정보 문서입니다.</b> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
+        <span><b>출처를 밝힌 정보 문서입니다.</b> <span class="rt">약 7분 읽기.</span> 인용한 자료의 대상·표본·설계와 저자가 밝힌 한계를
           본문에 함께 적었고, 글 끝에 출처를 모두 공개했습니다. 최종 수정 2026-08-09.</span>
       </div>
     </div>
@@ -124,7 +124,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="wrap">
       <div class="prose">
 
-        <div class="tldr">
+        <div class="tldr" data-journey-section="article-tldr">
           <div class="lab">세 줄 요약</div>
           <ul>
             <li>일본 전국 보육시설 5~6세 <b>4,451명</b> 조사에서, 잘 씹지 않는 아이의 과체중 오즈비는
@@ -225,7 +225,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           따라가며 씹기를 측정한 연구는 확인하지 못했습니다.</p>
 
         <h2>4. 아직 분명하지 않은 것</h2>
-        <div class="unknown">
+        <div class="unknown" data-journey-section="article-unknown">
           <div class="lab">근거가 충분하지 않은 주장</div>
           <ul>
             <li><b>"안 씹어서 살이 찐다"</b> — 위 아동 연구는 모두 단면 설계이거나 1회 관찰입니다.
@@ -267,19 +267,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <a href="/demo.html" class="btn btn-primary">안먹는 이유 확인하기 →</a>
         </div>
 
-        <div class="readnext">
+        <div class="readnext" data-journey-section="article-readnext">
           <div class="lab">이어서 읽기</div>
-          <a href="/guide/chewing.html">
-            <span class="t">제대로 안 씹으면 무슨 일이 생길까 — 저작에 대해 지금까지 밝혀진 것</span>
+          <a href="/guide/chewing.html" data-journey="readnext:chewing">
+            <span class="t">"대충 삼켜도 소화는 된다" — 연구는 어디까지 확인했을까요?</span>
             <span class="d">덜 씹은 음식은 큰 입자 그대로 장에 도달합니다. 다만 근거의 확실성은 낮음~매우 낮음입니다.</span>
           </a>
-          <a href="/guide/chewing-develops.html">
-            <span class="t">이유식을 언제까지 갈아줘야 하나 — 저작 발달 연구로 본 시기</span>
-            <span class="d">질감별로 씹기가 성숙하는 시점이 다릅니다. 퓨레는 6개월, 단단한 음식은 24개월에도 아직입니다.</span>
+          <a href="/guide/chewing-develops.html" data-journey="readnext:chewing-develops">
+            <span class="t">"이가 났으니 이제 씹을 수 있다" — 씹기 발달 연구는 무엇을 말할까요?</span>
+            <span class="d">질감별로 씹기가 성숙하는 시점이 다릅니다. 어른처럼 턱을 돌려 씹는 움직임은 30개월에도 없었습니다.</span>
+          </a>
+          <a href="/guide/korea-vegetables.html" data-journey="readnext:korea-vegetables">
+            <span class="t">"우리 아이만 채소를 안 먹는 것 같다" — 국내 조사는 어떻게 말할까요?</span>
+            <span class="d">과일·채소 권장량을 채우는 6~11세는 13.7%. 전국 유아 800명 조사에서 가장 낮은 영역도 ‘균형’이었습니다.</span>
           </a>
         </div>
 
-        <div class="refs">
+        <div class="refs" data-journey-section="article-refs">
           <h2>출처</h2>
           <ol>
             <li id="r1">Okubo H, Murakami K, Masayasu S, Sasaki S. The Relationship of Eating Rate and Degree of Chewing to Body Weight Status among Preschool Children in Japan: A Nationwide Cross-Sectional Study. <i>Nutrients</i>. 2018;11(1):64.
@@ -331,5 +335,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');});});
   }
 </script>
+  <!-- 여정 기록 — 가이드 글에 계측이 없어 체류시간(dwell_ms)이 0건이었다.
+       글이 실제로 읽히는지 보려면 page_leave 의 dwell_ms 와 섹션 도달률이 필요하다. -->
+  <script type="module">
+    import { initJourneyAutoTrack } from "/assets/js/journey.js";
+    initJourneyAutoTrack();
+  </script>
 </body>
 </html>
