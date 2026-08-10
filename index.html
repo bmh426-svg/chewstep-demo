@@ -246,46 +246,44 @@
     font-weight:800; font-size:14px; color:var(--brand-deep); text-decoration:none; }
   .home-read .more:hover { text-decoration:underline; }
 
-  /* 중앙 3분할 진입 배너 — 홈에서 갈 수 있는 곳을 한눈에 보여준다.
-     이전에는 읽을거리를 FAQ 앞 텍스트 목록으로 뒀는데 눈에 들어오지 않았다. */
-  .entry3 { max-width:1000px; margin:8px auto 0; }
-  .entry3 .e3-list { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
-  .entry3 a.e3 {
-    display:flex; flex-direction:column; align-items:center; text-align:center;
-    border:1px solid var(--line); border-radius:20px; background:#fff;
-    padding:30px 22px 26px; text-decoration:none; box-shadow:var(--shadow-sm);
-    transition:transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .22s, border-color .18s;
+  /* 진입 띠배너 — 히어로 바로 아래. 세 입구를 스크롤 없이 보여준다.
+     이전에는 페이지 45% 지점 카드형이라 리포트 미리보기를 넘겨야 나왔고, 실제로 못 찾는다는 지적을 받았다.
+     클래스명(.entry3 / a.e3)은 그대로 둔다 — 여정 계측 지표의 연속성을 위해. */
+  .entry3 { max-width:1000px; margin:26px auto 0; }
+  .entry3 .e3-list {
+    display:grid; grid-template-columns:repeat(3,1fr); background:#fff;
+    border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:var(--shadow-sm);
   }
-  .entry3 a.e3:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--brand); }
+  .entry3 a.e3 {
+    display:flex; align-items:center; gap:13px; padding:20px 22px; text-decoration:none;
+    border-right:1px solid var(--line); transition:background .18s;
+  }
+  .entry3 a.e3:last-child { border-right:0; }
+  .entry3 a.e3:hover { background:var(--bg-soft); }
   .entry3 a.e3 .ic {
-    flex:none; width:56px; height:56px; border-radius:18px;
+    flex:none; width:44px; height:44px; border-radius:14px;
     display:flex; align-items:center; justify-content:center;
-    font-size:27px; background:var(--brand-tint); margin-bottom:15px;
+    font-size:21px; background:var(--brand-tint);
   }
   .entry3 a.e3.b .ic { background:#fdf4e6; }
   .entry3 a.e3.c .ic { background:#eef2f7; }
-  /* .bd 는 인라인 span 이므로 반드시 블록으로 만든다 — 아니면 제목·설명·링크가 한 줄로 붙는다 */
-  .entry3 a.e3 .bd { display:flex; flex-direction:column; align-items:center; width:100%; flex:1; }
+  .entry3 a.e3 .bd { min-width:0; }
   .entry3 a.e3 .t {
-    display:block; font-size:18px; font-weight:800; color:var(--ink);
-    letter-spacing:-.01em; margin-bottom:9px; word-break:keep-all;
+    display:block; font-size:15.5px; font-weight:800; color:var(--ink);
+    margin-bottom:3px; word-break:keep-all; letter-spacing:-.01em;
   }
   .entry3 a.e3 .d {
-    display:block; flex:1; font-size:14px; line-height:1.7; color:var(--ink-soft);
-    word-break:keep-all; margin-bottom:16px;
+    display:block; font-size:12.8px; line-height:1.55; color:var(--ink-soft); word-break:keep-all;
   }
-  .entry3 a.e3 .d b { color:var(--ink-2); }
   .entry3 a.e3 .go {
-    display:inline-flex; align-items:center; gap:5px; margin-top:auto;
-    font-size:13.5px; font-weight:800; color:var(--brand-deep);
+    margin-left:auto; flex:none; font-size:15px; font-weight:800; color:var(--brand-deep);
   }
-  .entry3 a.e3:hover .go { text-decoration:underline; }
+  .entry3 a.e3:hover .go { transform:translateX(2px); }
   @media (max-width:860px){
-    .entry3 .e3-list { grid-template-columns:1fr; gap:12px; }
-    .entry3 a.e3 { flex-direction:row; align-items:flex-start; text-align:left; padding:20px; gap:15px; }
-    .entry3 a.e3 .ic { width:46px; height:46px; border-radius:14px; font-size:22px; margin-bottom:0; }
-    .entry3 a.e3 .bd { align-items:flex-start; }
-    .entry3 a.e3 .d { margin-bottom:10px; }
+    .entry3 { margin-top:22px; }
+    .entry3 .e3-list { grid-template-columns:1fr; }
+    .entry3 a.e3 { border-right:0; border-bottom:1px solid var(--line); }
+    .entry3 a.e3:last-child { border-bottom:0; }
   }
 
   @media (max-width:720px){
@@ -335,6 +333,37 @@
           </div>
           <p class="cta-micro">약 3분 소요 <span class="sep">·</span> 영상 분석 후 미저장 <span class="sep">·</span> 결과 바로 확인</p>
           <p class="cta-login">이미 분석한 적이 있나요? <a href="/login.html">내 결과 확인하기 →</a></p>
+        </div>
+      </div>
+
+      <!-- ===== 진입 띠배너 =====
+           문구는 각 페이지의 것을 그대로 쓴다. 새 주장·수치를 만들지 않는다. -->
+      <div class="entry3 reveal" data-journey-section="entry3">
+        <div class="e3-list">
+          <a class="e3 a" href="/demo.html" data-journey="entry3:demo">
+            <span class="ic" aria-hidden="true">🎥</span>
+            <span class="bd">
+              <span class="t">데모 체험</span>
+              <span class="d">3분 영상으로 안 먹는 이유 확인</span>
+            </span>
+            <span class="go" aria-hidden="true">→</span>
+          </a>
+          <a class="e3 b" href="/consult.html" data-journey="entry3:consult">
+            <span class="ic" aria-hidden="true">💬</span>
+            <span class="bd">
+              <span class="t">간호사와 상담하기</span>
+              <span class="d">소아과 간호사에게 1:1 질문</span>
+            </span>
+            <span class="go" aria-hidden="true">→</span>
+          </a>
+          <a class="e3 c" href="/myths.html" data-journey="entry3:myths">
+            <span class="ic" aria-hidden="true">📄</span>
+            <span class="bd">
+              <span class="t">식습관 오해와 진실</span>
+              <span class="d">흔한 믿음 9가지, 연구로 확인</span>
+            </span>
+            <span class="go" aria-hidden="true">→</span>
+          </a>
         </div>
       </div>
 
@@ -406,44 +435,6 @@
           </div>
           <p class="rd-note">※ 예시 화면이에요. 실제 결과는 아이의 영상·설문에 따라 달라집니다.</p>
           <a href="/demo.html" class="rd-cta">안먹는 이유 확인하기 →</a>
-        </div>
-
-        <!-- ===== 중앙 진입 배너 =====
-             홈에서 갈 수 있는 세 곳을 같은 무게로 보여준다. 문구는 각 페이지의 것을 그대로 쓴다. -->
-        <div class="sec-head reveal">
-          <div class="k" data-journey-section="entry3">무엇부터 해볼까요?</div>
-          <h2>세 가지 중에 골라보세요</h2>
-        </div>
-        <div class="entry3 reveal">
-          <div class="e3-list">
-            <a class="e3 a" href="/demo.html" data-journey="entry3:demo">
-              <span class="ic" aria-hidden="true">🎥</span>
-              <span class="bd">
-                <span class="t">데모 체험</span>
-                <span class="d">3분 식사 영상으로 <b>안 먹는 이유</b>를 살펴봅니다.
-                  원본 영상은 서버에 저장되지 않습니다.</span>
-                <span class="go">우리 아이 식사 분석하기 <span aria-hidden="true">→</span></span>
-              </span>
-            </a>
-            <a class="e3 b" href="/consult.html" data-journey="entry3:consult">
-              <span class="ic" aria-hidden="true">💬</span>
-              <span class="bd">
-                <span class="t">간호사 상담하기</span>
-                <span class="d"><b>소아과 간호사</b>에게 우리 아이 식습관을 1:1로 물어봅니다.
-                  공개·비공개를 선택할 수 있습니다.</span>
-                <span class="go">무료로 상담 남기기 <span aria-hidden="true">→</span></span>
-              </span>
-            </a>
-            <a class="e3 c" href="/myths.html" data-journey="entry3:myths">
-              <span class="ic" aria-hidden="true">📄</span>
-              <span class="bd">
-                <span class="t">식습관 오해와 진실</span>
-                <span class="d">"어릴 때 안 먹어도 크면 다 먹는다" 같은 <b>흔한 믿음</b>을
-                  공개된 연구와 지침에 비춰 확인한 글 <b>9편</b>.</span>
-                <span class="go">오해와 진실 읽어보기 <span aria-hidden="true">→</span></span>
-              </span>
-            </a>
-          </div>
         </div>
 
         <!-- ===== 읽을거리 본문 =====
