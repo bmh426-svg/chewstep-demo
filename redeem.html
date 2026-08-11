@@ -72,7 +72,10 @@
   const params = new URLSearchParams(location.search);
   const ORG = params.get("org") || "";
   const PRECODE = params.get("code") || "";
-  const REPORT = "/report.html";  // 연결 후 이동할 실데이터 리포트(인증)
+  // 연결 다음은 리포트가 아니라 **가정 식습관 체크**다(2026-08-08).
+  // 리포트를 우리 집 상황에 맞추는 기준값이라 연결 직후가 아니면 회수되지 않는다.
+  // 이미 답한 보호자는 homecheck.html 이 스스로 리포트로 보낸다.
+  const NEXT = "/homecheck.html";
 
   const msg = document.getElementById("lmsg");
   function showMsg(html, ok) { msg.className = "lmsg show" + (ok ? " ok" : ""); msg.innerHTML = html; }
@@ -110,8 +113,8 @@
       showMsg(key ? ERR[key] : ("연결에 실패했어요.<br><span style='color:var(--ink-soft)'>" + (error.message || "") + "</span>"));
       return;
     }
-    showMsg("연결 완료! 우리 아이 리포트로 이동합니다 🎉", true);
-    setTimeout(() => location.replace(REPORT), 900);
+    showMsg("연결 완료! 우리 아이 정보를 조금만 더 알려주세요 🎉", true);
+    setTimeout(() => location.replace(NEXT), 900);
   }
 
   document.getElementById("redeemForm").addEventListener("submit", function (e) {

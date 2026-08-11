@@ -2,6 +2,7 @@
 // 저장 구조는 스키마의 ANSWERS_SHAPE 그대로: { food_texture, concern_type, concern_text, survey, safety_alert }
 // (앱 chewstep-mobile과 동일 구조 → demo_responses.answers 통합)
 import S from "/assets/js/survey-v3-schema.js";
+import { snapshotForm, restoreForm } from "/assets/js/survey-draft.js";   // 임시저장 폼 스냅샷(#1)
 
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const val = (o) => (typeof o === "object" ? o.v : o);
@@ -53,14 +54,33 @@ function step(n, title, inner, intro) {
   return `<div class="sv-step" data-step="${n}"${n > 1 ? ' style="display:none"' : ""}>${head(title)}${intro ? lede(intro) : ""}${inner}</div>`;
 }
 
+/* ── 미응답 문항 표시용 스타일 (한 번만 주입) ──
+   설문 CSS 는 화면(demo.html)에 있지만, '필수 응답' 규칙은 이 모듈의 책임이라
+   표시 스타일도 여기에 둔다(다른 화면에서 이 모듈을 써도 같이 따라간다). */
+function ensureMissStyle() {
+  if (document.getElementById("svMissStyle")) return;
+  const st = document.createElement("style");
+  st.id = "svMissStyle";
+  st.textContent =
+    ".q.sv-miss{border-left:3px solid #e0a9a6;padding-left:12px;margin-left:-15px;}" +
+    ".q.sv-miss > .q-title{color:#a03c39;}" +
+    ".q.sv-miss > .q-title::after{content:' 미응답';font-size:12px;font-weight:800;color:#a03c39;}";
+  document.head.appendChild(st);
+}
+
 // 앱과 동일한 단계형(스텝) 설문. 각 스텝은 한 관점씩 보여주고 '다음'으로 진행한다.
 // 고민(concern) 선택 시 조건부 심화문항(deepMount)이 1스텝 안에서 즉시 렌더된다(웹·앱 공용 로직).
-// opts: { ageMonths, recipe, concern, onComplete(answers), onSkip() }
+// opts: { ageMonths, recipe, concern, onComplete(answers), onSkip(),
+//         restore: { form, step },              // 임시저장 초안 복원(#1)
+//         onProgress({ form, step })            // 문항 선택·스텝 이동마다 호출 → 호출부가 저장
+//       }
 export function renderSurvey(mount, o) {
   _mount = mount; o = o || {};
   _ageMonths = (o.ageMonths != null) ? o.ageMonths : null;
   const onComplete = typeof o.onComplete === "function" ? o.onComplete : function () {};
   const onSkip = typeof o.onSkip === "function" ? o.onSkip : function () {};
+  const onProgress = typeof o.onProgress === "function" ? o.onProgress : null;
+  ensureMissStyle();                     // 미응답 문항 표시 스타일
 
   mount.innerHTML =
     step(1, "① 기본 정보", "" +
@@ -88,8 +108,10 @@ export function renderSurvey(mount, o) {
       `<div class="sv-err" id="recipeErr" style="display:none;margin-top:10px;background:#fdeeee;border:1px solid #f3cfcf;color:#a03c39;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.55;"></div>`) +
     step(6, "⑥ 마무리", "" +
       qBlock("가장 알고 싶은 점이 있다면 적어 주세요.", `<textarea id="want_to_know" class="ta" placeholder="예: 잘 씹고 있는 건지 궁금해요"></textarea>`, "(선택)")) +
-    // ── 스텝 내비게이션 ──
-    `<div class="sv-nav" style="margin-top:26px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
+    // ── 미응답 안내 + 스텝 내비게이션 ──
+    `<div class="sv-err" id="svErr" style="display:none;margin-top:18px;background:#fdeeee;border:1px solid #f3cfcf;color:#a03c39;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.55;"></div>` +
+    `<p style="margin:14px 0 0;font-size:12.5px;line-height:1.6;color:var(--ink-faint,#889)">모든 문항에 답해 주세요 — 답변이 결과의 근거가 돼요(서술 문항은 선택).</p>` +
+    `<div class="sv-nav" style="margin-top:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
        <button type="button" class="btn-ghost sv-prev" style="visibility:hidden;">← 이전</button>
        <div class="sv-progress" style="font-size:13px;font-weight:700;color:var(--ink-faint,#889);letter-spacing:.02em;"><span id="svStepNow">1</span> / <span id="svStepTotal">6</span></div>
        <button type="button" class="btn-primary sv-next">다음 →</button>
@@ -108,7 +130,17 @@ export function renderSurvey(mount, o) {
   // 고민 → 조건부 심화문항
   mount.querySelectorAll('input[name="concern"]').forEach((r) => r.addEventListener("change", renderDeep));
   if (o.concern) { const r = mount.querySelector('input[name="concern"][value="' + o.concern + '"]'); if (r) r.checked = true; }
+
+  /* ── 임시저장 초안 복원 (#1) ──
+     ① 먼저 concern 을 되돌려야 조건부 심화문항이 렌더된다
+     ② 그 뒤 전체 폼을 다시 복원해 심화문항 답변까지 채운다 */
+  const restore = o.restore && o.restore.form ? o.restore : null;
+  if (restore) {
+    const c = restore.form.concern;
+    if (c) { const r = mount.querySelector('input[name="concern"][value="' + c + '"]'); if (r) r.checked = true; }
+  }
   renderDeep();
+  if (restore) restoreForm(mount, restore.form);
 
   // ── 스텝 진행 로직 ──
   const steps = Array.prototype.slice.call(mount.querySelectorAll(".sv-step"));
@@ -118,13 +150,94 @@ export function renderSurvey(mount, o) {
   const nowEl = mount.querySelector("#svStepNow");
   mount.querySelector("#svStepTotal").textContent = String(total);
   let cur = 1;
+
+  /* ── 임시저장 (#1) ──
+     각 문항 선택 · 스텝 이동마다 호출부에 현재 상태를 넘긴다(호출부가 localStorage 에 쓴다).
+     입력칸은 타이핑마다 쓰지 않도록 살짝 묶어서 보낸다. */
+  let saveTimer = null;
+  const emitProgress = () => {
+    if (!onProgress) return;
+    try { onProgress({ form: snapshotForm(mount), step: cur }); } catch (e) { /* 저장 실패는 흐름을 막지 않는다 */ }
+  };
+  const emitSoon = () => {
+    if (!onProgress) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(emitProgress, 400);
+  };
+  // 라디오·체크박스는 즉시, 텍스트 입력은 묶어서 저장
+  mount.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t && (t.type === "radio" || t.type === "checkbox")) emitProgress(); else emitSoon();
+    clearMissMark(t);                    // 답하면 '미응답' 표시를 바로 지운다
+  });
+  mount.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "TEXTAREA" || t.type === "text" || t.type === "number")) emitSoon();
+  });
+
+  /* ── 필수 응답 검사 (2026-07-29) ────────────────────────────────────
+     문제: 월령만 넣고 문항을 전부 비운 채 끝까지 넘어갈 수 있었다. 그러면 규칙 엔진 점수가
+           모두 0이 되어 '판단 제한' 경로의 일반 팁("잘게·부드럽게")이 근거 없이 결과로 나갔다.
+     규칙: 현재 스텝의 모든 선택 문항에 답해야 다음으로 넘어간다.
+           · 라디오 그룹  → 하나 선택 필수 (조건부 심화문항·안전 문항 포함)
+           · 체크박스 그룹 → 최소 하나 선택 필수 ('특정 음식 없음' 선택지가 있어 비움과 구분된다)
+           · 텍스트 칸    → 공백 아닌 값 필수 (레시피 두 칸)
+           · textarea(서술) → 선택 — 유일한 예외
+     스텝 안의 문항을 스키마 required 목록과 따로 관리하면 어긋나므로, 화면에 실제로 렌더된
+     입력을 그대로 훑는다(문항이 추가돼도 자동으로 필수가 된다). */
+  const errBox = mount.querySelector("#svErr");
+  const qTitleOf = (q) => {
+    const t = q.querySelector(".q-title");
+    if (!t) return "이 문항";
+    const c = t.cloneNode(true);
+    c.querySelectorAll("span").forEach((s) => s.remove());   // "(선택 가능)" 같은 보조 문구 제거
+    return (c.textContent || "").trim().replace(/[?？]$/, "");
+  };
+  const isAnswered = (q) => {
+    if (q.querySelector('input[type="radio"]')) return !!q.querySelector('input[type="radio"]:checked');
+    if (q.querySelector('input[type="checkbox"]')) return !!q.querySelector('input[type="checkbox"]:checked');
+    const texts = q.querySelectorAll('input[type="text"], input[type="number"]');
+    if (texts.length) return Array.prototype.every.call(texts, (t) => (t.value || "").trim() !== "");
+    return true;                                             // textarea 전용 문항 = 선택
+  };
+  const clearMissMark = (el) => {
+    if (!el || !el.closest) return;
+    const q = el.closest(".q");
+    if (!q || !q.classList.contains("sv-miss") || !isAnswered(q)) return;
+    q.classList.remove("sv-miss");
+    if (errBox && !mount.querySelector(".sv-miss")) errBox.style.display = "none";
+  };
+  const validateStep = () => {
+    const stepEl = steps.find((s) => Number(s.dataset.step) === cur);
+    if (!stepEl) return true;
+    stepEl.querySelectorAll(".q.sv-miss").forEach((q) => q.classList.remove("sv-miss"));
+    const miss = Array.prototype.slice.call(stepEl.querySelectorAll(".q")).filter((q) => !isAnswered(q));
+    if (!miss.length) { if (errBox) errBox.style.display = "none"; return true; }
+    miss.forEach((q) => q.classList.add("sv-miss"));
+    if (errBox) {
+      const names = miss.map(qTitleOf).filter(Boolean);
+      errBox.innerHTML = `아직 <b>${miss.length}개 문항</b>이 비어 있어요. 답변이 결과의 근거라, 모두 골라 주셔야 결과를 만들 수 있어요.` +
+        (names.length ? `<div style="margin-top:6px;font-weight:700">· ${names.map(esc).join("<br>· ")}</div>` : "");
+      errBox.style.display = "";
+    }
+    const first = miss[0];
+    try { first.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+    const focusEl = first.querySelector('input[type="text"], input[type="number"], input[type="radio"], input[type="checkbox"]');
+    if (focusEl && (focusEl.type === "text" || focusEl.type === "number")) { try { focusEl.focus({ preventScroll: true }); } catch (e) { focusEl.focus(); } }
+    if (window.csLog) window.csLog("survey_step_blocked", { step: cur, missing: miss.length });
+    return false;
+  };
+
   const show = (i) => {
     cur = Math.max(1, Math.min(total, i));
     steps.forEach((s) => { s.style.display = (Number(s.dataset.step) === cur) ? "" : "none"; });
     prevBtn.style.visibility = cur === 1 ? "hidden" : "visible";
     nextBtn.textContent = cur === total ? "완료 · 영상 올리기 →" : "다음 →";
     nowEl.textContent = String(cur);
+    if (errBox) errBox.style.display = "none";           // 스텝이 바뀌면 이전 스텝의 안내는 닫는다
+    const rErr = mount.querySelector("#recipeErr"); if (rErr) rErr.style.display = "none";
     try { mount.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+    emitProgress();                      // 스텝 이동 시점의 상태를 저장
   };
   prevBtn.addEventListener("click", () => show(cur - 1));
   // 필수 입력 검사 — ⑤ 식감 연결 레시피의 두 칸은 반드시 채워야 다음으로 넘어간다.
@@ -158,12 +271,14 @@ export function renderSurvey(mount, o) {
     });
   });
   nextBtn.addEventListener("click", () => {
-    if (!requireRecipe()) return;
+    if (!requireRecipe()) return;        // 레시피 두 칸은 문구가 따로 있어 먼저 안내
+    if (!validateStep()) return;         // 그 외 모든 문항 응답 필수
     if (cur === total) onComplete(collectSurveyAnswers()); else show(cur + 1);
   });
   const skipBtn = mount.querySelector(".sv-skip");   // 현재는 렌더하지 않음(설문 필수)
   if (skipBtn) skipBtn.addEventListener("click", () => onSkip());
-  show(1);
+  // 초안이 있으면 저장된 스텝에서 이어서 시작한다(없으면 1스텝)
+  show(restore && restore.step ? restore.step : 1);
 }
 
 // 고민(concern) 선택 시 3단계 조건부 세트를 딥다이브 자리에 렌더

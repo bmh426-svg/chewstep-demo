@@ -195,7 +195,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <script type="module">
   import { FOOD, CEILING, CONCERN, SAFETY } from "./assets/js/survey-v3-schema.js";
-  import { recommendProducts, ACTIONS } from "./assets/js/products.js";
+  import { recommendProducts, ACTIONS, homeForStage } from "./assets/js/products.js";
   import { IDDSI_ATTRIBUTION } from "./assets/js/iddsi.js";
   import { logEvent } from "./assets/js/journey.js";
 
@@ -282,7 +282,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const actPart = act
       ? `<div class="r-act"><h3>다음 식사에서 바꿀 한 가지</h3>`+
         `<p class="big">${esc(act.action)}</p>`+
-        `<div class="home"><b>집에서 먼저</b> ${esc(act.home)}</div>`+
+        `<div class="home"><b>집에서 먼저</b> ${esc(homeForStage(act, (survey.lens01||{}).food_form))}</div>`+
         `<p class="watch">이 변화를 살펴보세요 — <b>${esc(act.watch)}</b></p></div>`
       : (survey.concern === "noeat"
         ? `<div class="r-act"><h3>이번엔 준비물을 권하지 않을게요</h3>`+

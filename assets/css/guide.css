@@ -100,12 +100,6 @@
   display:inline-block; font-size:11.5px; font-weight:800; color:#fff;
   background:var(--brand-deep,#5d7350); border-radius:999px; padding:4px 11px;
 }
-/* 읽는 시간 — 길이를 미리 알려주면 중간에 이탈할 이유가 줄어든다 */
-.post .rt-chip{
-  display:inline-block; font-size:11.5px; font-weight:700; color:var(--ink-faint);
-  border:1px solid var(--line); border-radius:999px; padding:3px 9px;
-}
-.doc-flag .rt{ color:var(--ink-faint); font-weight:700; }
 .post h2{ font-size:19.5px; color:var(--ink); margin:0 0 9px; line-height:1.42; letter-spacing:-.01em; word-break:keep-all; }
 .post .hook{
   font-size:15px; line-height:1.7; color:var(--ink-2); margin:0 0 10px;

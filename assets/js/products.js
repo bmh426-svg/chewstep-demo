@@ -396,7 +396,18 @@ export const ACTIONS = {
     label: "질감·크기",
     action: "같은 음식을 지금보다 조금 더 부드럽고 작게 준비해 보세요.",
     watch: "바로 뱉는 행동이 줄어드는지, 씹는 움직임이 조금 더 이어지는지",
-    home: "믹서로 다시 갈지 말고 포크로 거칠게 으깨 알갱이를 남기고, 고기·채소는 밥에 섞어 한 덩어리로 주세요.",
+    home: "고기·채소는 밥에 섞어 한 덩어리로 주세요 — 단독으로 주면 입안에서 흩어져 뱉기 쉬워요.",
+    /* ⚠ 2026-07-28 (사용자 테스트 #6): 기존 home 문구가 "믹서로 갈지 말고 포크로 으깨
+       알갱이를 남기고…" 였다. '무른 유아식'·'일반 가정식'을 주는 보호자에게는 이미 지나온
+       단계라 후퇴 조언으로 읽혔다. → 음식 형태(food_form)별로 갈라서 낸다.
+       기준표 원본: survey-v3-schema.js FOOD_ADVICE (결과화면 demo.html 과 동일 기준) */
+    homeByStage: {
+      ground:     "믹서로 다시 갈지 말고 포크로 거칠게 으깨 아주 작은 알갱이를 남겨 주세요.",
+      mashed:     "으깨는 정도를 조금 거칠게 해서 알갱이 크기를 키우고, 고기·채소는 밥에 섞어 주세요.",
+      small_bits: "부드러움은 그대로 두고 알갱이 크기만 한 단계 키우고, 부드러운 덩어리를 함께 담아 주세요.",
+      soft:       "지금의 부드러움을 유지하면서 한 입 크기를 조금씩 키우고, 으깬 음식과 작은 덩어리를 함께 담아 주세요.",
+      regular:    "형태를 낮추지 말고 한 입 크기·두께만 조절하고, 질긴 재료는 조리법을 바꿔 부드럽게 해주세요.",
+    },
   },
   repetition: {
     label: "익숙함·반복 노출",
@@ -411,6 +422,15 @@ export const ACTIONS = {
     home: "가장 작은 종지에 담아 시작하고, 식사는 20~30분 안에 깔끔하게 마쳐 주세요.",
   },
 };
+
+/* 현재 음식 형태에 맞는 '집에서 먼저' 문구를 고른다.
+   단계별 문구가 없거나 형태를 모르면 단계와 무관한 기본 home 을 쓴다. */
+export function homeForStage(action, foodForm) {
+  if (!action) return "";
+  const byStage = action.homeByStage;
+  if (byStage && foodForm && byStage[foodForm]) return byStage[foodForm];
+  return action.home || "";
+}
 
 export function goalFromSurvey(survey) {
   const sv = survey || {};

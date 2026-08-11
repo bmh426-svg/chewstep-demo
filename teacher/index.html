@@ -93,9 +93,10 @@
         </select></div>
       </div>
       <div class="frow">
+        <!-- 2026-07-28: '자주·가끔'은 교사마다 기준이 달라져 집계가 불분명 → 한 끼 기준 횟수로 명시(저장 코드는 유지) -->
         <div class="ff"><label>정도</label><select id="obsValue">
-          <option value="slow">느림</option><option value="normal">보통</option><option value="fast">빠름</option><option value="frequent">자주</option>
-          <option value="sometimes">가끔</option><option value="observed">관찰됨</option><option value="half">절반</option><option value="most">대부분</option>
+          <option value="slow">느림</option><option value="normal">보통</option><option value="fast">빠름</option><option value="frequent">여러 번 (한 끼에 3번 이상)</option>
+          <option value="sometimes">1~2번 (한 끼 기준)</option><option value="observed">1번 관찰됨</option><option value="half">절반 정도 먹음</option><option value="most">대부분 먹음</option>
         </select></div>
         <div class="ff"><label>메모</label><input type="text" id="obsNote" placeholder="예) 고기를 뱉음, 밥과 섞으니 삼킴" /></div>
       </div>
@@ -115,7 +116,7 @@
   const esc=(s)=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const row=(tb,h)=>{ $(tb).innerHTML=h||`<tr><td class="empty" colspan="9">표시할 데이터가 없습니다.</td></tr>`; };
   const TYPE={meal_speed:"식사 속도",spitting:"뱉기",food_refusal:"음식 거부",food_preference:"선호",portion_intake:"섭취량",sitting_behavior:"착석·자세",other:"기타"};
-  const VAL={slow:"느림",normal:"보통",fast:"빠름",frequent:"자주",sometimes:"가끔",observed:"관찰됨",half:"절반",most:"대부분"};
+  const VAL={slow:"느림",normal:"보통",fast:"빠름",frequent:"여러 번(3번+)",sometimes:"1~2번",observed:"1번 관찰됨",half:"절반 정도 먹음",most:"대부분 먹음"};
   let CHILD_NAME={}, SESSION_BY_CLASS={}, CHILD_CLASS={};
 
   $("logout").addEventListener("click",async(e)=>{e.preventDefault();await sb.auth.signOut();location.replace("/login.html");});

@@ -43,6 +43,15 @@
   .finding p { font-size:14.5px; color:var(--ink-2); line-height:1.6; }
   .rnote { font-size:12px; color:var(--ink-soft); text-align:center; line-height:1.6; margin-top:18px; }
   .loading { text-align:center; color:var(--ink-soft); padding:70px 20px; }
+
+  /* 형제 전환 — 아이가 2명 이상일 때만 나온다 */
+  .kids { display:flex; gap:8px; overflow-x:auto; padding:2px 0 14px; }
+  .kid { flex:none; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line);
+    border-radius:999px; padding:7px 14px 7px 8px; font-size:13.5px; color:var(--ink-2); cursor:pointer; font-family:inherit; }
+  .kid .av2 { width:26px;height:26px;border-radius:50%;background:var(--bg-soft);color:var(--ink-soft);
+    display:grid;place-items:center;font-weight:800;font-size:12px; }
+  .kid.on { border-color:var(--brand); background:var(--brand-tint); color:var(--ink); font-weight:700; }
+  .kid.on .av2 { background:linear-gradient(145deg,var(--brand),var(--brand-deep)); color:#fff; }
 </style>
 </head>
 <body>
@@ -80,33 +89,80 @@
   else {
     try {
       // 2) 내 아이(연결된 child_guardians → children). RLS로 본인 것만 반환.
+      //    ⚠ 형제가 있으면 여러 행이다 — 코드가 아이 한 명당 하나라 보호자가 코드를 여러 번 넣는다.
+      //      예전에는 links[0] 만 써서 **둘째부터는 영영 보이지 않았다**(2026-08-08 수정).
+      //    ⚠ 같은 아이가 두 줄로 올 수도 있다(child_guardians RLS 가 같은 아이의 다른 보호자 행까지 보여준다)
+      //      → 아이 기준으로 접는다.
       const { data:links, error:e1 } = await sb.from("child_guardians")
         .select("child_id, children(display_name, birth_date)");
       if (e1) throw e1;
-      if (!links || links.length===0) {
+      const seen = new Set();
+      const kids = (links || [])
+        .filter((l) => l.child_id && l.children && !seen.has(l.child_id) && seen.add(l.child_id))
+        .sort((a,b) => (a.children.display_name||"").localeCompare(b.children.display_name||"", "ko"));
+
+      if (!kids.length) {
         state("🔗","아직 연결된 아이가 없어요","어린이집에서 받은 초대 코드로 우리 아이를 연결해 주세요.",
           '<a class="btn btn-primary" href="/redeem.html">초대 코드 입력하기 →</a>');
       } else {
-        const link = links[0];
+        // 보고 있던 아이를 기억한다. 저장값이 더 이상 내 아이가 아니면(연결 해제 등) 첫째로 되돌린다.
+        const KEY = "cs_child";
+        const want = new URLSearchParams(location.search).get("child") || localStorage.getItem(KEY) || "";
+        const link = kids.find((k) => k.child_id === want) || kids[0];
+        try { localStorage.setItem(KEY, link.child_id); } catch (e) {}
         const child = link.children || {};
+
+        // 형제 전환 칩 — 1명이면 만들지 않는다(없는 선택지를 보여주지 않는다)
+        const kidsBar = kids.length < 2 ? "" :
+          `<div class="kids">` + kids.map((k) => {
+            const n = esc(k.children.display_name || "아이");
+            return `<button class="kid${k.child_id===link.child_id?" on":""}" data-kid="${k.child_id}">`
+                 + `<span class="av2">${n.slice(0,1)}</span>${n}</button>`;
+          }).join("") + `</div>`;
+
+        // 2-b) 가정 식습관 체크 게이트 (2026-08-08)
+        //   기준값이 없으면 리포트를 우리 집 상황에 맞출 수 없다. 연결 직후가 아니면 회수되지 않으므로
+        //   여기서 한 번 더 보낸다. **보고 있는 아이 기준**으로 판단한다 — 첫째만 답하고 둘째는 안 답한 경우가 있다.
+        //   조회 실패(네트워크·권한)는 게이트로 쓰지 않는다 — 못 읽었다는 이유로 이미 답한 보호자를 설문으로 되돌리면 안 된다.
+        const { data: hp, error: eHp } = await sb.from("child_home_profiles")
+          .select("child_id").eq("child_id", link.child_id).limit(1);
+        if (!eHp && (!hp || hp.length === 0)) { location.replace("/homecheck.html?child=" + link.child_id); }
+        else {
+
         // 3) 발행된 최신 리포트
         const { data:reps, error:e2 } = await sb.from("reports")
           .select("id, published_at, report_type").eq("child_id", link.child_id)
           .eq("status","published").order("published_at",{ascending:false}).limit(1);
         if (e2) throw e2;
         const nm = esc(child.display_name || "우리 아이");
+        // 아이를 바꾸면 그 아이 리포트로 다시 그린다(선택은 위에서 localStorage 에 남는다)
+        const bindKids = () => document.querySelectorAll("[data-kid]").forEach((b) =>
+          b.addEventListener("click", () => {
+            try { localStorage.setItem(KEY, b.getAttribute("data-kid")); } catch (e) {}
+            location.replace("/report.html?child=" + b.getAttribute("data-kid"));
+          }));
         if (!reps || reps.length===0) {
-          state("🍽️", nm+" 리포트 준비 중", "아직 발행된 리포트가 없어요. 관찰이 쌓이면 이곳에 리포트가 도착합니다.");
+          show(kidsBar + `<div class="state"><div class="em">🍽️</div><h2>${nm} 리포트 준비 중</h2>`
+             + `<p>아직 발행된 리포트가 없어요. 관찰이 쌓이면 이곳에 리포트가 도착합니다.</p></div>`);
+          bindKids();
         } else {
           const rep = reps[0];
           const { data:fs, error:e3 } = await sb.from("report_findings")
             .select("finding_type, source_type, title, content, display_order")
             .eq("report_id", rep.id).order("display_order");
           if (e3) throw e3;
+          // 빈 리포트를 그대로 노출하지 않는다 (2026-08-08 실연에서 발견).
+          // 발행됐지만 findings 가 0행이면 보호자는 제목만 있는 화면을 본다 —
+          // 그건 '리포트가 없는 것'이지 '내용이 없는 리포트'가 아니다.
+          if (!fs || fs.length === 0) {
+            show(kidsBar + `<div class="state"><div class="em">🍽️</div><h2>${nm} 리포트 준비 중</h2>`
+               + `<p>리포트를 다듬고 있어요. 준비되면 다시 알려드릴게요.</p></div>`);
+            bindKids();
+          } else {
           const when = rep.published_at ? new Date(rep.published_at).toLocaleDateString("ko-KR") : "";
           const RTYPE = { single_meal:"한 끼 리포트", multi_day:"주간 리포트", coaching:"코칭 리포트" };
           const rtLabel = RTYPE[rep.report_type] || "리포트";
-          let html = `<div class="rhead"><div class="who"><div class="av">${nm.slice(0,1)}</div>`
+          let html = kidsBar + `<div class="rhead"><div class="who"><div class="av">${nm.slice(0,1)}</div>`
             + `<div><b>${nm} 식사 리포트</b><span>${esc(rtLabel)}${ageMonths(child.birth_date)}</span></div></div>`
             + (when? `<div class="period">📅 발행일 ${when}</div>`:``) + `</div>`;
           (fs||[]).forEach(f=>{
@@ -116,7 +172,10 @@
           });
           html += `<p class="rnote">측정·관찰·해석의 출처를 구분해 보여드립니다. 해석은 단정이 아닌 추정이며, 다음 기록에서 계속 관찰합니다.<br>· Chewstep은 의료 진단이 아닙니다 ·</p>`;
           show(html);
-        }
+          bindKids();
+          }   // findings 있음
+        }     // 발행본 있음
+        }     // 가정 식습관 체크 완료
       }
     } catch (err) {
       state("⚠️","리포트를 불러오지 못했어요", (err && err.message) ? err.message : "잠시 후 다시 시도해 주세요.");

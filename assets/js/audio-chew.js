@@ -68,6 +68,8 @@ export class AudioChewDetector {
     this.chew = 0; this._chewedFlag = false; this._onsetFlag = false;
     this._lastOnsetMs = -1e9; this._streak = 0; this._locked = false;
     this._lastRatio = 0; this._lastLevel = 0; this._lastRaw = 0;
+    this.eventTimes = [];
+    this._timeOriginMs = this._ctx ? this._ctx.currentTime * 1000 : 0;
   }
 
   async init(stream) {
@@ -164,7 +166,8 @@ export class AudioChewDetector {
       this._state = "burst";
     } else if (this._state === "burst" && ratio <= C.offRatio) {
       this._state = "quiet";
-      const gap = t - this._lastOnsetMs;      // 직전 온셋과의 간격
+      const previousOnsetMs = this._lastOnsetMs;
+      const gap = t - previousOnsetMs;      // 직전 온셋과의 간격
       if (gap >= C.minChewGapMs) {
         this._onsetFlag = true;               // 그래프용(필터 전 원시 온셋)
         this._lastOnsetMs = t;
@@ -177,6 +180,10 @@ export class AudioChewDetector {
             const add = this._locked ? 1 : C.rhythmNeed;
             this._locked = true;
             this.chew += add; this._lastChewMs = t; this._chewedFlag = true;
+            if (add > 1 && Number.isFinite(previousOnsetMs) && previousOnsetMs > -1e8) {
+              this.eventTimes.push((previousOnsetMs - this._timeOriginMs) / 1000);
+            }
+            this.eventTimes.push((t - this._timeOriginMs) / 1000);
           }
         } else {
           // 케이던스 밖(너무 김/한 방) → 리듬 리셋(이 온셋이 새 시작점)
@@ -199,6 +206,7 @@ export class AudioChewDetector {
       rhythm: this._locked,       // 리듬 락 여부(씹는 중으로 판정 중)
       chew: this.chew,            // 리듬 게이트를 통과한 카운트만
       chewed: this._chewedFlag,   // 이 프레임에 카운트됐는지
+      eventTimes: this.eventTimes.slice(),
     };
   }
 
