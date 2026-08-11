@@ -73,12 +73,18 @@ begin
      and e.status = 'enrolled'
    limit 1;
 
-  -- 담임: 그 반의 classroom_members(role='teacher') 중 한 명. 없으면 null 로 두고 화면에서 줄을 뺀다.
+  -- 담임. 없으면 null 로 두고 화면에서 줄을 뺀다.
+  -- ⚠ 2026-08-10 수정 — `role = 'teacher'` 로 찾고 있었는데 `classroom_members.role` 의 CHECK 는
+  --    'main_teacher' | 'assistant_teacher' 만 허용한다. 그래서 이 조회가 **항상 0행**이었고
+  --    담임 이름이 영원히 null 이었다(실기관 등록 준비 중 스키마 대조로 발견).
+  --    담임이 둘이면 main_teacher 를 먼저 쓴다.
   select p.name into v_teacher
     from child_enrollments e
-    join classroom_members cm on cm.classroom_id = e.classroom_id and cm.role = 'teacher'
+    join classroom_members cm on cm.classroom_id = e.classroom_id
+     and cm.role in ('main_teacher','assistant_teacher')
     join profiles p on p.id = cm.profile_id
    where e.child_id = v_code.child_id and e.status = 'enrolled'
+   order by (cm.role = 'main_teacher') desc
    limit 1;
 
   -- 확인 시도를 남긴다(코드 추측 감시용). stable 함수라 여기서 INSERT 는 하지 않고,
