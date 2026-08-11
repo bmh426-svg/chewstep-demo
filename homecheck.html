@@ -126,7 +126,7 @@
         { id:"lump", q:"덩어리·알갱이가 섞인 음식", type:"radio",
           opts:[["ok","괜찮아요"],["pick","골라내요"],["spit","뱉어요"],["unknown","잘 모르겠어요"]] },
       ] },
-    { key:"env", eyebrow:"5 / 5", title:"식사 환경과<br>보호자 도움", lede:"마지막이에요.",
+    { key:"env", eyebrow:"5 / 6", title:"식사 환경과<br>보호자 도움", lede:"거의 다 왔어요.",
       fields:[
         { id:"where", q:"주로 먹는 자리", type:"radio",
           opts:[["chair","아이 의자에 앉아서"],["table","식탁에 함께"],["move","돌아다니면서"],["vary","그날그날 달라요"]] },
@@ -137,6 +137,18 @@
         { id:"help", q:"안 먹을 때 보호자의 대응", type:"radio",
           opts:[["wait","기다려요"],["feed","먹여줘요"],["persuade","달래거나 설득해요"],
                 ["other","다른 음식을 줘요"],["stop","식사를 끝내요"]] },
+      ] },
+    // 6단계는 **가정 정보가 아니라 수신 선택**이다(PRD §13-2 수신 3택).
+    // 왜 여기 있나: 엣지함수 get-report-media-url 이 이 값을 확인하고, 없으면 기본값 analysis_only 로
+    //   **영상을 거부한다**(PREFERENCE_MISMATCH). 즉 이걸 받지 않으면 영상을 만들어도 보호자가 못 본다.
+    //   답은 child_home_profiles 가 아니라 report_delivery_preferences 로 따로 저장한다(§13-2).
+    { key:"delivery", eyebrow:"6 / 6", title:"리포트에 영상을<br>포함할까요?",
+      lede:"언제든 바꿀 수 있어요. 영상은 보호자에게만 보이고, 다른 아이의 얼굴은 담기지 않게 편집합니다.",
+      fields:[
+        { id:"delivery_type", q:"받고 싶은 형태", type:"radio",
+          opts:[["meal_video","식사 영상까지 받고 싶어요"],
+                ["thumbnail_only","사진(썸네일)만 받고 싶어요"],
+                ["analysis_only","영상 없이 기록·리포트만 받고 싶어요"]] },
       ] },
   ];
 
@@ -255,6 +267,17 @@
           $("hcNext").disabled = false;
           say("저장에 실패했어요. 잠시 후 다시 시도해 주세요. (" + (error.message || "") + ")");
           return;
+        }
+        // 수신 방식은 별도 테이블이다(§13-2). 이 값이 없으면 엣지함수가 영상을 거부한다.
+        // 실패해도 식습관 답은 이미 저장됐으므로 흐름을 막지 않는다 — 대신 조용히 넘기지 않고 알린다.
+        if (data.delivery_type) {
+          const { error: dErr } = await sb.rpc("set_report_delivery_preference",
+            { p_child: childId, p_delivery_type: data.delivery_type });
+          if (dErr) {
+            $("hcNext").disabled = false;
+            say("답은 저장됐는데 수신 방식을 저장하지 못했어요. 다시 눌러 주세요. (" + (dErr.message || "") + ")");
+            return;
+          }
         }
         done.add(childId);
         // 형제가 더 있으면 리포트로 밀어내지 않고 **다음 아이를 이어서** 받는다.

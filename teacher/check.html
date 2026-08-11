@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>매일 체크 · Chewstep 교사</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%85%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/assets/css/site.css" />
+<!--
+  교사 매일 체크 — 웹 (2026-08-11 신설)
+
+  왜 웹에 만드나
+    · 선생님들이 **노트북으로** 키즈노트를 쓴다(현장 확인). 급식 중엔 폰, 정리는 노트북이 자연스럽다.
+    · 앱은 안드로이드만 있어 아이폰 담임은 쓸 수 없다. 웹이면 기기를 묻지 않는다.
+    · 기존 /teacher/ 는 관찰을 **1건씩** 드롭다운으로 넣는 폼이라 매일 쓰기엔 느리다.
+
+  값 집합은 앱(screens/inst-check.js)과 **같아야 한다** — 어긋나면 같은 아이 기록이 두 갈래가 된다.
+    intake  = 잘 먹음 / 조금 / 거의 안 / 안 먹음   → 넷 중 하나(서로 교체)
+    spitting= 뱉음                                 → intake 와 함께 존재할 수 있다
+    speed   = 빠름 / 느림                          → 음식이 아니라 그 끼니 단위
+
+  ★ 지키는 것
+    1) 눈에 띈 것만 누른다. **기본값을 넣지 않는다** — 미기록은 '보통'이 아니라 기록 없음이다(PRD §9-3).
+    2) 저장은 누른 즉시. 실패하면 **버튼 상태를 되돌린다**(저장 안 된 것을 저장된 것처럼 보이면 안 된다).
+    3) 음식은 그 끼니의 food_items 에서만 고른다. 여기서 새 음식을 만들지 않는다 —
+       이름이 갈라지면 주간 집계가 깨진다. 식단표 등록은 별도 화면의 일이다.
+    4) 「반 전체 확인」은 예외 입력과 별개다. 누르지 않으면 보호자에게 '관찰 기록 없음'으로 간다.
+
+  저장 경로 (권한은 전부 RLS/정책이 판정한다)
+    관찰  RPC record_observation        (슬롯 기준 UPSERT — 직접 INSERT 하면 유니크 위반)
+    해제  DELETE teacher_observations   (정책 obs_del · is_teacher_of_child)
+    확인  RPC set_meal_review_completed (정책 meal_upd · is_classroom_teacher)
+-->
+<style>
+  body { background:var(--bg-soft); }
+  .top { background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 18px; flex-wrap:wrap; }
+  .top .brand { display:flex; align-items:center; gap:9px; font-weight:800; color:var(--ink); font-size:16px; text-decoration:none; }
+  .top .brand .logo { width:28px;height:28px;border-radius:8px;background:linear-gradient(145deg,var(--brand),var(--brand-deep));display:grid;place-items:center;color:#fff;font-size:14px; }
+  .top .who { font-size:13px; color:var(--ink-soft); }
+  .top .out { font-size:13px; color:var(--ink-soft); text-decoration:none; border:1px solid var(--line); padding:6px 11px; border-radius:9px; }
+
+  .wrap { max-width:980px; margin:0 auto; padding:20px 18px 70px; }
+  h1.title { font-size:22px; color:var(--ink); margin:4px 0 6px; }
+  .lede { color:var(--ink-soft); font-size:14px; line-height:1.6; margin-bottom:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:12px; box-shadow:var(--shadow-sm); }
+  .sec { font-size:13px; font-weight:800; color:var(--brand-deep); letter-spacing:.02em; margin:20px 0 8px; }
+
+  .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .inp, select.inp { font-family:var(--font); font-size:15px; color:var(--ink);
+    border:1px solid #d9e0dc; border-radius:10px; padding:9px 11px; background:#fff; }
+  .chips { display:flex; gap:7px; flex-wrap:wrap; }
+  .chip { font-family:inherit; font-size:14px; color:var(--ink-2); background:#fff;
+    border:1px solid #e3ddd3; border-radius:999px; padding:8px 14px; cursor:pointer; }
+  .chip:hover { border-color:#cbd0d8; }
+  .chip.on { border-color:var(--brand); background:var(--brand-tint); color:var(--ink); font-weight:700; }
+
+  /* 원아 행 — 폰에서는 세로로 쌓이고, 노트북에서는 이름과 버튼이 한 줄에 놓인다 */
+  .kid { display:grid; grid-template-columns:1fr; gap:8px; padding:12px 14px;
+    border:1px solid var(--line); border-radius:12px; background:#fff; margin-bottom:8px; }
+  .kid b { font-size:15px; color:var(--ink); }
+  .kid .btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .b { font-family:inherit; font-size:13.5px; color:var(--ink-2); background:#fff;
+    border:1px solid #e3ddd3; border-radius:9px; padding:8px 12px; cursor:pointer; white-space:nowrap; }
+  .b.on { border-color:var(--brand-deep); background:var(--brand-deep); color:#fff; font-weight:700; }
+  .b.spit.on { border-color:var(--clay,#c2714f); background:var(--clay,#c2714f); }
+  .b:disabled { opacity:.5; cursor:default; }
+  @media (min-width:720px) {
+    .kid { grid-template-columns:180px 1fr; align-items:center; gap:14px; }
+  }
+
+  .rv { border:1px solid var(--line); border-radius:14px; padding:14px 16px; background:#fff; margin-top:14px; }
+  .rv.on { border-color:var(--brand); background:var(--brand-tint); }
+  .rv label { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+  .rv input { width:19px;height:19px;flex:none;accent-color:var(--brand-deep);margin-top:2px; }
+  .rv .t { font-size:14.5px; font-weight:700; color:var(--ink); }
+  .rv .d { font-size:12.5px; color:var(--ink-soft); line-height:1.55; margin-top:3px; }
+
+  .out { margin-top:14px; font-size:13.5px; padding:11px 14px; border-radius:10px; display:none; line-height:1.55;
+    background:var(--bg-soft); border:1px solid var(--line); color:var(--ink-2); }
+  .out.show { display:block; }
+  .out.err { background:var(--amber-tint); color:#6b5518; border-color:#f0e2bf; }
+  .out.ok { background:var(--brand-tint); color:var(--brand-deep); border-color:#bfe6d5; }
+  .note { font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin-top:16px; }
+  .state { text-align:center; color:var(--ink-soft); padding:60px 20px; }
+  .state h2 { color:var(--ink); font-size:18px; margin:12px 0 6px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="brand" href="/"><span class="logo">🥣</span> Chewstep</a>
+  <span class="who" id="who"></span>
+  <a class="out2 out-link" id="logout" href="#" style="font-size:13px;color:var(--ink-soft);text-decoration:none;border:1px solid var(--line);padding:6px 11px;border-radius:9px;">로그아웃</a>
+</div>
+
+<div class="wrap">
+  <div class="state" id="boot">불러오는 중…</div>
+  <div id="main" style="display:none;"></div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  const sb = createClient("https://qwfskemfsrkmlrdttvqy.supabase.co","sb_publishable_5cL015aIZo-fRKwXM16RkQ_NbzkzibH");
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const ymd = (d) => { const p=(n)=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+  const hhmm = (iso) => { if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return "";
+    const p=(n)=>String(n).padStart(2,"0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+  // ⚠ 앱 screens/inst-check.js 의 값 집합과 같아야 한다. 바꿀 때 양쪽을 함께 고친다.
+  const MEALS = [["lunch","점심"],["snack","간식"],["breakfast","아침"],["dinner","저녁"]];
+  const INTAKE = [
+    { type:"portion_intake", value:"ate_well",   label:"잘 먹음" },
+    { type:"portion_intake", value:"ate_some",   label:"조금" },
+    { type:"portion_intake", value:"ate_little", label:"거의 안" },
+    { type:"food_refusal",   value:"refused",    label:"안 먹음" },
+  ];
+  const SPIT  = { type:"spitting", value:"spit_out", label:"뱉음" };
+  const SPEED = [
+    { type:"meal_speed", value:"fast", label:"빠름" },
+    { type:"meal_speed", value:"slow", label:"느림" },
+  ];
+  const slotOf = (t) => (t === "portion_intake" || t === "food_refusal" ? "intake" : t);
+  const keyOf = (child, food, slot) => `${child}|${food || ""}|${slot}`;
+
+  const st = {
+    orgId:null, orgName:"", roomId:null, roomName:"",
+    date: ymd(new Date()), mealType:"lunch",
+    sessionId:null, reviewAt:null, foodId:null, speedMode:false,
+  };
+  let rooms = [], kids = [], foods = [], obs = new Map();
+
+  function say(msg, kind="") {
+    const el = $("out"); if (!el) return;
+    el.className = "out show" + (kind ? " "+kind : "");
+    el.textContent = msg;
+  }
+  const bootState = (em,t,d,btn="") => {
+    $("boot").innerHTML = `<div style="font-size:34px;">${em}</div><h2>${esc(t)}</h2><p>${esc(d)}</p>${btn}`;
+  };
+
+  /* ── 인증·역할 ─────────────────────────────────────────────────────────── */
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { location.replace("/login.html?next=" + encodeURIComponent(location.pathname)); }
+  else {
+    $("logout").addEventListener("click", async (e)=>{ e.preventDefault(); await sb.auth.signOut(); location.replace("/login.html"); });
+
+    // 기관 — RLS 로 소속 기관만 내려온다
+    const { data:orgs } = await sb.from("organizations").select("id,name").limit(5);
+    if (!orgs || !orgs.length) {
+      bootState("🏫","기관 정보가 없어요","선생님 계정이 어느 기관에도 연결되지 않았어요. 원에 문의해 주세요.");
+    } else {
+      st.orgId = orgs[0].id; st.orgName = (orgs[0].name || "").replace(/^\[(DEMO|TEST)\]\s*/,"");
+
+      // 담당 반. classroom_members 가 있으면 그것만(쓰기 권한이 그 반에만 있다).
+      // 없으면(원장 등) 기관 전체 반을 보여준다 — 다만 저장은 정책이 다시 판정한다.
+      const [{ data:mine }, { data:all }] = await Promise.all([
+        sb.from("classroom_members").select("classroom_id, classrooms(id,name,age_group)").eq("profile_id", session.user.id),
+        sb.from("classrooms").select("id,name,age_group").eq("organization_id", st.orgId).eq("status","active"),
+      ]);
+      const fromMine = (mine||[]).map(m=>m.classrooms).filter(Boolean);
+      rooms = fromMine.length ? fromMine : (all||[]);
+      if (!rooms.length) {
+        bootState("🚪","담당 반이 없어요","원장님께 반 배정을 요청해 주세요.");
+      } else {
+        st.roomId = rooms[0].id; st.roomName = rooms[0].name;
+        const nm = session.user.email || "";
+        $("who").textContent = `${st.orgName} · ${nm}`;
+        await load();
+      }
+    }
+  }
+
+  /* ── 데이터 적재 ───────────────────────────────────────────────────────── */
+  async function load() {
+    $("boot").style.display = "block"; $("boot").textContent = "불러오는 중…"; $("main").style.display = "none";
+
+    // 원아 (재원 중인 아이만)
+    const { data:enr } = await sb.from("child_enrollments")
+      .select("child_id, children(id,display_name)")
+      .eq("classroom_id", st.roomId).eq("status","enrolled");
+    kids = (enr||[]).map(e=>e.children).filter(Boolean)
+      .sort((a,b)=>(a.display_name||"").localeCompare(b.display_name||"","ko"));
+
+    // 끼니 — 있으면 재사용한다. **status·menu_text 를 건드리지 않는다**(식단표가 미리 들어와 있을 수 있다).
+    const { data:found } = await sb.from("meal_sessions")
+      .select("id,review_completed_at")
+      .eq("organization_id", st.orgId).eq("classroom_id", st.roomId)
+      .eq("meal_date", st.date).eq("meal_type", st.mealType).limit(1);
+    if (found && found.length) {
+      st.sessionId = found[0].id; st.reviewAt = found[0].review_completed_at || null;
+    } else {
+      const { data:ins, error:iErr } = await sb.from("meal_sessions")
+        .insert({ organization_id:st.orgId, classroom_id:st.roomId, meal_date:st.date,
+                  meal_type:st.mealType, status:"planned", created_by:session.user.id })
+        .select("id").single();
+      if (iErr) { bootState("⚠️","식사 정보를 준비하지 못했어요", iErr.message || ""); return; }
+      st.sessionId = ins.id; st.reviewAt = null;
+    }
+
+    const [{ data:fi }, { data:rows }] = await Promise.all([
+      sb.from("food_items").select("id,name,category").eq("meal_session_id", st.sessionId).order("name"),
+      sb.from("teacher_observations")
+        .select("id,child_id,food_item_id,observation_type,value_code,observation_slot")
+        .eq("meal_session_id", st.sessionId),
+    ]);
+    foods = fi || [];
+    obs = new Map((rows||[]).map(r => [keyOf(r.child_id, r.food_item_id, r.observation_slot), { id:r.id, value:r.value_code }]));
+    if (!st.foodId || !foods.some(f=>f.id===st.foodId)) st.foodId = foods.length ? foods[0].id : null;
+
+    draw();
+  }
+
+  /* ── 렌더 ──────────────────────────────────────────────────────────────── */
+  function kidRow(k) {
+    const opts = st.speedMode ? SPEED : INTAKE;
+    const food = st.speedMode ? null : st.foodId;
+    const cur  = obs.get(keyOf(k.id, food, st.speedMode ? "meal_speed" : "intake"));
+    const spit = st.speedMode ? null : obs.get(keyOf(k.id, food, "spitting"));
+    return `<div class="kid">
+      <b>${esc(k.display_name)}</b>
+      <div class="btns">
+        ${opts.map(o=>`<button class="b${cur && cur.value===o.value ? " on":""}"
+          data-kid="${k.id}" data-type="${o.type}" data-value="${o.value}">${o.label}</button>`).join("")}
+        ${st.speedMode ? "" : `<button class="b spit${spit ? " on":""}"
+          data-kid="${k.id}" data-type="${SPIT.type}" data-value="${SPIT.value}">${SPIT.label}</button>`}
+      </div>
+    </div>`;
+  }
+
+  function draw() {
+    const food = foods.find(f=>f.id===st.foodId);
+    const recorded = new Set([...obs.keys()].map(k=>k.split("|")[0])).size;
+    $("boot").style.display = "none";
+    const m = $("main"); m.style.display = "block";
+    m.innerHTML = `
+      <h1 class="title">매일 체크</h1>
+      <p class="lede">눈에 띈 것만 눌러 주세요. 누르지 않은 칸은 <b>기록 없음</b>으로 남습니다.
+        노트북에서도 폰에서도 같은 기록이에요.</p>
+
+      <div class="card">
+        <div class="bar">
+          ${rooms.length > 1 ? `<select class="inp" id="cRoom">${rooms.map(r=>
+            `<option value="${r.id}"${r.id===st.roomId?" selected":""}>${esc(r.name)}</option>`).join("")}</select>`
+            : `<span style="font-weight:700;">${esc(st.roomName)}</span>`}
+          <input class="inp" id="cDate" type="date" value="${st.date}" />
+          <div class="chips">${MEALS.map(([v,t])=>
+            `<button class="chip${v===st.mealType?" on":""}" data-meal="${v}">${t}</button>`).join("")}</div>
+        </div>
+      </div>
+
+      <div class="sec">오늘 식단</div>
+      ${foods.length ? `<div class="chips">
+          ${foods.map(f=>`<button class="chip${f.id===st.foodId && !st.speedMode ? " on":""}" data-food="${f.id}">${esc(f.name)}</button>`).join("")}
+          <button class="chip${st.speedMode?" on":""}" data-speed="1">식사 속도</button>
+        </div>`
+        : `<div class="card"><p style="color:var(--ink-soft);margin:0;">이 끼니의 식단이 아직 없어요.
+             식단표가 등록되면 여기에 음식이 떠요. <b>이 화면에서는 음식을 새로 만들지 않습니다</b> —
+             이름이 갈라지면 주간 집계가 깨지기 때문이에요.</p></div>`}
+
+      ${foods.length || st.speedMode ? `
+        <div class="sec">${st.speedMode ? "식사 속도 <span style=\"font-weight:400;color:var(--ink-soft)\">(이 끼니 전체)</span>" : esc(food ? food.name : "")}</div>
+        <p class="lede" style="margin-bottom:10px;">${recorded}/${kids.length}명 기록됨</p>
+        ${kids.length ? kids.map(kidRow).join("")
+          : `<div class="card"><p style="color:var(--ink-soft);margin:0;">이 반에 재원 중인 원아가 없어요.</p></div>`}` : ""}
+
+      <div class="rv${st.reviewAt ? " on":""}" id="rvCard">
+        <label>
+          <input type="checkbox" id="cReview"${st.reviewAt ? " checked":""} />
+          <span>
+            <span class="t">이 끼니 반 전체를 확인했어요${st.reviewAt ? ` · ${hhmm(st.reviewAt)} 확인` : ""}</span>
+            <span class="d">누르지 않으면 보호자 리포트에 <b>“관찰 기록 없음”</b>으로 나갑니다.
+              누르면 눌린 것이 없어도 <b>“특이사항 없음”</b>이라고 말할 수 있어요.</span>
+          </span>
+        </label>
+      </div>
+
+      <p class="note">기록은 누른 즉시 저장돼요. 다시 누르면 취소됩니다.</p>
+      <div class="out" id="out" role="status" aria-live="polite"></div>`;
+    bind();
+  }
+
+  /* ── 조작 ──────────────────────────────────────────────────────────────── */
+  async function toggle(btn) {
+    const childId = btn.getAttribute("data-kid");
+    const type = btn.getAttribute("data-type");
+    const value = btn.getAttribute("data-value");
+    const slot = slotOf(type);
+    const food = slot === "meal_speed" ? null : st.foodId;
+    const cur = obs.get(keyOf(childId, food, slot));
+    const same = cur && cur.value === value;
+
+    // 같은 값을 다시 누르면 해제. 다른 값이면 교체(RPC 가 슬롯 기준으로 UPDATE 한다).
+    btn.disabled = true;
+    if (same) {
+      const { error } = await sb.from("teacher_observations").delete().eq("id", cur.id);
+      btn.disabled = false;
+      if (error) { say("취소하지 못했어요. " + (error.message||""), "err"); return; }
+      obs.delete(keyOf(childId, food, slot));
+    } else {
+      const { data, error } = await sb.rpc("record_observation",
+        { p_child: childId, p_session: st.sessionId, p_type: type, p_value: value, p_food: food, p_note: null });
+      btn.disabled = false;
+      if (error) {
+        // 정책에 막히면(담당 반이 아님) 조용히 넘기지 않는다
+        say(/row-level|permission/i.test(error.message||"") ? "이 반의 담임만 기록할 수 있어요." : ("저장하지 못했어요. " + (error.message||"")), "err");
+        return;
+      }
+      obs.set(keyOf(childId, food, slot), { id: data, value });
+    }
+    say("저장했어요.", "ok");
+    draw();
+  }
+
+  function bind() {
+    $("main").querySelectorAll("[data-kid][data-type]").forEach(b => b.addEventListener("click", () => toggle(b)));
+
+    const room = $("cRoom");
+    if (room) room.addEventListener("change", () => {
+      st.roomId = room.value;
+      st.roomName = (rooms.find(r=>r.id===st.roomId)||{}).name || "";
+      load();
+    });
+    const date = $("cDate");
+    if (date) date.addEventListener("change", () => { st.date = date.value || ymd(new Date()); load(); });
+    $("main").querySelectorAll("[data-meal]").forEach(b => b.addEventListener("click", () => {
+      st.mealType = b.getAttribute("data-meal"); load();
+    }));
+    $("main").querySelectorAll("[data-food]").forEach(b => b.addEventListener("click", () => {
+      st.foodId = b.getAttribute("data-food"); st.speedMode = false; draw();
+    }));
+    const sp = $("main").querySelector("[data-speed]");
+    if (sp) sp.addEventListener("click", () => { st.speedMode = true; draw(); });
+
+    // 「반 전체 확인」 — 실패하면 체크를 되돌린다
+    const rv = $("cReview");
+    if (rv) rv.addEventListener("change", async () => {
+      const want = rv.checked;
+      rv.disabled = true;
+      say(want ? "확인으로 표시하는 중…" : "확인 표시를 지우는 중…");
+      const { data, error } = await sb.rpc("set_meal_review_completed", { p_session: st.sessionId, p_done: want });
+      rv.disabled = false;
+      if (error) {
+        rv.checked = !want;
+        say(/MEAL_NOT_UPDATABLE/.test(error.message||"") ? "이 반의 담임만 확인할 수 있어요." : ("저장하지 못했어요. " + (error.message||"")), "err");
+        return;
+      }
+      st.reviewAt = data || null;
+      say(want ? "확인으로 표시했어요." : "확인 표시를 지웠어요.", "ok");
+      draw();
+    });
+  }
+</script>
+</body>
+</html>

@@ -64,6 +64,17 @@
   <a href="/" class="brand"><span class="logo">🥣</span> Chewstep <span class="tag">교사 · 우리반</span></a>
   <div class="right"><div class="who"><b id="whoName">교사</b><span id="whoClass">—</span></div><a href="#" class="logout" id="logout">로그아웃</a></div>
 </div>
+<!-- 매일 쓰는 도구로 보내는 배너 (2026-08-11).
+     이 페이지의 '원아 관찰 기록'은 관찰을 1건씩 등록하는 폼이라 매일 쓰기엔 느리다.
+     매일 체크는 음식 하나 고르고 원아를 훑는 전용 화면(check.html)에서 한다 — 폰·노트북 둘 다. -->
+<a href="/teacher/check.html" style="display:flex;align-items:center;gap:10px;margin:14px 18px 0;padding:14px 16px;
+   background:var(--brand-tint);border:1px solid #bfe6d5;border-radius:12px;text-decoration:none;color:var(--ink);">
+  <span style="font-size:22px;">✅</span>
+  <span style="flex:1;"><b style="display:block;font-size:15px;">매일 체크 열기</b>
+    <span style="font-size:12.5px;color:var(--ink-soft);">그날 식단에서 음식을 고르고 원아를 훑어 눌러요 · 반 전체 확인까지</span></span>
+  <span style="color:var(--brand-deep);font-weight:800;">→</span>
+</a>
+
 <div class="tabs" id="tabs">
   <button class="on" data-v="today">오늘 우리반</button>
   <button data-v="obs">원아 관찰 기록</button>
