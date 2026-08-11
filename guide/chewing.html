@@ -381,5 +381,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');});});
   }
 </script>
+<!-- 여정 기록 — 가이드에 계측이 없어 이 게시판에서 나온 로그가 0건이었다.
+     체류시간 UI(읽는 시간·이어서 읽기)는 넣지 않고, 로그만 남긴다:
+     page_view · section_view · click · page_leave(dwell_ms). -->
+<script type="module">
+  import { initJourneyAutoTrack } from "/assets/js/journey.js";
+  initJourneyAutoTrack();
+</script>
 </body>
 </html>
