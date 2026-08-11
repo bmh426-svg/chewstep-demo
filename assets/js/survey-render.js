@@ -40,7 +40,7 @@ function recipePitch() {
       </div>
       <div style="margin-top:8px;color:var(--ink-soft,#8f8478);">
         억지로 먹이지 않아요.<br>
-        이미 좋아하는 음식에 <b style="color:var(--ink,#3f382f)">조금씩 섞어 가는 방법</b>이에요.
+        지금 먹는 음식 단계를 유지하며 <b style="color:var(--ink,#3f382f)">보고·만지고·맛보는 경험을 잇는 방법</b>이에요.
       </div>
     </div>
     <div style="font-size:13.5px;line-height:1.6;color:var(--ink-soft,#667);border-top:1px dashed #dbe6d0;padding-top:9px;">

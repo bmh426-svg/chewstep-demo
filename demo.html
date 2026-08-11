@@ -380,6 +380,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .sq-watch li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px;line-height:1.6;}
   .sq-watch li:last-child{border-bottom:none;}
   .sq-watch .box{width:16px;height:16px;border:2px solid var(--brand);border-radius:5px;flex:none;margin-top:4px;}
+  .sq-plan{background:linear-gradient(145deg,#edf3e8,#fff);border:1px solid #d7e3ce;border-radius:18px;padding:18px 20px;margin:0 0 14px;display:flex;gap:14px;align-items:center;}
+  .sq-plan .ic{font-size:28px;flex:none;}.sq-plan .tx{flex:1;min-width:0;}.sq-plan .tx b{display:block;font-size:15.5px;color:var(--brand-deep);margin-bottom:4px;}.sq-plan .tx small{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
+  .sq-plan button{border:0;border-radius:12px;background:var(--brand-deep);color:#fff;padding:11px 14px;font:800 13px/1.2 var(--sans);cursor:pointer;white-space:nowrap;}
+  @media(max-width:520px){.sq-plan{align-items:flex-start;flex-wrap:wrap}.sq-plan button{width:100%;}}
   /* 영상 추가 CTA */
   .sq-cta{background:linear-gradient(160deg,#f3f7ee,#fff);border:1px solid #dbe6d0;border-radius:18px;padding:22px;margin:18px 0 0;text-align:center;}
   .sq-cta h4{justify-content:center;}
@@ -783,7 +787,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="secReport" style="display:none"></div>
     <div id="reportDl" style="display:none;margin-top:12px;text-align:center;">
       <button type="button" id="dlReport" style="border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 20px;font:800 14px/1 var(--sans);color:var(--brand-deep);cursor:pointer;">📄 한 장 리포트 저장 (PDF)</button>
-      <div style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">핵심만 A4 한 장으로 — 다운로드·인쇄해서 보관하거나 공유하세요</div>
+      <div id="dlReportNote" style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">핵심만 A4 한 장으로 — 다운로드·인쇄해서 보관하거나 공유하세요</div>
     </div>
     <!-- 1 · 보호자 고민 요약 -->
     <div class="dsec" id="secConcern" style="display:none"></div>
@@ -886,7 +890,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <script type="module">
   import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-  import { supabase, anonId, sessionId, currentUserId } from "./assets/js/supabase.js";
+  import { supabase, anonId, sessionId, currentUserId, runSource } from "./assets/js/supabase.js";
   import { mountAuthUI, ensureAnonSession, isPermanentUser } from "./assets/js/auth.js";
   import { renderSurvey, collectSurveyAnswers } from "./assets/js/survey-render.js";
   import { fetchRecipe } from "./assets/js/recipe.js";
@@ -1273,7 +1277,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       };
       const row = {
         id: rowId || undefined,
-        source: "demo-app-v1",
+        source: runSource(),          // 자동화 실행이면 verify/* 로 갈라 남긴다(품질 통계 오염 차단)
         status: statusVal,
         result: resultObj,
         has_video: true,
@@ -1356,12 +1360,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           "밥·이유식을 <b>우유(수유)보다 먼저</b> 주세요 — 배부르면 잘 안 받아요.",
           "우유·주스로 배를 채우지 않기: 우유는 식사 직전이 아니라 <b>간식 시간</b>에 주세요."
         ] },
-      texture:     { label:"질감·크기", firstCheck:"이번에는 <b>음식의 질감이나 크기</b>가 아이에게 부담스럽지 않았는지 먼저 확인해 보세요.", action:"같은 음식을 지금보다 조금 더 부드럽고 작게 준비해 보세요.", watch:"바로 뱉는 행동이 줄어드는지, 씹는 움직임이 조금 더 이어지는지",
+      texture:     { label:"질감·크기", firstCheck:"이번에는 <b>음식의 질감이나 크기</b>가 아이에게 부담스럽지 않았는지 먼저 확인해 보세요.", action:"현재 편하게 먹는 음식 형태는 유지하고, 어려운 음식은 한 조각만 따로 내 반응을 살펴보세요.", watch:"보고·만지고·입에 대는 반응이 식사마다 조금 편해지는지",
         tips:[
-          "믹서로 갈지 말고 <b>포크로 거칠게 으깨</b> 작은 알갱이를 남겨 주세요(다시 갈면 오히려 이전 단계로 후퇴).",
-          "고기·채소는 <b>밥이나 매시에 섞어</b> 한 덩어리로 — 단독으로 주면 입안에서 흩어져 뱉기 쉬워요(밥의 전분이 접착제 역할).",
-          "손가락으로 눌러 <b>스르륵 뭉개질 만큼</b> 충분히 익혀 부드럽게 해주세요.",
-          "<b>한 입은 작게</b>(티스푼 반 정도) — 입안에 공간이 있어야 혀·잇몸이 음식을 굴리며 으깨요."
+          "지금 먹는 음식 단계를 유지한 채 <b>조리법·크기·제공량 중 하나만</b> 바꿔 반응을 비교해 보세요.",
+          "어려운 음식은 익숙한 음식과 같은 접시 한쪽에 <b>소량만 따로</b> 두고, 아이가 직접 탐색하게 해주세요.",
+          "먹지 않아도 보고·냄새 맡고·만졌다면 그날의 <b>식감 경험은 쌓인 것</b>으로 봐주세요.",
+          "한 번 권한 뒤에는 기다리고, 아이가 고개를 돌리거나 몸을 빼면 그날 연습은 마쳐 주세요."
         ] },
       expectation: { label:"기대 섭취량", firstCheck:"<b>한 끼 양은 한 번의 식사만으로 판단하기 어려워요.</b> 며칠간의 흐름으로 보는 게 좋아요.", action:"처음 제공량을 조금 줄여 부담을 낮추고, 아이가 더 원할 때 추가로 주세요.", watch:"거부감이 줄어드는지, 스스로 더 먹으려 하는지",
         tips:[
@@ -1371,15 +1375,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         ] },
       repetition:  { label:"익숙함·반복 노출", firstCheck:"이 음식이 <b>아직 익숙하지 않아서</b>일 수 있어요.", action:"익숙한 음식 옆에 이 음식을 소량 함께 두고, 만지거나 맛보게만 해보세요.", watch:"만지거나 입에 대보는 횟수가 느는지",
         tips:[
-          "새 음식은 <b>익숙한 음식에 5%만 섞어</b> 시작하고, 3일간 별 반응 없으면 10%로 늘려 보세요.",
-          "<b>눈에 보이게 따로 주기보다 섞어서</b> — 보이면 시각적 거부가 먼저 와요.",
+          "새 음식은 <b>익숙한 음식과 같은 접시 한쪽에 소량</b> 두고, 매번 비슷한 모습으로 만나게 해주세요.",
+          "숨겨 섞지 말고 음식이 보이게 두어, 아이가 무엇을 경험하는지 알고 선택하게 해주세요.",
           "<b>뱉어도 괜찮아요.</b> 한 번 입에 넣어 오물거린 것만으로도 경험이 쌓여요 — 바로 이전 단계로 되돌리지 마세요.",
           "같은 재료를 조리법만 바꿔 <b>여러 번 반복</b>해 만나게 해주세요."
         ] },
       unclear:     { label:"판단 제한", firstCheck:"이번 영상과 답변만으로는 한 가지 원인으로 좁히기 어려웠어요.", action:"비슷한 조건에서 한 번 더 찍어, 반복되는 모습인지 확인해 보세요.", watch:"같은 상황이 반복되는지",
         tips:[
-          "고기·채소는 <b>밥에 섞어</b> 한 덩어리로 주면 흩어져 뱉는 걸 줄일 수 있어요.",
-          "<b>한 입은 작게, 삼킨 뒤 다음 한 입</b> — 오물거릴 시간을 충분히 주세요."
+          "현재 편하게 먹는 형태는 유지하고, 한 번에 한 조건만 바꿔 반응을 비교해 보세요.",
+          "다음 식사에서는 어려운 음식을 한 조각만 따로 두고, 아이가 탐색하는 모습을 관찰해 주세요."
         ] }
     },
     safetyLabels: { choke:"사레·기침", swallow:"삼킴 어려움", vomit:"반복 구토", refuse_all:"식사·수유 전면 거부", weight:"체중 감소 우려" }
@@ -1394,18 +1398,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     portion: { "훨씬 적음":{expectation:1}, "조금 적음":{expectation:1} },
     retry: { "거의 안 함":{repetition:2}, "1~2번":{repetition:1} }              // 반복 노출 적음 = 익숙함 부족
   };
+  // 음식 단계가 설문 결과 문장까지 이어지게 하는 단일 기준표.
+  // 설문만으로 현재 단계를 낮추거나 높이지 않고, 같은 단계 안에서 부담을 줄이는 행동만 제안한다.
+  const STAGE_COACH = {
+    ground:{label:"갈아 만든 음식",action:"지금 먹는 형태는 유지하고, 연습할 음식의 냄새와 맛을 아주 소량만 경험하게 해보세요.",tip:"익숙한 음식 옆에 연습할 음식을 1/4티스푼만 두고, 먹지 않아도 보고 냄새 맡은 경험을 성공으로 봐주세요."},
+    mashed:{label:"으깬 음식",action:"지금 먹는 으깬 형태는 유지하고, 연습할 음식을 같은 되기와 부드러움으로 소량만 따로 내보세요.",tip:"한 번에 한 가지만 바꾸고, 손이나 숟가락으로 만져보기만 해도 그날의 연습은 끝내도 괜찮아요."},
+    small_bits:{label:"작은 알갱이 음식",action:"지금의 작은 알갱이 형태는 유지하고, 연습할 음식도 비슷한 부드러움과 크기로 한두 조각만 따로 내보세요.",tip:"익숙한 음식과 같은 접시에 두되 숨겨 섞지 말고, 아이가 먼저 만지거나 고를 시간을 주세요."},
+    soft:{label:"무른 유아식",action:"지금의 무른 유아식 형태는 유지하고, 연습할 음식은 같은 부드러움으로 익혀 한 조각만 접시 한쪽에 따로 내보세요.",tip:"갈거나 으깨 이전 단계로 되돌리지 말고, 한 조각을 보고·만지고·입에 대보는 순서로 천천히 익숙해지게 해주세요."},
+    regular:{label:"일반 가정식",action:"일반식 형태는 유지하고, 연습할 음식은 질긴 부분만 제거하거나 부드럽게 조리해 한 조각만 따로 내보세요.",tip:"매시나 죽에 숨겨 섞지 말고, 가족과 같은 식탁에서 보고·만지고·한입 선택하는 경험부터 시작해 주세요."}
+  };
+  function stageSafeAdvice(sv, possibility, action, tips, watch){
+    const l1=(sv&&sv.lens01)||{}, form=l1.food_form, st=STAGE_COACH[form];
+    const out=(tips||[]).slice();
+    // 무른 유아식·일반식에는 이유식 단계로 되돌리는 문장을 결과의 어느 경로에서도 허용하지 않는다.
+    const lowStage=/믹서|포크로\s*(거칠게\s*)?으깨|매시|죽에\s*섞|알갱이를\s*남기|더\s*부드럽고\s*작게|육수\s*한\s*티스푼/;
+    const clean=(form==="soft"||form==="regular") ? out.filter(x=>!lowStage.test(String(x).replace(/<[^>]+>/g,""))) : out;
+    if(possibility==="texture" && st){
+      return {action:st.action,tips:[st.tip].concat(clean.filter(x=>x!==st.tip)).slice(0,3),watch:"한 조각을 보고·만지고·입에 대는 반응이 식사마다 조금 편해지는지"};
+    }
+    if(st && (form==="soft"||form==="regular") && clean.length===0) clean.push(st.tip);
+    return {action:action,tips:clean.slice(0,5),watch:watch};
+  }
   // 설문 상황별 '바로 할 수 있는' 맞춤 팁(부모가이드 첫걸음_가이드 근거, 의학확인 필요 항목 제외)
   function situationalTips(sv, cur){
     const t = []; if(!sv) return t;
     const l1 = sv.lens01 || {}; const beh = l1.behavior; const c = sv.concern;
     if(c==="spit" || beh==="씹다가 뱉음")
-      t.push("먹고 뱉을 때: 채소·고기를 <b>밥과 함께 섞어</b> 주고, 뱉는 순간 <b>육수 한 티스푼</b>이면 삼킴이 시작돼요(습관되지 않게 가끔만).");
+      t.push("먹고 뱉었을 때는 억지로 다시 넣지 말고, 같은 형태를 <b>한 조각만 따로</b> 두어 다음 식사 반응을 비교해 보세요.");
     if(c==="hold" || c==="slow" || beh==="오래 물고 있음" || (cur && cur.cpm && cur.cpm<25)){
       t.push("<b>음식 농도를 조금 되직하게</b>(숟가락에서 뚝 끊어져 떨어질 정도) — 너무 묽으면 씹지 않고 그냥 넘어가요.");
       t.push("삼키기 전 <b>다음 숟가락을 살짝 늦춰</b> 입안에서 오물거릴 시간을 주세요.");
     }
     if(c==="meat")
-      t.push("고기는 <b>잘게 다져 밥·매시에 섞어</b> 매 끼 조금씩 — 단독으로 주면 흩어져 대부분 뱉어요.");
+      t.push("고기는 질긴 부분을 제거하고 <b>현재 먹는 음식 단계에 맞는 조리 상태</b>로 한 조각만 따로 내보세요.");
     if(l1.meal_time==="40분 이상")
       t.push("식사가 40분을 넘기면: 정해진 시간(20~30분)에 <b>깔끔하게 종료</b>하고 “한 숟가락만 더”는 피해 주세요.");
     if(c==="fast")
@@ -1453,7 +1478,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                      : (cur.quality==="high" ? "high" : ((cur.quality==="low_face"||cur.quality==="low_motion") ? "low" : "medium"));
     const tips = (p.tips || []).slice();
     situationalTips(sv, cur).forEach(x => { if(tips.indexOf(x) < 0) tips.push(x); });
-    return { safety, safetyOn, possibility: top, second: second, label:p.label, firstCheck:p.firstCheck, action:p.action, watch:p.watch, tips:tips.slice(0,5), score, confidence };
+    const safe = stageSafeAdvice(sv, top, p.action, tips, p.watch);
+    return { safety, safetyOn, possibility: top, second: second, label:p.label, firstCheck:p.firstCheck, action:safe.action, watch:safe.watch, tips:safe.tips, score, confidence };
   }
   // 안전 덮어쓰기 배너(§5) — legacy 코드 배열이 있으면 태그로, 없으면(safety_alert) 일반 안내
   function safetyBannerHtml(safety){
@@ -2258,6 +2284,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     checks.push(["살펴보기", "아이가 뱉는 횟수·씹는 시간이 조금씩 달라지는지 관찰하기"]);
     box.style.display = "";
     const dl = $("reportDl"); if(dl) dl.style.display = "";
+    const dlBtn=$("dlReport"), dlNote=$("dlReportNote");
+    if(dlBtn) dlBtn.textContent="📄 한 장 리포트 저장 (PDF)";
+    if(dlNote) dlNote.textContent="핵심만 A4 한 장으로 — 다운로드·인쇄해서 보관하거나 공유하세요";
     box.innerHTML =
       `<div class="rp-core"><span class="d"></span><span class="t"><b>핵심 한 줄</b> · ${escapeHtml(core)}</span></div>`+
       (concernLabel ? `<span class="rp-chip">보호자 고민 · ${escapeHtml(concernLabel)}</span>` : "")+
@@ -2276,7 +2305,56 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // ── 한 장 리포트(PDF) — 핵심만 A4 한 장, 새 창에서 인쇄/저장 ──
+  function challengePagerHtml(){
+    const a=lastAnswers||{}, sv=a.survey||{}, l1=sv.lens01||{}, rc=sv.recipe||{};
+    const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const target=(rc.practice||"연습할 음식").trim(), liked=(rc.liked||"익숙한 음식").trim();
+    const last=target.charCodeAt(target.length-1), hasJong=last>=0xAC00&&last<=0xD7A3&&((last-0xAC00)%28!==0);
+    const targetObj=target+(hasJong?"을":"를");
+    const meatPlan=/소고기|쇠고기|고기/.test(target);
+    const stage=STAGE_COACH[l1.food_form]||{label:"현재 먹는 음식",action:"현재 편하게 먹는 형태는 유지해 주세요.",tip:"먹는 양보다 편안하게 경험한 횟수를 살펴봐 주세요."};
+    const name=(currentChild&&currentChild.name)||"우리 아이";
+    const generalDays=[
+      ["보기",`${targetObj} ${liked} 옆에 아주 조금 따로 놓아 주세요. 먹지 않아도 바라보면 오늘 미션은 끝이에요.`,"봤어요"],
+      ["만져보기",`아이에게 ${targetObj} 접시에 옮기거나 숟가락으로 건드려 보게 해주세요. 손에 묻어도 괜찮아요.`,"만졌어요"],
+      ["냄새 맡기",`보호자가 먼저 냄새를 맡는 모습을 보여주세요. 아이가 가까이 가져가 보기만 해도 충분해요.`,"냄새 맡았어요"],
+      ["입에 대보기",`${stage.label} 형태는 그대로 유지하세요. ${targetObj} 입술이나 혀에 살짝 대보고 뱉어도 괜찮아요.`,"입에 대봤어요"],
+      ["같은 방법 반복",`어제 가장 편안했던 방법을 그대로 한 번 더 해보세요. 양·크기·조리법을 한꺼번에 바꾸지 않아요.`,"다시 해봤어요"],
+      ["한입 선택",`${target} 한 조각을 따로 두고 아이가 먹을지 직접 고르게 해주세요. 먹지 않아도 권유는 한 번이면 충분해요.`,"선택해봤어요"],
+      ["잘 된 방법 찾기",`7일 중 거부가 가장 적었던 방법으로 다시 만나보세요. 다음 주에도 그 방법부터 이어가면 돼요.`,"편한 방법을 찾았어요"]
+    ];
+    const meatDays=[
+      ["1단계 · 다진 고기",`${targetObj} 아주 곱게 다져 한 티스푼의 1/4 정도만 ${liked} 옆에 따로 놓아 주세요. 먹지 않아도 바라보면 성공이에요.`,"다진 고기를 봤어요"],
+      ["1단계 · 다진 고기",`어제와 같은 다진 고기를 다시 내고, 아이가 숟가락으로 건드리거나 냄새 맡게 해주세요. 편안한 반응이 없으면 이 단계를 반복해요.`,"다진 고기를 만졌어요"],
+      ["2단계 · 더 잘게 다진 고기",`1단계가 편안했던 경우에만 입자를 아주 조금 키워 보세요. 불편해하면 바로 다진 고기로 돌아가요.`,"2단계를 살펴봤어요"],
+      ["2단계 · 더 잘게 다진 고기",`현재 먹는 형태의 부드러움은 유지하고, 잘게 다진 고기 한 조각만 따로 내보세요. 한 번 권한 뒤 기다려요.`,"입에 대봤어요"],
+      ["3단계 · 작은 부드러운 조각",`앞 단계에서 편안했다면 손가락으로 쉽게 부서지는 작은 조각을 한 개만 선택지로 놓아 주세요. 단계 올리기는 선택이에요.`,"작은 조각을 봤어요"],
+      ["3단계 · 작은 부드러운 조각",`작은 조각을 먹으라고 재촉하지 말고, 아이가 직접 고르게 해주세요. 불편한 신호가 있으면 전 단계로 돌아가요.`,"아이 반응을 확인했어요"],
+      ["이번 주에 편했던 단계",`다진 고기부터 오늘까지 가장 편안했던 입자로 다시 만나 보세요. 다음 주에도 그 단계에서 이어가면 충분해요.`,"편한 입자를 찾았어요"]
+    ];
+    const meatPhases=[
+      ["STEP 1","4주","다진고기 · 미트볼 · 함박스테이크 · 떡갈비","다진 고기처럼 입자가 고르고 부드러운 음식부터 시작해요. 한 번에 한입 또는 두입이면 충분해요."],
+      ["STEP 2","최소 4주","불고기 · 얇은 샤브샤브 · 다진 장조림","다진고기보다 살짝 큰 정도부터 시작하세요. 익숙해지면 크기를 조금씩 키우고, 불편해하면 전 단계로 돌아가요."],
+      ["STEP 3","1~2개월","닭다리살 · 돼지 안심 · 부드러운 소고기","앞 단계가 편안해진 뒤 부드럽게 조리한 고기로 넓혀가요. 매일 먹일 필요 없이 주 2~3회면 충분해요."],
+      ["STEP 4","그 이후","일반 고기 도전","한 번에 한입·두입이면 성공이에요. 한 접시를 다 먹이는 것이 목표가 아니에요."]
+    ];
+    const days=meatPlan?meatDays:generalDays;
+    const rows=days.map((d,i)=>`<div class="day"><div class="dn"><small>DAY</small><b>${i+1}</b></div><div class="dc"><span>${esc(d[0])}</span><strong>${esc(d[1])}</strong></div><div class="ck">□<small>${esc(d[2])}</small></div></div>`).join("");
+    const phaseRows=meatPhases.map(p=>`<div class="phase"><div class="phaseHead"><b>${p[0]}</b><span>${p[1]}</span></div><div class="phaseFoods">${esc(p[2])}</div><p>${esc(p[3])}</p><div class="phaseCheck">□ 이번 단계에서 편안하게 경험했어요</div></div>`).join("");
+    const meatResponse=`<section class="response"><h2>안 먹거나 뱉었을 때</h2><div><b>안 먹었다?</b> “괜찮아.” 하고 끝내요.</div><div><b>먹었다?</b> “오~ 씹어봤네?” 하고 끝내요.</div><div><b>뱉었다?</b> “뱉었구나.” 하고 끝내요.</div><p>안 먹으면 고기 한 조각만 식판에 올려두고, 더 권하지 않아도 괜찮아요.</p></section><section class="response important"><h2>가장 중요한 것</h2><p>억지로 먹이는 순간 고기가 싫은 음식으로 기억될 수 있어요.</p><p>엄마·아빠가 고기를 맛있게 먹는 모습을 자주 보여주세요.</p></section>`;
+    return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(target)} ${meatPlan?"입자 적응":"7일 적응"} 플랜 — Chewstep</title><style>`+
+      `@page{size:A4;margin:13mm}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#332f29;background:#eee;line-height:1.5}.page{width:210mm;min-height:297mm;margin:18px auto;background:#fff;padding:16mm}.head{background:#6f875e;color:#fff;border-radius:18px;padding:22px 24px;margin-bottom:14px}.head small{font-weight:800;letter-spacing:.12em;opacity:.8}.head h1{font-size:27px;line-height:1.25;margin:5px 0}.head p{margin:0;font-size:13.5px;opacity:.92}.meta{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.meta span{background:#edf3e8;color:#536b44;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700}.guide{background:#fff8e8;border-left:4px solid #e7b849;border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:12px}.day{display:grid;grid-template-columns:46px 1fr 76px;gap:11px;align-items:center;border-top:1px solid #ece7df;padding:10px 0}.dn{text-align:center;color:#6f875e}.dn small{display:block;font-size:9px;font-weight:800}.dn b{font-size:22px}.dc span{display:inline-block;background:#edf3e8;color:#536b44;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:800;margin-bottom:3px}.dc strong{display:block;font-size:13px;line-height:1.5}.ck{text-align:center;color:#b9ae9d;font-size:22px}.ck small{display:block;color:#777;font-size:9px;line-height:1.25}.success{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.box{border-radius:13px;padding:11px 13px;font-size:12px}.ok{background:#edf3e8}.note{background:#f7f2ea}.box b{display:block;color:#536b44;margin-bottom:3px}.phase{border:1px solid #dce7d5;border-radius:14px;padding:12px 14px;margin:10px 0;background:#fbfdf9}.phaseHead{display:flex;justify-content:space-between;align-items:center;color:#536b44}.phaseHead b{font-size:17px}.phaseHead span{font-size:12px;font-weight:800;background:#edf3e8;border-radius:999px;padding:4px 9px}.phaseFoods{font-weight:800;font-size:14px;margin-top:7px}.phase p{font-size:13px;line-height:1.55;margin:5px 0;color:#5e544a}.phaseCheck{font-size:12px;color:#8a7d6d;margin-top:8px}.response{border-radius:14px;background:#f7f2ea;padding:13px 15px;margin-top:12px;font-size:13px;line-height:1.55}.response h2{font-size:15px;color:#536b44;margin:0 0 7px}.response b{color:#536b44}.response p{margin:7px 0 0}.response.important{background:#edf3e8}.foot{font-size:10.5px;color:#777;margin-top:13px;border-top:1px solid #eee;padding-top:8px}.bar{position:sticky;top:0;background:#394c30;color:#fff;text-align:center;padding:10px;z-index:2}.bar button{border:0;border-radius:8px;background:#fff;color:#394c30;padding:7px 12px;margin-left:6px;font-weight:800;cursor:pointer}@media(max-width:760px){.page{width:auto;min-height:0;margin:0;padding:22px 17px;border-radius:0}.day{grid-template-columns:38px 1fr}.ck{grid-column:2;text-align:left;display:flex;gap:6px;align-items:center}.success{grid-template-columns:1fr}.phaseHead{gap:8px}}@media print{body{background:#fff}.bar{display:none}.page{margin:0;padding:0;width:auto;min-height:0}.day,.phase{break-inside:avoid}}`+
+      `</style></head><body><div class="bar">보관할 파일을 선택하세요 <button onclick="window.print()">PDF로 저장 / 인쇄</button><button onclick="saveHtml()">HTML 파일 받기</button></div><main class="page">`+
+      `<header class="head"><small>CHEWSTEP · 7 DAY ADAPTATION PLAN</small><h1>${esc(target)} ${meatPlan?"입자 적응":"7일 적응"} 플랜</h1><p>${meatPlan?"다진 고기부터 시작해, 아이가 편한 입자를 천천히 찾아요.":"매일 한 가지 경험만 — 먹지 않아도 익숙해지는 중이에요."}</p></header>`+
+      `<div class="meta"><span>${esc(name)}</span><span>현재 형태 · ${esc(stage.label)}</span><span>익숙한 음식 · ${esc(liked)}</span></div>`+
+      (meatPlan?`<div class="guide"><b>입자 사다리</b> · 다진 고기 → 더 잘게 다진 고기 → 작은 부드러운 조각 → 일반 고기. 현재 입자를 편안하게 경험한 경우에만 다음 단계를 선택하고, 불편해하면 전 단계로 돌아가세요.</div>${phaseRows}${meatResponse}`:
+      `<div class="guide"><b>이번 주 원칙</b> · ${esc(stage.action)} 숨겨 섞거나 억지로 먹이지 않고, 아이가 멈추면 그날은 거기서 끝내세요.</div>${rows}`+
+      `<section class="success"><div class="box ok"><b>오늘의 성공 기준</b>봤다면 성공 · 만졌다면 큰 성공 · 입에 대봤다면 아주 큰 성공. 삼키는 것만 성공으로 세지 않아요.</div><div class="box note"><b>다음 주에 이어갈 기준</b>7일 중 아이 표정과 몸이 가장 편안했던 방법을 고르세요. 거부가 커지면 전날 단계로 돌아가도 괜찮아요.</div></section>`)+
+      `<div class="foot">※ 설문 답변을 바탕으로 만든 참고용 적응 플랜이며 진단이나 치료를 대신하지 않습니다. 반복되는 사레·기침, 삼킴·호흡 문제, 성장 우려가 있으면 소아청소년과 또는 섭식·연하 전문가와 상의하세요. · © 2026 Chewstep</div></main>`+
+      `<script>function saveHtml(){var c=document.documentElement.cloneNode(true),b=c.querySelector('.bar');if(b)b.remove();var u=URL.createObjectURL(new Blob(['<!doctype html>'+c.outerHTML],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download='Chewstep-${meatPlan?"소고기-입자-적응-플랜":"7일-적응-플랜"}.html';a.click();setTimeout(function(){URL.revokeObjectURL(u)},1000)}<\/script></body></html>`;
+  }
   function onePagerHtml(recipe){
+    if(!lastCur) return challengePagerHtml();
     const cur = lastCur || {}, a = lastAnswers || {};
     const rLiked = (recipeInput && recipeInput.liked) || "", rPractice = (recipeInput && recipeInput.practice) || "";
     const coach = computeCoaching(cur, lastMetrics, a);
@@ -2338,7 +2416,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     try{ w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;color:#5f7a4f;padding:24px">리포트를 준비하고 있어요…</p>'); }catch(e){}
     // 레시피 입력이 있으면 함께 담기 위해 미리 조회(키 없으면 템플릿)
     let recipe = null;
-    if(recipeInput){ try{ const out = await fetchRecipe(recipeInput.liked, recipeInput.practice, recipeInput.ctx); if(out && out.recipes && out.recipes.length){ recipe = out.recipes.find(r=>r.suitable!==false) || out.recipes[0]; } }catch(e){} }
+    if(lastCur && recipeInput){ try{ const out = await fetchRecipe(recipeInput.liked, recipeInput.practice, recipeInput.ctx); if(out && out.recipes && out.recipes.length){ recipe = out.recipes.find(r=>r.suitable!==false) || out.recipes[0]; } }catch(e){} }
     try{
       w.document.open(); w.document.write(onePagerHtml(recipe)); w.document.close();
       if(window.csLog) window.csLog("demo_report_download", { possibility: (computeCoaching(lastCur, lastMetrics, lastAnswers)||{}).possibility, withRecipe: !!recipe });
@@ -2771,11 +2849,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       sqCauseHtml(coach.possibility, 1, a)+
       (coach.second ? sqCauseHtml(coach.second, 2, a) : "")+`</div>`;
 
-    // 3 · 다음 식사에서 해볼 방법 (2~3개)
-    const acts=[]; const push=t=>{ if(t && acts.indexOf(t)<0 && acts.length<3) acts.push(t); };
-    push(coach.action); (coach.tips||[]).forEach(push);
+    // 3 · 결과 화면에는 행동 한 가지만. 자세한 반복 연습은 별도 7일 플랜 파일로 분리한다.
+    const acts=[coach.action].filter(Boolean);
     h += `<div class="sq-sec"><h4><span class="sq-n">3</span>다음 식사에서 해볼 방법</h4>`+
-      `<p class="sq-cap">한 번에 다 바꾸지 않아도 괜찮아요. 위에서부터 하나씩 해보세요.</p>`+
+      `<p class="sq-cap">한 번에 하나만 바꾸고, 아이 반응을 살펴보세요.</p>`+
       `<ol class="sq-acts">${acts.map(t=>`<li>${t}</li>`).join("")}</ol></div>`;
 
     // 4 · 다음 식사에서 살펴볼 점
@@ -2824,7 +2901,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const months = (sv.age_months!=null) ? sv.age_months : ((answers&&answers.child_age_months!=null)?answers.child_age_months:null);
       const row = {
         id: rowId || undefined,
-        source: "demo-app-v1",
+        source: runSource(),                // 자동화 실행이면 verify/* 로 갈라 남긴다
         status: null,                       // 영상 분석 상태가 아직 없음
         has_video: false,
         video_status: "none",
@@ -2873,6 +2950,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       `식사 영상을 추가하면 실제 씹는 움직임과 식사 중 행동까지 반영해 <b>같은 기록에서 결과를 다시</b> 살펴볼 수 있어요.</div>`;
     renderSafetyTop(null, answers);          // 안전 신호가 있으면 최상단 배너
     const coach = sqRenderBody(answers);     // 1~4 블록
+    const dl=$('reportDl'), dlBtn=$('dlReport'), dlNote=$('dlReportNote');
+    const practice=((((answers||{}).survey||{}).recipe||{}).practice||"연습할 음식").trim();
+    if(dl){ dl.style.display=coach.safetyOn?"none":""; }
+    if(dlBtn) dlBtn.textContent=`📄 ${practice} 7일 적응 플랜 받기`;
+    if(dlNote) dlNote.textContent="결과는 짧게, 자세한 미션은 별도 파일로 — PDF로 저장하거나 인쇄할 수 있어요";
     renderRecipe(answers);                   // 식감 연결 레시피(입력 시)
     renderProducts(null, answers);           // 연습 준비물 — IDDSI 형태축(설문 기반), 안전·판단제한이면 자동 비노출
     sqRenderAddVideo();                      // 5 블록 + 영상 추가 CTA

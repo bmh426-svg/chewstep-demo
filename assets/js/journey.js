@@ -1,6 +1,6 @@
 // 방문 여정 기록 — 홈페이지 진입부터 데모까지 이벤트를 Supabase에 남긴다.
 // 로그인 전에는 anon_id로, 로그인하면 user_id까지 함께 기록.
-import { supabase, anonId, sessionId, currentUserId } from "./supabase.js";
+import { supabase, anonId, sessionId, currentUserId, runSource } from "./supabase.js";
 
 let _cachedUserId = null;
 supabase.auth.onAuthStateChange((_e, session) => {
@@ -10,6 +10,10 @@ supabase.auth.onAuthStateChange((_e, session) => {
 export async function logEvent(eventType, meta) {
   try {
     const uid = _cachedUserId ?? (await currentUserId());
+    // journey_events에는 source 컬럼이 없어 meta에 실행 출처를 남긴다.
+    // 실사용자면 아무것도 붙이지 않아 기존 meta 모양이 그대로 유지된다(하위 호환).
+    const src = runSource(null);
+    const metaOut = src ? { ...(meta || {}), _src: src } : (meta || null);
     const row = {
       anon_id: anonId(),
       session_id: sessionId(),
@@ -18,7 +22,7 @@ export async function logEvent(eventType, meta) {
       page: (document.title || "").slice(0, 120),
       path: location.pathname + location.search,
       referrer: document.referrer || null,
-      meta: meta || null,
+      meta: metaOut,
       user_agent: navigator.userAgent,
     };
     await supabase.from("journey_events").insert(row);

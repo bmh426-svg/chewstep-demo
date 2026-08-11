@@ -7,48 +7,54 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/assets/js/config.js";
 const FN = SUPABASE_URL + "/functions/v1/recipe-coach";
 
 // API 키 없이도 만들 수 있는 3가지 접근법(규칙 기반). liked=잘 먹는 음식, practice=연습할 음식.
-function templateRecipes(liked, practice) {
+// 음식에 숨겨 섞거나 현재 단계를 낮추지 않고, 아이가 무엇을 경험하는지 알 수 있게 따로 제시한다.
+function templateRecipes(liked, practice, context) {
   const L = liked, P = practice;
+  const form = (context && context.food_form) || "";
+  const stage = {
+    ground:"현재의 갈아 만든 형태", mashed:"현재의 으깬 형태", small_bits:"현재의 작은 알갱이 형태",
+    soft:"현재의 무른 유아식 형태", regular:"현재의 일반식 형태"
+  }[form] || "현재 편하게 먹는 형태";
   return [
     {
-      approach: "섞기",
+      approach: "나란히 두기",
       suitable: true,
-      menu: `${L}에 ${P} 조금 섞기`,
-      reason: `잘 먹는 ${L}에 ${P}를 아주 조금 섞어, 익숙한 맛 속에서 새로운 식감을 자연스럽게 만나게 해요.`,
+      menu: `${L} 옆에 ${P} 한 조각`,
+      reason: `잘 먹는 ${L}은 안심 음식으로 두고, ${P}는 따로 보여 아이가 직접 탐색하고 선택하게 해요.`,
       firstTry: [
-        `${L}를 평소처럼 준비해요`,
-        `${P}는 아주 잘게 다지거나 부드럽게 익혀요`,
-        `${L} 90%에 ${P} 10%만 섞어 1~2숟가락부터 시작해요`,
+        `${L}를 평소처럼 준비해요.`,
+        `${P}는 ${stage}를 유지해 한 조각만 접시 한쪽에 따로 둬요.`,
+        `먹으라고 재촉하지 않고 보고·냄새 맡고·만지는 반응을 기다려요.`,
       ],
-      nextStep: `잘 먹으면 ${P}의 비율을 조금씩 높여요.`,
-      caution: `억지로 섞지 말고, 아이가 부담스러워하면 양을 줄여요.`,
+      nextStep: `표정과 몸이 편안해지면 ${P}를 입에 대보거나 한입 먹을지 아이가 고르게 해요.`,
+      caution: `숨겨 섞거나 억지로 먹이지 말고, 아이가 멈추면 그날은 끝내요.`,
       note: "",
     },
     {
-      approach: "형태 바꾸기",
+      approach: "함께 준비하기",
       suitable: true,
-      menu: `${P}를 ${L}처럼 부드럽게`,
-      reason: `아이가 편해하는 ${L}의 형태·질감을 ${P}에도 적용해, 낯선 음식을 익숙한 방식으로 경험하게 해요.`,
+      menu: `${P} 탐색 접시 만들기`,
+      reason: `먹기 전에 ${P}를 옮기고 냄새 맡는 경험을 넣어, 식탁에서 처음 마주하는 부담을 낮춰요.`,
       firstTry: [
-        `${P}를 ${L}과 비슷한 질감(곱게 다지거나 갈기)으로 만들어요`,
-        `간과 모양을 ${L}과 비슷하게 맞춰요`,
-        `처음엔 작은 한 입 크기로 제공해요`,
+        `${P}를 ${stage}로 준비해요.`,
+        `아이에게 접시로 옮기거나 숟가락으로 건드리는 일을 맡겨요.`,
+        `완성한 뒤 ${L} 옆에 따로 두고, 먹지 않아도 참여한 것을 성공으로 봐요.`,
       ],
-      nextStep: `익숙해지면 ${P} 본래의 형태에 조금씩 가깝게 만들어요.`,
-      caution: `삼키기 어려운 크기·질감은 피하고 아이 씹기 수준에 맞춰요.`,
+      nextStep: `같은 준비 과정을 며칠 반복한 뒤 입에 대볼지 물어봐요.`,
+      caution: `칼·불 등 조리 과정은 보호자가 맡고, 아이는 안전한 탐색만 하게 해요.`,
       note: "",
     },
     {
-      approach: "곁들이기",
+      approach: "가족과 반복하기",
       suitable: true,
-      menu: `${L} 옆에 ${P} 한 입`,
-      reason: `믿고 먹는 ${L}을 '안심 음식'으로 두고, 그 옆에서 ${P}를 부담 없이 한 입씩 시도하게 해요.`,
+      menu: `가족 식탁의 ${P}`,
+      reason: `가족이 같은 음식을 편안하게 먹는 모습을 보며 ${P}를 익숙한 식탁 경험으로 만들어요.`,
       firstTry: [
-        `한 접시에 ${L}과 ${P}를 따로 담아요`,
-        `${L}를 먼저 먹어 편안한 분위기를 만들어요`,
-        `${L} 한 입 → ${P} 한 입을 번갈아 권해요(강요 없이)`,
+        `가족도 ${P}를 식탁에 함께 올려요.`,
+        `맛과 냄새를 평가하거나 먹으라고 설득하지 않고 자연스럽게 먹는 모습을 보여요.`,
+        `아이 접시에는 ${P}를 한 조각만 따로 두고 한 번만 권해요.`,
       ],
-      nextStep: `${P}를 스스로 집는 횟수가 늘면 양을 조금씩 늘려요.`,
+      nextStep: `${P}를 보고·만지는 반응이 편해지면 같은 방법으로 다시 만나요.`,
       caution: `거부하면 물러나고 다음 기회를 기다려요.`,
       note: "",
     },
@@ -69,6 +75,13 @@ function normalizeAi(r) {
   };
 }
 
+function hasStageRegression(recipe, context) {
+  const form = (context && context.food_form) || "";
+  if (form !== "soft" && form !== "regular") return false;
+  const text = JSON.stringify(recipe || {}).replace(/<[^>]+>/g, "");
+  return /믹서|곱게\s*갈|갈아서|포크로\s*(거칠게\s*)?으깨|매시|죽에\s*섞|알갱이를\s*남기|형태를\s*낮/.test(text);
+}
+
 // liked/practice + 맥락 → 레시피 목록. 반환: { source:'ai'|'template', recipes:[...] }
 export async function fetchRecipe(liked, practice, context) {
   liked = (liked || "").trim(); practice = (practice || "").trim();
@@ -80,7 +93,7 @@ export async function fetchRecipe(liked, practice, context) {
       body: JSON.stringify({ liked, practice, context: context || {} }),
     });
     const j = await r.json();
-    if (j && j.ok && j.recipe) return { source: "ai", recipes: [normalizeAi(j.recipe)] };
+    if (j && j.ok && j.recipe && !hasStageRegression(j.recipe, context)) return { source: "ai", recipes: [normalizeAi(j.recipe)] };
   } catch (e) { /* 오프라인 등 — 템플릿 폴백 */ }
-  return { source: "template", recipes: templateRecipes(liked, practice) };
+  return { source: "template", recipes: templateRecipes(liked, practice, context) };
 }
