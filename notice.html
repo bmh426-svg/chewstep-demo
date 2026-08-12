@@ -161,5 +161,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </script>
 <script src="assets/js/inquiry.js"></script>
 <script type="module" src="/assets/js/notices.js"></script>
+<!-- 여정 기록 — 사용자의 모든 행동을 남긴다: page_view · section_view · click ·
+     field_change · form_submit · scroll_depth · page_leave(dwell_ms·max_scroll).
+     입력값은 남기지 않는다(필드명·채움여부·길이구간만). assets/js/journey.js 주석 참고. -->
+<script type="module">
+  import { initJourneyAutoTrack } from "/assets/js/journey.js";
+  initJourneyAutoTrack();
+</script>
 </body>
 </html>

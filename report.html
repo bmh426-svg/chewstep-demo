@@ -113,10 +113,14 @@
         const child = link.children || {};
 
         // 형제 전환 칩 — 1명이면 만들지 않는다(없는 선택지를 보여주지 않는다)
+        // data-journey 를 명시해 여정 로그에 아이 이름이 들어가지 않게 한다 —
+        // 라벨이 없으면 journey.js 가 버튼 텍스트(= 아이 이름)를 남긴다.
+        // data-journey-private 는 이 안에 앞으로 무엇이 추가돼도 텍스트가 안 새게 하는 이중 잠금.
         const kidsBar = kids.length < 2 ? "" :
-          `<div class="kids">` + kids.map((k) => {
+          `<div class="kids" data-journey-private>` + kids.map((k) => {
             const n = esc(k.children.display_name || "아이");
-            return `<button class="kid${k.child_id===link.child_id?" on":""}" data-kid="${k.child_id}">`
+            return `<button class="kid${k.child_id===link.child_id?" on":""}" data-kid="${k.child_id}"`
+                 + ` data-journey="report:switch-child">`
                  + `<span class="av2">${n.slice(0,1)}</span>${n}</button>`;
           }).join("") + `</div>`;
 
@@ -181,6 +185,13 @@
       state("⚠️","리포트를 불러오지 못했어요", (err && err.message) ? err.message : "잠시 후 다시 시도해 주세요.");
     }
   }
+</script>
+<!-- 여정 기록 — 사용자의 모든 행동을 남긴다: page_view · section_view · click ·
+     field_change · form_submit · scroll_depth · page_leave(dwell_ms·max_scroll).
+     입력값은 남기지 않는다(필드명·채움여부·길이구간만). assets/js/journey.js 주석 참고. -->
+<script type="module">
+  import { initJourneyAutoTrack } from "/assets/js/journey.js";
+  initJourneyAutoTrack();
 </script>
 </body>
 </html>

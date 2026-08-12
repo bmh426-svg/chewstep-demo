@@ -204,14 +204,14 @@
       const step = STEPS[i], last = i === STEPS.length - 1;
       show(`
         <div class="hbar"><div class="hfill" style="width:${Math.round((i+1)/STEPS.length*100)}%"></div></div>
-        <span class="eyebrow">${esc(childName)} · 가정 식습관 · ${step.eyebrow}</span>
+        <span class="eyebrow" data-journey-private>${esc(childName)} · 가정 식습관 · ${step.eyebrow}</span>
         <h1 class="title">${step.title}</h1>
         <p class="lede">${step.lede}</p>
         <form id="hcForm">
           ${step.fields.map((f) => fieldHtml(f, data)).join("")}
           <div class="actions">
-            ${i > 0 ? `<button type="button" class="btn btn-ghost" id="hcPrev">이전</button>` : ""}
-            <button type="submit" class="btn btn-primary" id="hcNext">${last ? "다 됐어요 · 리포트 보기" : "다음"}</button>
+            ${i > 0 ? `<button type="button" class="btn btn-ghost" id="hcPrev" data-journey="homecheck:prev:${i+1}">이전</button>` : ""}
+            <button type="submit" class="btn btn-primary" id="hcNext" data-journey="homecheck:${last ? "finish" : "next:" + (i+1)}">${last ? "다 됐어요 · 리포트 보기" : "다음"}</button>
           </div>
           <div class="msg" id="hcMsg" role="status" aria-live="polite"></div>
         </form>
@@ -271,6 +271,13 @@
       });
     }
   }
+</script>
+<!-- 여정 기록 — 사용자의 모든 행동을 남긴다: page_view · section_view · click ·
+     field_change · form_submit · scroll_depth · page_leave(dwell_ms·max_scroll).
+     입력값은 남기지 않는다(필드명·채움여부·길이구간만). assets/js/journey.js 주석 참고. -->
+<script type="module">
+  import { initJourneyAutoTrack } from "/assets/js/journey.js";
+  initJourneyAutoTrack();
 </script>
 </body>
 </html>
